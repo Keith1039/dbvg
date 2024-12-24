@@ -1,0 +1,8 @@
+{
+  "users": {
+      "student_id": {
+        "Table": "students",
+        "Column": "student_id"
+      }
+  }
+}

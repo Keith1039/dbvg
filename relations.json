@@ -1,0 +1,40 @@
+{
+    "students": {
+        "team_id": {
+            "Column": "team_id",
+            "Table": "teams"
+        }
+    },
+    "team_members": {
+        "student_id": {
+            "Column": "student_id",
+            "Table": "students"
+        },
+        "team_id": {
+            "Column": "team_id",
+            "Table": "teams"
+        }
+    },
+    "teams": {
+        "liaison": {
+            "Column": "student_id",
+            "Table": "students"
+        },
+        "parameters_id": {
+            "Column": "parameters_id",
+            "Table": "parameters"
+        }
+    },
+    "user_auth": {
+        "user_id": {
+            "Column": "user_id",
+            "Table": "users"
+        }
+    },
+    "users": {
+        "student_id": {
+            "Column": "student_id",
+            "Table": "students"
+        }
+    }
+}

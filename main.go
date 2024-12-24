@@ -1,0 +1,113 @@
+package main
+
+import (
+	"database/sql"
+	"encoding/json"
+	"fmt"
+	"github.com/jimsmart/schema"
+	_ "github.com/lib/pq"
+	"log"
+	"os"
+)
+
+var db *sql.DB
+
+const postgresFKRelations = `
+	SELECT 
+		KCU1.TABLE_NAME AS FK_TABLE_NAME, 
+		KCU1.COLUMN_NAME AS FK_COLUMN_NAME, 
+		KCU2.TABLE_NAME AS REFERENCED_TABLE_NAME, 
+		KCU2.COLUMN_NAME AS REFERENCED_COLUMN_NAME
+	FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS AS RC 
+	
+	INNER JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE AS KCU1 
+		ON KCU1.CONSTRAINT_CATALOG = RC.CONSTRAINT_CATALOG  
+		AND KCU1.CONSTRAINT_SCHEMA = RC.CONSTRAINT_SCHEMA 
+		AND KCU1.CONSTRAINT_NAME = RC.CONSTRAINT_NAME 
+	
+	INNER JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE AS KCU2 
+		ON KCU2.CONSTRAINT_CATALOG = RC.UNIQUE_CONSTRAINT_CATALOG  
+		AND KCU2.CONSTRAINT_SCHEMA = RC.UNIQUE_CONSTRAINT_SCHEMA 
+		AND KCU2.CONSTRAINT_NAME = RC.UNIQUE_CONSTRAINT_NAME 
+		AND KCU2.ORDINAL_POSITION = KCU1.ORDINAL_POSITION 
+`
+
+func init() {
+	var err error
+	err = os.Setenv("DATABASE_URL", "postgres://postgres:localDB12@localhost:5432/postgres?sslmode=disable")
+	if err != nil {
+		log.Fatal(err)
+	}
+	db, err = sql.Open("postgres", os.Getenv("DATABASE_URL"))
+	if err != nil {
+		panic(err)
+	}
+}
+func main() {
+	//displayTable()
+	relations := createRelationships()
+	jsonString, err := json.MarshalIndent(relations, "", "    ")
+	if err != nil {
+		log.Fatal(err)
+	}
+	err = os.WriteFile("relations.json", jsonString, 0644)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer func(db *sql.DB) {
+		err := db.Close()
+		if err != nil {
+			log.Fatal(err)
+		}
+	}(db)
+}
+
+func displayTable() {
+	// Fetch names of all tables
+	tnames, err := schema.TableNames(db)
+	if err != nil {
+		log.Fatal(err)
+	}
+	// tnames is [][2]string
+	for i := range tnames {
+		tableName := tnames[i][1]
+		fmt.Println("Table:", tableName)
+		// Fetch column metadata for given table
+		tcols, _ := schema.ColumnTypes(db, "", tableName)
+		// tcols is []*sql.ColumnType
+		for i := range tcols {
+			fmt.Println("Column:", tcols[i].Name(), tcols[i].DatabaseTypeName())
+		}
+		// Fetch primary key for given table
+		pks, _ := schema.PrimaryKey(db, "", tableName)
+
+		// pks is []string
+		for i := range pks {
+			fmt.Println("Primary Key:", pks[i])
+		}
+		fmt.Println("........................")
+	}
+}
+
+func createRelationships() map[string]map[string]map[string]string {
+	relations := make(map[string]map[string]map[string]string)
+	var tableName, fkColumnName, refTableName, refColumnName string
+	rows, err := db.Query(postgresFKRelations)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	for rows.Next() {
+		err = rows.Scan(&tableName, &fkColumnName, &refTableName, &refColumnName)
+		if err != nil {
+			log.Fatal(err)
+		}
+		table, ok := relations[tableName]
+		if !ok {
+			relations[tableName] = map[string]map[string]string{fkColumnName: {"Table": refTableName, "Column": refColumnName}}
+		} else {
+			table[fkColumnName] = map[string]string{"Table": refTableName, "Column": refColumnName}
+		}
+	}
+	return relations
+}
