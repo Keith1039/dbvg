@@ -1,40 +1,24 @@
 {
-    "students": {
-        "team_id": {
-            "Column": "team_id",
-            "Table": "teams"
-        }
-    },
-    "team_members": {
-        "student_id": {
-            "Column": "student_id",
-            "Table": "students"
+    "a": {
+        "bref": {
+            "Column": "bkey",
+            "Table": "b"
         },
-        "team_id": {
-            "Column": "team_id",
-            "Table": "teams"
+        "cref": {
+            "Column": "ckey",
+            "Table": "c"
         }
     },
-    "teams": {
-        "liaison": {
-            "Column": "student_id",
-            "Table": "students"
-        },
-        "parameters_id": {
-            "Column": "parameters_id",
-            "Table": "parameters"
+    "c": {
+        "dref": {
+            "Column": "dkey",
+            "Table": "d"
         }
     },
-    "user_auth": {
-        "user_id": {
-            "Column": "user_id",
-            "Table": "users"
-        }
-    },
-    "users": {
-        "student_id": {
-            "Column": "student_id",
-            "Table": "students"
+    "d": {
+        "bref": {
+            "Column": "bkey",
+            "Table": "b"
         }
     }
 }
