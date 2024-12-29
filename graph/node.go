@@ -1,6 +1,6 @@
 package graph
 
-type TableInfoNode struct {
+type OrderInfoNode struct {
 	tableName       string
 	parentTableName string
 }
