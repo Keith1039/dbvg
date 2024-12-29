@@ -1,0 +1,1 @@
+ALTER TABLE IF EXISTS team_members ADD PRIMARY KEY (student_id)

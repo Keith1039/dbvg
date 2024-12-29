@@ -1,11 +1,8 @@
 package db
 
 import (
-	"container/list"
 	"database/sql"
-	"encoding/json"
 	"fmt"
-	"github.com/Keith1039/Capstone_Test/graph"
 	"github.com/jimsmart/schema"
 	_ "github.com/lib/pq"
 	"log"
@@ -73,7 +70,20 @@ func DisplayTable() {
 	}
 }
 
-func createRelationships() map[string]map[string]map[string]string {
+func GetTableMap() map[string]int {
+	tnames, err := schema.TableNames(db)
+	allNames := make(map[string]int)
+	if err != nil {
+		log.Fatal(err)
+	}
+	for i := range tnames {
+		tableName := tnames[i][1]
+		allNames[tableName] = 1
+	}
+	return allNames
+}
+
+func CreateRelationships() map[string]map[string]map[string]string {
 	relations := make(map[string]map[string]map[string]string)
 	var tableName, fkColumnName, refTableName, refColumnName string
 	rows, err := db.Query(postgresFKRelations)
@@ -96,21 +106,25 @@ func createRelationships() map[string]map[string]map[string]string {
 	return relations
 }
 
-func saveRelationships(relations map[string]map[string]map[string]string) {
-	tl := graph.TableLevels{AllRelations: relations, Stack: list.New()}
-	fmt.Println(tl.FindOrder("a"))
-	jsonString, err := json.MarshalIndent(relations, "", "    ")
+func CreateRelationshipsWithDB(database *sql.DB) map[string]map[string]map[string]string {
+	relations := make(map[string]map[string]map[string]string)
+	var tableName, fkColumnName, refTableName, refColumnName string
+	rows, err := database.Query(postgresFKRelations)
 	if err != nil {
 		log.Fatal(err)
 	}
-	err = os.WriteFile("relations.json", jsonString, 0644)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer func(db *sql.DB) {
-		err := db.Close()
+
+	for rows.Next() {
+		err = rows.Scan(&tableName, &fkColumnName, &refTableName, &refColumnName)
 		if err != nil {
 			log.Fatal(err)
 		}
-	}(db)
+		table, ok := relations[tableName]
+		if !ok {
+			relations[tableName] = map[string]map[string]string{fkColumnName: {"Table": refTableName, "Column": refColumnName}}
+		} else {
+			table[fkColumnName] = map[string]string{"Table": refTableName, "Column": refColumnName}
+		}
+	}
+	return relations
 }
