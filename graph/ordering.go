@@ -5,6 +5,7 @@ import (
 )
 
 type Ordering struct {
+	AllTables    map[string]int
 	AllRelations map[string]map[string]map[string]string
 	levelMap     map[string]int // the tables name and the level it's on from the
 	Stack        *list.List
@@ -12,6 +13,10 @@ type Ordering struct {
 
 func (tl *Ordering) FindOrder(tableName string) (map[string]int, error) {
 	var err error
+	_, exists := tl.AllTables[tableName]
+	if !exists {
+		return nil, MissingTableError{tableName}
+	}
 	tl.levelMap = make(map[string]int) // refresh the map
 	tableNode := OrderInfoNode{tableName: tableName, parentTableName: ""}
 	tl.Stack.PushBack(tableNode) // push the table node to the back of the stack
@@ -39,7 +44,7 @@ func (tl *Ordering) processNode() error {
 			tl.Stack.PushBack(OrderInfoNode{tableName: rTableName, parentTableName: tableName}) // add it to the stack
 		} else {
 			// check for potential cycle
-			if tableNode.parentTableName != rTableName {
+			if tableNode.parentTableName == rTableName {
 				return CyclicError{tableName: tableName, rTableName: rTableName} // return cyclic error
 			} else if rLevel <= level { // check if the related table is higher up or on the same level as the current table
 				tl.levelMap[rTableName] = level + 1                                                 // say hey, this should be lowered actually
