@@ -31,6 +31,16 @@ const postgresFKRelations = `
 		AND KCU2.ORDINAL_POSITION = KCU1.ORDINAL_POSITION 
 `
 
+var typeMap = map[string]string{
+	"INT4":    "INT",
+	"INT8":    "INT",
+	"INT16":   "INT",
+	"INT32":   "INT",
+	"VARCHAR": "VARCHAR",
+	"BOOL":    "BOOL",
+	"DATE":    "DATE",
+}
+
 func init() {
 	var err error
 	err = os.Setenv("DATABASE_URL", "postgres://postgres:localDB12@localhost:5432/testgres?sslmode=disable")
@@ -81,6 +91,40 @@ func GetTableMap() map[string]int {
 		allNames[tableName] = 1
 	}
 	return allNames
+}
+
+func GetColumnMap(tableName string) map[string]string {
+	m := make(map[string]string)                        // make initial map
+	tcols, err := schema.ColumnTypes(db, "", tableName) // get the column info
+	if err != nil {
+		log.Fatal(err)
+		return nil
+	}
+	for i := range tcols {
+		m[tcols[i].Name()] = typeMap[tcols[i].DatabaseTypeName()] // map the column name to it's type
+	}
+	return m
+}
+
+func GetTablePKMap() map[string]string {
+	tnames, err := schema.TableNames(db)
+	pkMap := make(map[string]string)
+	if err != nil {
+		log.Fatal(err)
+	}
+	for i := range tnames {
+		tableName := tnames[i][1]
+		pks, err := schema.PrimaryKey(db, "", tableName)
+		if err != nil {
+			log.Fatal(err)
+		}
+		if len(pks) >= 1 {
+			pkMap[tableName] = pks[0]
+		} else {
+			pkMap[tableName] = ""
+		}
+	}
+	return pkMap
 }
 
 func CreateRelationships() map[string]map[string]map[string]string {

@@ -2,6 +2,7 @@ package graph
 
 import (
 	"container/list"
+	"github.com/Keith1039/Capstone_Test/db"
 )
 
 type Ordering struct {
@@ -9,6 +10,12 @@ type Ordering struct {
 	AllRelations map[string]map[string]map[string]string
 	levelMap     map[string]int // the tables name and the level it's on from the
 	Stack        *list.List
+}
+
+func (tl *Ordering) Init() {
+	tl.AllTables = db.GetTableMap()
+	tl.AllRelations = db.CreateRelationships()
+	tl.Stack = list.New()
 }
 
 func (tl *Ordering) FindOrder(tableName string) (map[string]int, error) {
