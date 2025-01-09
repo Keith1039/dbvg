@@ -1,20 +1,31 @@
 package graph
 
-import "fmt"
+import (
+	"container/list"
+	"fmt"
+)
 
 type MissingTableError struct {
 	tableName string
 }
 
 func (e MissingTableError) Error() string {
-	return fmt.Sprintf("Table %s does not exist in database", e.tableName)
+	return fmt.Sprintf("Table '%s' does not exist in database", e.tableName)
 }
 
 type CyclicError struct {
-	tableName  string
-	rTableName string
+	cycles *list.List
 }
 
 func (e CyclicError) Error() string {
-	return fmt.Sprintf("Circular dependency between tables %s and %s detected", e.tableName, e.rTableName)
+	cycleString := "error, the following cycles have been detected in the database schema: "
+	node := e.cycles.Front()
+	for node != nil {
+		cycleString += node.Value.(string)
+		if node.Next() != nil {
+			cycleString += " | "
+		}
+		node = node.Next()
+	}
+	return cycleString
 }

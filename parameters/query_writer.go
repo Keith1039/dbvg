@@ -6,13 +6,12 @@ import (
 	"github.com/Keith1039/Capstone_Test/db"
 	"github.com/Keith1039/Capstone_Test/graph"
 	"log"
-	"sort"
+	"strings"
 )
 
 type QueryWriter struct {
 	TableName        string
 	AllRelations     map[string]map[string]map[string]string
-	LevelMap         map[string]int
 	pkMap            map[string]string
 	fkMap            map[string]map[string]string
 	TableOrderQueue  *list.List // queue
@@ -22,16 +21,13 @@ type QueryWriter struct {
 
 func (qw *QueryWriter) Init() error {
 	var err error
+	qw.TableName = strings.ToLower(qw.TableName)
 	ordering := graph.Ordering{}
 	ordering.Init()
 	qw.AllRelations = db.CreateRelationships()
-	qw.LevelMap, err = ordering.FindOrder(qw.TableName)
-	if err != nil {
-		return err
-	}
 	qw.pkMap = db.GetTablePKMap()
 	qw.SetFKMap()
-	qw.TableOrderQueue = list.New()
+	qw.TableOrderQueue, err = ordering.FindOrder(qw.TableName) // get the topological ordering of tables
 	qw.InsertQueryQueue = list.New()
 	qw.DeleteQueryQueue = list.New()
 	return err
@@ -50,22 +46,6 @@ func (qw *QueryWriter) SetFKMap() {
 		}
 	}
 	qw.fkMap = m
-}
-
-func (qw *QueryWriter) CreateTableOrder() {
-	l := list.New()
-	tnames := make([]string, 0, len(qw.LevelMap))
-	for key := range qw.LevelMap {
-		tnames = append(tnames, key)
-	}
-	// sort in descending order
-	sort.SliceStable(tnames, func(i, j int) bool {
-		return qw.LevelMap[tnames[i]] > qw.LevelMap[tnames[j]]
-	})
-	for _, tname := range tnames {
-		l.PushBack(tname) // push to the back of the queue
-	}
-	qw.TableOrderQueue = l // set the queue
 }
 
 func (qw *QueryWriter) ProcessTables() {
