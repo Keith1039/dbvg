@@ -25,10 +25,10 @@ func (tl *Ordering) HasCycles() *list.List {
 	for tname := range tl.AllTables {
 		visited[tname] = false
 	}
-
+	topologicalNodes := GetTopologicalNodes(tl.AllTables, tl.AllRelations)
 	for tableName := range visited {
-		newCycles, localVisited := tl.findCycles(tableName) // find the cycles and the visited tables
-		cycles.PushBack(newCycles)                          // append the new list to the current one
+		newCycles, localVisited := tl.findCycles(tableName, topologicalNodes) // find the cycles and the visited tables
+		cycles.PushBackList(newCycles)                                        // append the new list to the current one
 		for local := range localVisited {
 			delete(visited, local) // delete visited tables since they have already been covered
 		}
@@ -38,14 +38,13 @@ func (tl *Ordering) HasCycles() *list.List {
 
 func (tl *Ordering) hasCyclesForTable(tableName string) *list.List {
 	// checks if there is a cycle in the path of a given table
-	cycles, _ := tl.findCycles(tableName)
+	cycles, _ := tl.findCycles(tableName, GetTopologicalNodes(tl.AllTables, tl.AllRelations))
 	return cycles
 }
 
-func (tl *Ordering) findCycles(tableName string) (*list.List, map[string]bool) {
+func (tl *Ordering) findCycles(tableName string, topologicalNodes map[string]*TopologicalNode) (*list.List, map[string]bool) {
 	var nextTable string
 	visited := make(map[string]bool) // map of tables we've visited
-	topologicalNodes := GetTopologicalNodes(tl.AllTables, tl.AllRelations)
 	node := topologicalNodes[tableName]
 	node.path = node.TableName
 	cycles := list.New()    // cycles list
@@ -123,6 +122,26 @@ func (tl *Ordering) FindOrder(tableName string) (*list.List, error) {
 	return tl.Topological(tableName) // return the topological ordering
 }
 
+func (tl *Ordering) CycleBreaking(cycles *list.List) *list.List {
+	tables := list.New()
+	tablesMap := getTablesMap(cycles) // a map that stores which tables are in each cycle
+	for cycles.Len() > 0 {
+		tablesMentioned := getFrequency(cycles)            // we get a map of tables and how often they appear
+		mostMentioned := getMostMentioned(tablesMentioned) // get the problem table
+		tables.PushBack(mostMentioned)                     // add the most mentioned to the list
+		node := cycles.Front()
+		for node != nil {
+			// if the most mentioned is in this node, remove the node from the list
+			if tablesMap[node.Value.(string)][mostMentioned] {
+				cycles.Remove(node)
+			}
+			node = node.Next() // move to the next node
+		}
+	}
+
+	return tables
+}
+
 func cleanCyclicPath(cString string) string {
 	allTables := strings.Split(cString, ",")
 	cyleTable := allTables[len(allTables)-1] // get the last table
@@ -134,6 +153,54 @@ func cleanCyclicPath(cString string) string {
 			i++
 		}
 	}
-	// the first string is also the last so we cut the last string off to not have duplicates in string
-	return strings.Join(allTables[i:len(allTables)], " --> ")
+	return strings.Join(allTables[i:], " --> ")
+}
+
+func getTablesMap(cycles *list.List) map[string]map[string]bool {
+	m := make(map[string]map[string]bool)
+	node := cycles.Front()
+	for node != nil {
+		l := make(map[string]bool)
+		cycleArr := strings.Split(node.Value.(string), " --> ") // get the array of strings
+		for i := 0; i < len(cycleArr)-1; i++ {                  // we skip the last since it's a duplicate of the first
+			table := cycleArr[i]
+			l[table] = true // add the table to the map
+		}
+		m[node.Value.(string)] = l // set the array
+		node = node.Next()         // move to the next
+	}
+	return m
+}
+
+func getFrequency(cycles *list.List) map[string]int {
+	m := make(map[string]int)
+	node := cycles.Front()
+	for node != nil {
+		cycleArr := strings.Split(node.Value.(string), " --> ") // get the array of strings
+		cycleArr = cycleArr[0 : len(cycleArr)-1]                // cut off the end
+		for _, table := range cycleArr {
+			_, exists := m[table]
+			// unnecessary but it makes more sense this way
+			if !exists {
+				m[table] = 1
+			} else {
+				m[table] = m[table] + 1
+			}
+		}
+		node = node.Next() // move to the next node
+	}
+	return m
+}
+
+func getMostMentioned(fmap map[string]int) string {
+	var k string
+	var v int
+	// loop over the map
+	for key, value := range fmap {
+		if value > v { // check if the value of the current key is greater than current
+			k = key   // set the new key
+			v = value // set the new value
+		}
+	}
+	return k
 }
