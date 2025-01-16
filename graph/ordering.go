@@ -131,11 +131,12 @@ func (tl *Ordering) CycleBreaking(cycles *list.List) *list.List {
 		tables.PushBack(mostMentioned)                     // add the most mentioned to the list
 		node := cycles.Front()
 		for node != nil {
+			nextNode := node.Next() // next node
 			// if the most mentioned is in this node, remove the node from the list
 			if tablesMap[node.Value.(string)][mostMentioned] {
 				cycles.Remove(node)
 			}
-			node = node.Next() // move to the next node
+			node = nextNode
 		}
 	}
 
