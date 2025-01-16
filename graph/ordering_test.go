@@ -1,16 +1,16 @@
 package graph
 
 import (
-	"container/list"
 	"database/sql"
+	"errors"
 	"fmt"
-	"github.com/Keith1039/Capstone_Test/db"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	_ "github.com/lib/pq"
 	"log"
 	"os"
+	"strings"
 	"testing"
 )
 
@@ -70,35 +70,56 @@ func buildUp(caseName string) error {
 
 func TestOrdering_FindOrderCase1(t *testing.T) {
 	// case where something on level 2 is moved down to level 4
+	var builder strings.Builder
 	defer drop()
 	caseName := "case1"
 	err := buildUp(caseName)
 	if err != nil {
 		t.Fatal(err)
 	}
-	relationships := db.CreateRelationshipsWithDB(database)
-	ordering := Ordering{AllTables: db.GetTableMap(), AllRelations: relationships, Stack: list.New()}
+	ordering := Ordering{}
+	ordering.Init()
 	order, err := ordering.FindOrder("a")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if order["a"] != 1 || order["b"] != 4 || order["c"] != 2 || order["d"] != 3 {
-		t.Errorf("Incorect order. Correct order should be a:1, b:4, c:2, d:3. Instead got a:%d, b:%d, c:%d, d:%d.", order["a"], order["b"], order["c"], order["d"])
+	correctOrder := []string{"b", "d", "c", "a"}
+	if order.Len() != len(correctOrder) {
+		t.Fatalf("order.Len() = %d, want %d", order.Len(), len(correctOrder))
+	}
+	i := 0
+	flag := true
+	node := order.Front()
+	for node != nil && flag {
+		flag = node.Value.(string) == correctOrder[i]
+		i++
+		node = node.Next()
+	}
+	if !flag {
+		node = order.Front()
+		for node != nil {
+			builder.WriteString(node.Value.(string))
+			node = node.Next()
+		}
+		t.Errorf("Incorect order. Correct order should be a:1, b:4, c:2, d:3. Instead got %s", builder.String())
 	}
 }
 
 func TestOrdering_FindOrderCase2(t *testing.T) {
 	// case where there's a cyclic dependency
+	var cyclicError CyclicError
 	defer drop()
 	caseName := "case2"
 	err := buildUp(caseName)
 	if err != nil {
 		t.Fatal(err)
 	}
-	relationships := db.CreateRelationshipsWithDB(database)
-	ordering := Ordering{AllTables: db.GetTableMap(), AllRelations: relationships, Stack: list.New()}
+
+	ordering := Ordering{}
+	ordering.Init()
 	_, err = ordering.FindOrder("team_members")
-	if err == nil {
+	properError := errors.As(err, &cyclicError)
+	if !properError || err == nil {
 		t.Errorf("Cyclic error not detected between tables teams and students")
 	}
 }
@@ -111,12 +132,13 @@ func TestOrdering_FindOrderCase3(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	relationships := db.CreateRelationshipsWithDB(database)
-	ordering := Ordering{AllTables: db.GetTableMap(), AllRelations: relationships, Stack: list.New()}
+
+	ordering := Ordering{}
+	ordering.Init()
 	order, err := ordering.FindOrder("users")
 	if err != nil {
 		t.Errorf("Unexpected Error: %s", err.Error())
-	} else if order["users"] != 1 {
+	} else if order.Front().Value.(string) != "users" {
 		t.Errorf("Missing root table")
 	}
 }
@@ -128,14 +150,15 @@ func TestOrdering_FindOrderCase4(t *testing.T) {
 	if err != nil {
 		t.Fatal("Error should have been given")
 	}
-	relationships := db.CreateRelationshipsWithDB(database)
-	ordering := Ordering{AllTables: db.GetTableMap(), AllRelations: relationships, Stack: list.New()}
+	ordering := Ordering{}
+	ordering.Init()
 	order, err := ordering.FindOrder("team_members")
 	if err == nil {
 		t.Fatal("Missing table error should have occurred")
 	}
-	if len(order) != 0 {
+	// I only nil check because IDE was being annoying about it
+	if order != nil && order.Len() != 0 {
 		fmt.Println(order)
-		t.Errorf("Empty schema given so the length should be 0 but it isn't. Length is %d", len(order))
+		t.Errorf("Empty schema given so the length should be 0 but it isn't. Length is %d", order.Len())
 	}
 }
