@@ -106,6 +106,19 @@ func GetColumnMap(tableName string) map[string]string {
 	return m
 }
 
+func GetRawColumnMap(tableName string) map[string]string {
+	m := make(map[string]string)                        // make initial map
+	tcols, err := schema.ColumnTypes(db, "", tableName) // get the column info
+	if err != nil {
+		log.Fatal(err)
+		return nil
+	}
+	for i := range tcols {
+		m[tcols[i].Name()] = tcols[i].DatabaseTypeName() // map the column name to it's type
+	}
+	return m
+}
+
 func GetTablePKMap() map[string]string {
 	tnames, err := schema.TableNames(db)
 	pkMap := make(map[string]string)
@@ -145,6 +158,29 @@ func CreateRelationships() map[string]map[string]map[string]string {
 			relations[tableName] = map[string]map[string]string{fkColumnName: {"Table": refTableName, "Column": refColumnName}}
 		} else {
 			table[fkColumnName] = map[string]string{"Table": refTableName, "Column": refColumnName}
+		}
+	}
+	return relations
+}
+
+func CreateInverseRelationships() map[string]map[string]map[string]string {
+	relations := make(map[string]map[string]map[string]string)
+	var tableName, fkColumnName, refTableName, refColumnName string
+	rows, err := db.Query(postgresFKRelations)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	for rows.Next() {
+		err = rows.Scan(&tableName, &fkColumnName, &refTableName, &refColumnName)
+		if err != nil {
+			log.Fatal(err)
+		}
+		table, ok := relations[refTableName]
+		if !ok {
+			relations[refTableName] = map[string]map[string]string{tableName: {"Column": refColumnName, "FKColumn": fkColumnName}}
+		} else {
+			table[tableName] = map[string]string{"Column": refColumnName, "FKColumn": fkColumnName}
 		}
 	}
 	return relations

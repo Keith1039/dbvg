@@ -2,6 +2,7 @@ package graph
 
 import (
 	"container/list"
+	"fmt"
 	"github.com/Keith1039/Capstone_Test/db"
 	"strings"
 )
@@ -141,6 +142,39 @@ func (tl *Ordering) CycleBreaking(cycles *list.List) *list.List {
 	}
 
 	return tables
+}
+
+func (tl *Ordering) CreateSuggestions(cycles *list.List) *list.List {
+	var builder strings.Builder
+	pkMap := db.GetTablePKMap()
+	inverseRelationships := db.CreateInverseRelationships()
+	queries := list.New()
+	node := cycles.Front()
+	for node != nil {
+		tableName := node.Value.(string)
+		tableRelations := inverseRelationships[tableName]
+		colMap := db.GetRawColumnMap(tableName)
+		for table, relation := range tableRelations {
+			refColMap := db.GetRawColumnMap(table)
+			// first format the string to get rid of the reference column
+			queries.PushBack(fmt.Sprintf("ALTER TABLE %s DROP COLUMN %s;", table, relation["FKColumn"]))
+			query := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s_%s(\n", tableName, table)
+			builder.WriteString(query)
+			query = fmt.Sprintf("\t %s %s,\n\t %s %s, ", tableName+"_ref", colMap[relation["Column"]], table+"_ref", refColMap[pkMap[table]])
+			builder.WriteString(query)
+			query = fmt.Sprintf("\n\tFOREIGN KEY (%s) REFERENCES %s,", tableName+"_ref", tableName)
+			builder.WriteString(query)
+			query = fmt.Sprintf("\n\tFOREIGN KEY (%s) REFERENCES %s,", table+"_ref", table)
+			builder.WriteString(query)
+			query = fmt.Sprintf("\n\tPRIMARY KEY (%s, %s)\n)", tableName+"_ref", table+"_ref")
+			builder.WriteString(query)
+			queries.PushBack(builder.String())
+			builder.Reset()
+
+		}
+		node = node.Next()
+	}
+	return queries
 }
 
 func cleanCyclicPath(cString string) string {
