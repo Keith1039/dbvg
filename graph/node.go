@@ -1,6 +1,6 @@
 package graph
 
-type TopologicalNode struct {
+type topologicalNode struct {
 	TableName     string
 	path          string
 	RelatedTables []string
@@ -9,19 +9,8 @@ type TopologicalNode struct {
 	completed     bool
 }
 
-type OrderInfoNode struct {
-	tableName       string
-	parentTableName string
-}
-
-type TableNode struct {
-	TableName  string
-	ColumnData map[string]string
-	Parameters map[string]string
-}
-
-func GetTopologicalNodes(allTables map[string]int, allRelations map[string]map[string]map[string]string) map[string]*TopologicalNode {
-	m := make(map[string]*TopologicalNode) // map of the table names tied to the node
+func getTopologicalNodes(allTables map[string]int, allRelations map[string]map[string]map[string]string) map[string]*topologicalNode {
+	m := make(map[string]*topologicalNode) // map of the table names tied to the node
 	for tableName := range allTables {
 		relations, exists := allRelations[tableName]
 		if exists {
@@ -36,10 +25,10 @@ func GetTopologicalNodes(allTables map[string]int, allRelations map[string]map[s
 				arr[slider] = key
 				slider++
 			}
-			node := &TopologicalNode{TableName: tableName, RelatedTables: arr}
+			node := &topologicalNode{TableName: tableName, RelatedTables: arr}
 			m[tableName] = node
 		} else {
-			m[tableName] = &TopologicalNode{TableName: tableName, completed: true}
+			m[tableName] = &topologicalNode{TableName: tableName, completed: true}
 		}
 	}
 	return m

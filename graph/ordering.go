@@ -7,25 +7,25 @@ import (
 )
 
 type Ordering struct {
-	AllTables    map[string]int
-	AllRelations map[string]map[string]map[string]string
-	Stack        *list.List
+	allTables    map[string]int
+	allRelations map[string]map[string]map[string]string
+	stack        *list.List
 }
 
 func (tl *Ordering) Init() {
-	tl.AllTables = db.GetTableMap()
-	tl.AllRelations = db.CreateRelationships()
-	tl.Stack = list.New()
+	tl.allTables = db.GetTableMap()
+	tl.allRelations = db.CreateRelationships()
+	tl.stack = list.New()
 }
 
-func (tl *Ordering) HasCycles() *list.List {
+func (tl *Ordering) GetCycles() *list.List {
 	// check if there is a cycle in the entire database schema
 	cycles := list.New()
 	visited := make(map[string]bool)
-	for tname := range tl.AllTables {
+	for tname := range tl.allTables {
 		visited[tname] = false
 	}
-	topologicalNodes := GetTopologicalNodes(tl.AllTables, tl.AllRelations)
+	topologicalNodes := getTopologicalNodes(tl.allTables, tl.allRelations)
 	for tableName := range visited {
 		newCycles, localVisited := tl.findCycles(tableName, topologicalNodes) // find the cycles and the visited tables
 		cycles.PushBackList(newCycles)                                        // append the new list to the current one
@@ -36,13 +36,13 @@ func (tl *Ordering) HasCycles() *list.List {
 	return cycles // return all cycles found
 }
 
-func (tl *Ordering) hasCyclesForTable(tableName string) *list.List {
+func (tl *Ordering) getCyclesForTable(tableName string) *list.List {
 	// checks if there is a cycle in the path of a given table
-	cycles, _ := tl.findCycles(tableName, GetTopologicalNodes(tl.AllTables, tl.AllRelations))
+	cycles, _ := tl.findCycles(tableName, getTopologicalNodes(tl.allTables, tl.allRelations))
 	return cycles
 }
 
-func (tl *Ordering) findCycles(tableName string, topologicalNodes map[string]*TopologicalNode) (*list.List, map[string]bool) {
+func (tl *Ordering) findCycles(tableName string, topologicalNodes map[string]*topologicalNode) (*list.List, map[string]bool) {
 	var nextTable string
 	visited := make(map[string]bool) // map of tables we've visited
 	node := topologicalNodes[tableName]
@@ -51,7 +51,7 @@ func (tl *Ordering) findCycles(tableName string, topologicalNodes map[string]*To
 	backtrack := list.New() // queue
 	backtrack.PushBack(node)
 	for backtrack.Len() > 0 {
-		node = backtrack.Front().Value.(*TopologicalNode)
+		node = backtrack.Front().Value.(*topologicalNode)
 		node.visited = true // show that we've visited the node
 		visited[node.TableName] = true
 		if node.completed {
@@ -81,17 +81,17 @@ func (tl *Ordering) findCycles(tableName string, topologicalNodes map[string]*To
 	return cycles, visited
 }
 
-func (tl *Ordering) Topological(tableName string) (*list.List, error) {
-	_, exist := tl.AllTables[tableName]
+func (tl *Ordering) topological(tableName string) (*list.List, error) {
+	_, exist := tl.allTables[tableName]
 	if !exist {
 		return nil, MissingTableError{tableName}
 	}
-	topologicalNodes := GetTopologicalNodes(tl.AllTables, tl.AllRelations)
+	topologicalNodes := getTopologicalNodes(tl.allTables, tl.allRelations)
 	l := list.New()                                  // create queue
 	backtrack := list.New()                          // create queue
 	backtrack.PushFront(topologicalNodes[tableName]) // add the first entry
 	for backtrack.Len() > 0 {
-		node := backtrack.Front().Value.(*TopologicalNode) // get the node pointer
+		node := backtrack.Front().Value.(*topologicalNode) // get the node pointer
 		if node.completed {                                // check if the node is marked as completed
 			l.PushBack(node.TableName)               // add it to the queue we return
 			delete(topologicalNodes, node.TableName) // remove the table from the dict
@@ -110,16 +110,16 @@ func (tl *Ordering) Topological(tableName string) (*list.List, error) {
 	return l, nil
 }
 
-func (tl *Ordering) FindOrder(tableName string) (*list.List, error) {
-	_, exists := tl.AllTables[tableName] // check if the table exists
+func (tl *Ordering) GetOrder(tableName string) (*list.List, error) {
+	_, exists := tl.allTables[tableName] // check if the table exists
 	if !exists {
 		return nil, MissingTableError{tableName} // return missing table error
 	}
-	cycles := tl.hasCyclesForTable(tableName) // get all cycles in that tables path
+	cycles := tl.getCyclesForTable(tableName) // get all cycles in that tables path
 	if cycles.Len() > 0 {
 		return nil, CyclicError{cycles: cycles} // return cyclic error
 	}
-	return tl.Topological(tableName) // return the topological ordering
+	return tl.topological(tableName) // return the topological ordering
 }
 
 func cleanCyclicPath(cString string) string {
@@ -183,7 +183,7 @@ func getMostMentioned(fmap map[string]int) string {
 	}
 	return k
 }
-func (tl *Ordering) CycleBreaking(cycles *list.List) *list.List {
+func (tl *Ordering) GetCycleBreakingOrder(cycles *list.List) *list.List {
 	tables := list.New()
 	tablesMap := getTablesMap(cycles) // a map that stores which tables are in each cycle
 	for cycles.Len() > 0 {
