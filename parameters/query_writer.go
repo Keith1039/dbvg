@@ -27,7 +27,7 @@ func (qw *QueryWriter) Init() error {
 	qw.AllRelations = db.CreateRelationships()
 	qw.pkMap = db.GetTablePKMap()
 	qw.SetFKMap()
-	qw.TableOrderQueue, err = ordering.FindOrder(qw.TableName) // get the topological ordering of tables
+	qw.TableOrderQueue, err = ordering.GetOrder(qw.TableName) // get the topological ordering of tables
 	qw.InsertQueryQueue = list.New()
 	qw.DeleteQueryQueue = list.New()
 	return err

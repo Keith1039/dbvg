@@ -30,14 +30,14 @@ func main() {
 	queryWriter.Init()
 
 	fmt.Println("Detecting cycles....")
-	cycles := ord.HasCycles()
+	cycles := ord.GetCycles()
 	node := cycles.Front()
 	for node != nil {
 		fmt.Println(fmt.Sprintf("cycle detected: %s", node.Value.(string)))
 		node = node.Next()
 	}
 	fmt.Println("Generating queries to break cycle while maintaining relationships...")
-	problemTables := ord.CycleBreaking(cycles)
+	problemTables := ord.GetCycleBreakingOrder(cycles)
 	queries := queryWriter.CreateSuggestions(problemTables) // create the suggestions
 	node = queries.Front()
 	i := 1
@@ -56,7 +56,7 @@ func main() {
 	}
 	fmt.Println("Checking if cycles still exist...")
 	ord.Init()               // reset the maps
-	cycles = ord.HasCycles() // check for cycles
+	cycles = ord.GetCycles() // check for cycles
 	if cycles.Len() == 0 {
 		fmt.Println("No cycles found!")
 	} else {

@@ -79,7 +79,7 @@ func TestOrdering_FindOrderCase1(t *testing.T) {
 	}
 	ordering := Ordering{}
 	ordering.Init()
-	order, err := ordering.FindOrder("a")
+	order, err := ordering.GetOrder("a")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -117,7 +117,7 @@ func TestOrdering_FindOrderCase2(t *testing.T) {
 
 	ordering := Ordering{}
 	ordering.Init()
-	_, err = ordering.FindOrder("team_members")
+	_, err = ordering.GetOrder("team_members")
 	properError := errors.As(err, &cyclicError)
 	if !properError || err == nil {
 		t.Errorf("Cyclic error not detected between tables teams and students")
@@ -135,7 +135,7 @@ func TestOrdering_FindOrderCase3(t *testing.T) {
 
 	ordering := Ordering{}
 	ordering.Init()
-	order, err := ordering.FindOrder("users")
+	order, err := ordering.GetOrder("users")
 	if err != nil {
 		t.Errorf("Unexpected Error: %s", err.Error())
 	} else if order.Front().Value.(string) != "users" {
@@ -152,7 +152,7 @@ func TestOrdering_FindOrderCase4(t *testing.T) {
 	}
 	ordering := Ordering{}
 	ordering.Init()
-	order, err := ordering.FindOrder("team_members")
+	order, err := ordering.GetOrder("team_members")
 	if err == nil {
 		t.Fatal("Missing table error should have occurred")
 	}
