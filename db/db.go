@@ -1,6 +1,7 @@
 package db
 
 import (
+	"container/list"
 	"database/sql"
 	"fmt"
 	"github.com/jimsmart/schema"
@@ -207,4 +208,14 @@ func CreateRelationshipsWithDB(database *sql.DB) map[string]map[string]map[strin
 		}
 	}
 	return relations
+}
+
+func RunQueries(queries *list.List) error {
+	var err error
+	node := queries.Front()
+	for node != nil && err == nil {
+		_, err = db.Query(node.Value.(string))
+		node = node.Next()
+	}
+	return err
 }

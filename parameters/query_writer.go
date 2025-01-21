@@ -83,6 +83,37 @@ func (qw *QueryWriter) ProcessTable() {
 	qw.InsertQueryQueue.PushBack(query)
 	qw.TableOrderQueue.Remove(qw.TableOrderQueue.Front()) // remove the first in the queue
 }
+func (qw *QueryWriter) CreateSuggestions(cycles *list.List) *list.List {
+	var builder strings.Builder
+	inverseRelationships := db.CreateInverseRelationships()
+	queries := list.New()
+	node := cycles.Front()
+	for node != nil {
+		refTable := node.Value.(string)
+		tableRelations := inverseRelationships[refTable]
+		colMap := db.GetRawColumnMap(refTable)
+		for problemTable, relation := range tableRelations {
+			refColMap := db.GetRawColumnMap(problemTable)
+			// first format the string to get rid of the reference column
+			queries.PushBack(fmt.Sprintf("ALTER TABLE %s DROP COLUMN %s;", problemTable, relation["FKColumn"]))
+			query := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s_%s(\n", refTable, problemTable)
+			builder.WriteString(query)
+			query = fmt.Sprintf("\t %s %s,\n\t %s %s, ", refTable+"_ref", colMap[relation["Column"]], problemTable+"_ref", refColMap[qw.pkMap[problemTable]])
+			builder.WriteString(query)
+			query = fmt.Sprintf("\n\tFOREIGN KEY (%s) REFERENCES %s,", refTable+"_ref", refTable)
+			builder.WriteString(query)
+			query = fmt.Sprintf("\n\tFOREIGN KEY (%s) REFERENCES %s,", problemTable+"_ref", problemTable)
+			builder.WriteString(query)
+			query = fmt.Sprintf("\n\tPRIMARY KEY (%s, %s)\n)", refTable+"_ref", problemTable+"_ref")
+			builder.WriteString(query)
+			queries.PushBack(builder.String())
+			builder.Reset()
+
+		}
+		node = node.Next()
+	}
+	return queries
+}
 
 func createTable(tableName string) table {
 	t := table{TableName: tableName}
