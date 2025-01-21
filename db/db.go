@@ -1,6 +1,7 @@
 package db
 
 import (
+	"container/list"
 	"database/sql"
 	"fmt"
 	"github.com/jimsmart/schema"
@@ -106,6 +107,19 @@ func GetColumnMap(tableName string) map[string]string {
 	return m
 }
 
+func GetRawColumnMap(tableName string) map[string]string {
+	m := make(map[string]string)                        // make initial map
+	tcols, err := schema.ColumnTypes(db, "", tableName) // get the column info
+	if err != nil {
+		log.Fatal(err)
+		return nil
+	}
+	for i := range tcols {
+		m[tcols[i].Name()] = tcols[i].DatabaseTypeName() // map the column name to it's type
+	}
+	return m
+}
+
 func GetTablePKMap() map[string]string {
 	tnames, err := schema.TableNames(db)
 	pkMap := make(map[string]string)
@@ -150,6 +164,28 @@ func CreateRelationships() map[string]map[string]map[string]string {
 	return relations
 }
 
+func CreateInverseRelationships() map[string]map[string]map[string]string {
+	relations := make(map[string]map[string]map[string]string)
+	var tableName, fkColumnName, refTableName, refColumnName string
+	rows, err := db.Query(postgresFKRelations)
+	if err != nil {
+		log.Fatal(err)
+	}
+	for rows.Next() {
+		err = rows.Scan(&tableName, &fkColumnName, &refTableName, &refColumnName)
+		if err != nil {
+			log.Fatal(err)
+		}
+		table, ok := relations[refTableName]
+		if !ok {
+			relations[refTableName] = map[string]map[string]string{tableName: {"Column": refColumnName, "FKColumn": fkColumnName}}
+		} else {
+			table[tableName] = map[string]string{"Column": refColumnName, "FKColumn": fkColumnName}
+		}
+	}
+	return relations
+}
+
 func CreateRelationshipsWithDB(database *sql.DB) map[string]map[string]map[string]string {
 	relations := make(map[string]map[string]map[string]string)
 	var tableName, fkColumnName, refTableName, refColumnName string
@@ -171,4 +207,14 @@ func CreateRelationshipsWithDB(database *sql.DB) map[string]map[string]map[strin
 		}
 	}
 	return relations
+}
+
+func RunQueries(queries *list.List) error {
+	var err error
+	node := queries.Front()
+	for node != nil && err == nil {
+		_, err = db.Query(node.Value.(string))
+		node = node.Next()
+	}
+	return err
 }
