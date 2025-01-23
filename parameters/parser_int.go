@@ -9,7 +9,7 @@ import (
 
 const DEFAULTRANGE = "0,100"
 const DEFAULTSTATIC = "0"
-const DEFAULTINTCODE = RANDOM
+const DEFAULTINTCODE = SEQ
 
 type IntColumnParser struct {
 	Column column

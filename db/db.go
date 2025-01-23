@@ -104,23 +104,20 @@ func GetRawColumnMap(db *sql.DB, tableName string) map[string]string {
 	return m
 }
 
-func GetTablePKMap(db *sql.DB) map[string]string {
+func GetTablePKMap(db *sql.DB) map[string][]string {
+	var pks []string
 	tnames, err := schema.TableNames(db)
-	pkMap := make(map[string]string)
+	pkMap := make(map[string][]string)
 	if err != nil {
 		log.Fatal(err)
 	}
 	for i := range tnames {
 		tableName := tnames[i][1]
-		pks, err := schema.PrimaryKey(db, "", tableName)
+		pks, err = schema.PrimaryKey(db, "", tableName)
 		if err != nil {
 			log.Fatal(err)
 		}
-		if len(pks) >= 1 {
-			pkMap[tableName] = pks[0]
-		} else {
-			pkMap[tableName] = ""
-		}
+		pkMap[tableName] = pks
 	}
 	return pkMap
 }
