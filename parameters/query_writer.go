@@ -22,8 +22,8 @@ func NewQueryWriterFor(db *sql.DB, tableName string) (*QueryWriter, error) {
 type QueryWriter struct {
 	db               *sql.DB
 	TableName        string
+	tableMap         map[string]*table
 	allRelations     map[string]map[string]map[string]string
-	pkMap            map[string]string
 	fkMap            map[string]map[string]string
 	TableOrderQueue  *list.List // queue
 	InsertQueryQueue *list.List // queue
@@ -35,9 +35,12 @@ func (qw *QueryWriter) Init() error {
 	qw.TableName = strings.ToLower(qw.TableName)
 	ordering := graph.NewOrdering(qw.db) // get a new ordering
 	qw.allRelations = db.CreateRelationships(qw.db)
-	qw.pkMap = db.GetTablePKMap(qw.db)
-	qw.SetFKMap()
+	qw.setFKMap()
 	qw.TableOrderQueue, err = ordering.GetOrder(qw.TableName) // get the topological ordering of tables
+	if err != nil {
+		return err
+	}
+	qw.setTableMap()
 	qw.InsertQueryQueue = list.New()
 	qw.DeleteQueryQueue = list.New()
 	return err
@@ -49,7 +52,7 @@ func (qw *QueryWriter) ChangeTableToWriteFor(tableName string) error {
 	return qw.Init()
 }
 
-func (qw *QueryWriter) SetFKMap() {
+func (qw *QueryWriter) setFKMap() {
 	m := make(map[string]map[string]string)
 	for _, relations := range qw.allRelations {
 		for _, relation := range relations {
@@ -65,22 +68,28 @@ func (qw *QueryWriter) SetFKMap() {
 }
 
 func (qw *QueryWriter) ProcessTables() {
-	for qw.TableOrderQueue.Len() > 0 {
-		qw.ProcessTable()
+	node := qw.TableOrderQueue.Front()
+	for node != nil {
+		qw.processTable(node.Value.(string))
+		node = node.Next()
 	}
+	//for qw.TableOrderQueue.Len() > 0 {
+	//	qw.processTable()
+	//}
 }
 
-func (qw *QueryWriter) ProcessTable() {
+func (qw *QueryWriter) processTable(tableName string) {
 	//var writer SQLWriter
-	colString := "("
-	colValString := "("
-	tableName := qw.TableOrderQueue.Front().Value.(string)
-	t := qw.createTable(tableName)
+	var colBuilder, colValBuilder, deleteBuilder strings.Builder
+	colBuilder.WriteString("(")
+	colValBuilder.WriteString("(")
+	t := qw.tableMap[tableName]
 	for _, col := range t.Columns {
 		fkRelation, fk := qw.allRelations[tableName][col.ColumnName]
 		if fk {
 			colVal := qw.fkMap[fkRelation["Table"]][fkRelation["Column"]] // retrieve the stored foreign key value
-			appendValues(&colString, &colValString, col.ColumnName, colVal)
+			appendValues(&colBuilder, &colValBuilder, col.ColumnName, colVal)
+			buildDeleteQuery(&deleteBuilder, col.ColumnName, colVal)
 		} else {
 			colVal, err := col.Parser.ParseColumn()
 			if err != nil {
@@ -90,14 +99,27 @@ func (qw *QueryWriter) ProcessTable() {
 			if isFK {
 				qw.fkMap[tableName][col.ColumnName] = colVal
 			}
-			appendValues(&colString, &colValString, col.ColumnName, colVal)
+			appendValues(&colBuilder, &colValBuilder, col.ColumnName, colVal)
+			buildDeleteQuery(&deleteBuilder, col.ColumnName, colVal)
 		}
 	}
-	colString = colString + ")"
-	colValString = colValString + ")"
-	query := fmt.Sprintf("INSERT INTO %s %s VALUES %s;", t.TableName, colString, colValString)
+	colBuilder.WriteString(")")
+	colValBuilder.WriteString(")")
+	query := fmt.Sprintf("INSERT INTO %s %s VALUES %s;", t.TableName, colBuilder.String(), colValBuilder.String())
 	qw.InsertQueryQueue.PushBack(query)
-	qw.TableOrderQueue.Remove(qw.TableOrderQueue.Front()) // remove the first in the queue
+	qw.DeleteQueryQueue.PushFront(fmt.Sprintf("DELETE FROM %s WHERE %s;", tableName, deleteBuilder.String()))
+}
+
+func (qw *QueryWriter) setTableMap() {
+	m := make(map[string]*table)
+	node := qw.TableOrderQueue.Front()
+	for node != nil {
+		tableName := node.Value.(string)         // get the table
+		tableStruct := qw.createTable(tableName) // create the table struct
+		m[tableName] = &tableStruct              // map it
+		node = node.Next()
+	}
+	qw.tableMap = m
 }
 
 func (qw *QueryWriter) createTable(tableName string) table {
@@ -106,7 +128,8 @@ func (qw *QueryWriter) createTable(tableName string) table {
 	columns := make([]column, len(columnMap))
 	i := 0
 	for columnName, dataType := range columnMap {
-		c := column{ColumnName: columnName, Type: dataType, Parser: getColumnParser(dataType)}
+		parser := getColumnParser(dataType)
+		c := column{ColumnName: columnName, Type: dataType, Parser: parser}
 		columns[i] = c
 		i++
 	}
@@ -114,16 +137,24 @@ func (qw *QueryWriter) createTable(tableName string) table {
 	return t
 }
 
-func appendValues(colStringPtr *string, valStringPtr *string, newColumn string, newVal string) {
-	if *colStringPtr == "(" {
-		*colStringPtr = *colStringPtr + newColumn
+func appendValues(colBuilder *strings.Builder, colValBuilder *strings.Builder, newColumn string, newVal string) {
+	if colBuilder.String() == "(" {
+		colBuilder.WriteString(newColumn)
 	} else {
-		*colStringPtr = *colStringPtr + "," + newColumn
+		colBuilder.WriteString(fmt.Sprintf(", %s", newColumn))
 	}
 
-	if *valStringPtr == "(" {
-		*valStringPtr = *valStringPtr + newVal
+	if colValBuilder.String() == "(" {
+		colValBuilder.WriteString(newVal)
 	} else {
-		*valStringPtr = *valStringPtr + "," + newVal
+		colValBuilder.WriteString(fmt.Sprintf(", %s", newVal))
+	}
+}
+
+func buildDeleteQuery(builder *strings.Builder, col string, val string) {
+	if builder.Len() == 0 {
+		builder.WriteString(fmt.Sprintf("%s=%s", col, val))
+	} else {
+		builder.WriteString(fmt.Sprintf(" AND %s=%s", col, val))
 	}
 }

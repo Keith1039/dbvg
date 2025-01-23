@@ -25,7 +25,11 @@ func init() {
 }
 
 func main() {
+	//test_run()
+	test_run()
+}
 
+func test_run() {
 	ord := graph.NewOrdering(db)
 	queryWriter, err := parameters.NewQueryWriterFor(db, "b")
 	if err != nil {
@@ -69,7 +73,10 @@ func main() {
 	} else {
 		panic(err)
 	}
-	queryWriter.ProcessTables()
+	for z := 0; z < 1; z++ {
+		queryWriter.ProcessTables()
+	}
+
 	fmt.Println("Running insert queries...")
 	node = queryWriter.InsertQueryQueue.Front()
 	i = 1
@@ -84,5 +91,18 @@ func main() {
 		panic(err)
 	}
 	fmt.Println("Insert queries ran successfully!")
-
+	fmt.Println(".............................................")
+	fmt.Println("Printing Deletion Queries.....")
+	i = 1
+	node = queryWriter.DeleteQueryQueue.Front()
+	for node != nil {
+		fmt.Println(fmt.Sprintf("delete query %d: %s", i, node.Value.(string)))
+		i++
+		node = node.Next()
+	}
+	err = database.RunQueries(db, queryWriter.DeleteQueryQueue)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("Delete queries ran successfully!")
 }

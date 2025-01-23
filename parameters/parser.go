@@ -12,5 +12,15 @@ var parserMap = map[string]ColumnParser{
 }
 
 func getColumnParser(dataType string) ColumnParser {
-	return parserMap[dataType]
+	switch dataType {
+	case "INT":
+		return &IntColumnParser{}
+	case "VARCHAR":
+		return &VarcharColumnParser{}
+	case "UUID":
+		return &UUIDParser{}
+	case "BOOL":
+		return &BooleanParser{}
+	}
+	return nil
 }

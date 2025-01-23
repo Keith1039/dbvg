@@ -233,32 +233,98 @@ func (tl *Ordering) getCycleBreakingOrder(problemTables *list.List) *list.List {
 
 func (tl *Ordering) getSuggestions(cycles *list.List) *list.List {
 	var builder strings.Builder
+	var foreignKeyBuilder strings.Builder
+	var primaryKeyBuilder strings.Builder
 	inverseRelationships := database.CreateInverseRelationships(tl.db)
 	queries := list.New()
 	node := cycles.Front()
 	pkMap := database.GetTablePKMap(tl.db)
 	for node != nil {
 		refTable := node.Value.(string)
+		pks := pkMap[refTable]
 		tableRelations := inverseRelationships[refTable]
 		colMap := database.GetRawColumnMap(tl.db, refTable)
 		for problemTable, relation := range tableRelations {
+			problemTablePks := pkMap[problemTable]
 			refColMap := database.GetRawColumnMap(tl.db, problemTable)
+			newTablePKs := make([]string, len(pks)+len(problemTablePks)) // array of the primary keys we'll assign at the end
+			newTableSlider := 0
 			// first format the string to get rid of the reference column
 			queries.PushBack(fmt.Sprintf("ALTER TABLE %s DROP COLUMN %s;", problemTable, relation["FKColumn"]))
-			query := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s_%s(\n", refTable, problemTable)
+			query := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s_%s(", refTable, problemTable)
 			builder.WriteString(query)
-			query = fmt.Sprintf("\t %s %s,\n\t %s %s, ", refTable+"_ref", colMap[relation["Column"]], problemTable+"_ref", refColMap[pkMap[problemTable]])
-			builder.WriteString(query)
-			query = fmt.Sprintf("\n\tFOREIGN KEY (%s) REFERENCES %s,", refTable+"_ref", refTable)
-			builder.WriteString(query)
-			query = fmt.Sprintf("\n\tFOREIGN KEY (%s) REFERENCES %s,", problemTable+"_ref", problemTable)
-			builder.WriteString(query)
-			query = fmt.Sprintf("\n\tPRIMARY KEY (%s, %s)\n)", refTable+"_ref", problemTable+"_ref")
-			builder.WriteString(query)
+			if refTable == problemTable {
+				for _, pk := range pks {
+					newPK := fmt.Sprintf("%s_primary_%s", refTable, pk)
+					builder.WriteString(fmt.Sprintf("\n\t %s %s,", newPK, colMap[pks[0]]))
+					newTablePKs[newTableSlider] = pk // assign the new pk to the array
+					newTableSlider++                 // increment the slider
+				}
+				appendForeignKey(&foreignKeyBuilder, refTable, pks, pks)
+				for _, pk := range pks {
+					newPK := fmt.Sprintf("%s_related_%s", refTable, pk)
+					builder.WriteString(fmt.Sprintf("\n\t %s %s,", newPK, colMap[pk]))
+					newTablePKs[newTableSlider] = newPK // assign the new pk to the array
+					newTableSlider++                    // increment slider
+				}
+				appendForeignKey(&foreignKeyBuilder, refTable, newTablePKs[len(pks):], pks)
+
+			} else {
+				appendBuilder(&builder, pks, refTable, colMap, newTablePKs, &newTableSlider)                    // append the primary tables columns
+				appendForeignKey(&foreignKeyBuilder, refTable, newTablePKs[:len(pks)], pks)                     // append the foreign keys
+				appendBuilder(&builder, problemTablePks, problemTable, refColMap, newTablePKs, &newTableSlider) // append the second tables columns
+				appendForeignKey(&foreignKeyBuilder, problemTable, newTablePKs[len(pks):], problemTablePks)     // append the second tables foreign keys
+			}
+			appendPrimaryKeys(&primaryKeyBuilder, newTablePKs)
+			builder.WriteString(foreignKeyBuilder.String())
+			builder.WriteString(fmt.Sprintf("\n\tPRIMARY KEY %s\n)", primaryKeyBuilder.String()))
 			queries.PushBack(builder.String())
 			builder.Reset()
+			foreignKeyBuilder.Reset()
+			primaryKeyBuilder.Reset()
+
 		}
 		node = node.Next()
 	}
 	return queries
+}
+
+func appendBuilder(builder *strings.Builder, pks []string, table string, colMap map[string]string, newTablePKs []string, slider *int) {
+	// appends the new column name and the datatype
+	for _, pk := range pks {
+		newPK := fmt.Sprintf("%s_%s_ref", table, pk)
+		builder.WriteString(fmt.Sprintf("\n\t %s %s,", newPK, colMap[pk]))
+		newTablePKs[*slider] = newPK // assign the new pk to the array
+		*slider++                    // increment slider
+	}
+}
+
+func appendForeignKey(foreignKeyBuilder *strings.Builder, table string, pks []string, refTablePks []string) {
+	// builds a foreign key constraint
+	var keyBuilder strings.Builder
+	var referenceBuilder strings.Builder
+
+	for i, pk := range pks {
+		if keyBuilder.String() == "" {
+			keyBuilder.WriteString(pk)
+			referenceBuilder.WriteString(refTablePks[i])
+		} else {
+			keyBuilder.WriteString(fmt.Sprintf(", %s", pk))
+			referenceBuilder.WriteString(fmt.Sprintf(", %s", refTablePks[i]))
+		}
+	}
+	foreignKeyBuilder.WriteString(fmt.Sprintf("\n\tFOREIGN KEY (%s) REFERENCES %s(%s),", keyBuilder.String(), table, referenceBuilder.String()))
+}
+
+func appendPrimaryKeys(primaryKeyBuilder *strings.Builder, pks []string) {
+	// builds the primary key constraint
+	primaryKeyBuilder.WriteString("(")
+	for _, key := range pks {
+		if primaryKeyBuilder.String() == "(" {
+			primaryKeyBuilder.WriteString(key)
+		} else {
+			primaryKeyBuilder.WriteString(fmt.Sprintf(", %s", key))
+		}
+	}
+	primaryKeyBuilder.WriteString(")")
 }
