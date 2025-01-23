@@ -9,9 +9,18 @@ import (
 	"strings"
 )
 
+func NewQueryWriterFor(tableName string) (*QueryWriter, error) {
+	qw := QueryWriter{TableName: tableName} // set the table name
+	err := qw.Init()                        // init the writer
+	if err != nil {
+		return nil, err // return the error
+	}
+	return &qw, nil // return the writer
+}
+
 type QueryWriter struct {
 	TableName        string
-	AllRelations     map[string]map[string]map[string]string
+	allRelations     map[string]map[string]map[string]string
 	pkMap            map[string]string
 	fkMap            map[string]map[string]string
 	TableOrderQueue  *list.List // queue
@@ -22,9 +31,8 @@ type QueryWriter struct {
 func (qw *QueryWriter) Init() error {
 	var err error
 	qw.TableName = strings.ToLower(qw.TableName)
-	ordering := graph.Ordering{}
-	ordering.Init()
-	qw.AllRelations = db.CreateRelationships()
+	ordering := graph.NewOrdering() // get a new ordering
+	qw.allRelations = db.CreateRelationships()
 	qw.pkMap = db.GetTablePKMap()
 	qw.SetFKMap()
 	qw.TableOrderQueue, err = ordering.GetOrder(qw.TableName) // get the topological ordering of tables
@@ -33,9 +41,15 @@ func (qw *QueryWriter) Init() error {
 	return err
 }
 
+func (qw *QueryWriter) ChangeTableToWriteFor(tableName string) error {
+	// change the table name of the writer and return any errors
+	qw.TableName = strings.ToLower(tableName)
+	return qw.Init()
+}
+
 func (qw *QueryWriter) SetFKMap() {
 	m := make(map[string]map[string]string)
-	for _, relations := range qw.AllRelations {
+	for _, relations := range qw.allRelations {
 		for _, relation := range relations {
 			r, ok := m[relation["Table"]]
 			if !ok {
@@ -61,7 +75,7 @@ func (qw *QueryWriter) ProcessTable() {
 	tableName := qw.TableOrderQueue.Front().Value.(string)
 	t := createTable(tableName)
 	for _, col := range t.Columns {
-		fkRelation, fk := qw.AllRelations[tableName][col.ColumnName]
+		fkRelation, fk := qw.allRelations[tableName][col.ColumnName]
 		if fk {
 			colVal := qw.fkMap[fkRelation["Table"]][fkRelation["Column"]] // retrieve the stored foreign key value
 			appendValues(&colString, &colValString, col.ColumnName, colVal)
@@ -82,37 +96,6 @@ func (qw *QueryWriter) ProcessTable() {
 	query := fmt.Sprintf("INSERT INTO %s %s VALUES %s;", t.TableName, colString, colValString)
 	qw.InsertQueryQueue.PushBack(query)
 	qw.TableOrderQueue.Remove(qw.TableOrderQueue.Front()) // remove the first in the queue
-}
-
-func (qw *QueryWriter) CreateSuggestions(cycles *list.List) *list.List {
-	var builder strings.Builder
-	inverseRelationships := db.CreateInverseRelationships()
-	queries := list.New()
-	node := cycles.Front()
-	for node != nil {
-		refTable := node.Value.(string)
-		tableRelations := inverseRelationships[refTable]
-		colMap := db.GetRawColumnMap(refTable)
-		for problemTable, relation := range tableRelations {
-			refColMap := db.GetRawColumnMap(problemTable)
-			// first format the string to get rid of the reference column
-			queries.PushBack(fmt.Sprintf("ALTER TABLE %s DROP COLUMN %s;", problemTable, relation["FKColumn"]))
-			query := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s_%s(\n", refTable, problemTable)
-			builder.WriteString(query)
-			query = fmt.Sprintf("\t %s %s,\n\t %s %s, ", refTable+"_ref", colMap[relation["Column"]], problemTable+"_ref", refColMap[qw.pkMap[problemTable]])
-			builder.WriteString(query)
-			query = fmt.Sprintf("\n\tFOREIGN KEY (%s) REFERENCES %s,", refTable+"_ref", refTable)
-			builder.WriteString(query)
-			query = fmt.Sprintf("\n\tFOREIGN KEY (%s) REFERENCES %s,", problemTable+"_ref", problemTable)
-			builder.WriteString(query)
-			query = fmt.Sprintf("\n\tPRIMARY KEY (%s, %s)\n)", refTable+"_ref", problemTable+"_ref")
-			builder.WriteString(query)
-			queries.PushBack(builder.String())
-			builder.Reset()
-		}
-		node = node.Next()
-	}
-	return queries
 }
 
 func createTable(tableName string) table {
