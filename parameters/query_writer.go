@@ -2,6 +2,7 @@ package parameters
 
 import (
 	"container/list"
+	"database/sql"
 	"fmt"
 	"github.com/Keith1039/Capstone_Test/db"
 	"github.com/Keith1039/Capstone_Test/graph"
@@ -9,9 +10,9 @@ import (
 	"strings"
 )
 
-func NewQueryWriterFor(tableName string) (*QueryWriter, error) {
-	qw := QueryWriter{TableName: tableName} // set the table name
-	err := qw.Init()                        // init the writer
+func NewQueryWriterFor(db *sql.DB, tableName string) (*QueryWriter, error) {
+	qw := QueryWriter{db: db, TableName: tableName} // set the table name
+	err := qw.Init()                                // init the writer
 	if err != nil {
 		return nil, err // return the error
 	}
@@ -19,6 +20,7 @@ func NewQueryWriterFor(tableName string) (*QueryWriter, error) {
 }
 
 type QueryWriter struct {
+	db               *sql.DB
 	TableName        string
 	allRelations     map[string]map[string]map[string]string
 	pkMap            map[string]string
@@ -31,9 +33,9 @@ type QueryWriter struct {
 func (qw *QueryWriter) Init() error {
 	var err error
 	qw.TableName = strings.ToLower(qw.TableName)
-	ordering := graph.NewOrdering() // get a new ordering
-	qw.allRelations = db.CreateRelationships()
-	qw.pkMap = db.GetTablePKMap()
+	ordering := graph.NewOrdering(qw.db) // get a new ordering
+	qw.allRelations = db.CreateRelationships(qw.db)
+	qw.pkMap = db.GetTablePKMap(qw.db)
 	qw.SetFKMap()
 	qw.TableOrderQueue, err = ordering.GetOrder(qw.TableName) // get the topological ordering of tables
 	qw.InsertQueryQueue = list.New()
@@ -73,7 +75,7 @@ func (qw *QueryWriter) ProcessTable() {
 	colString := "("
 	colValString := "("
 	tableName := qw.TableOrderQueue.Front().Value.(string)
-	t := createTable(tableName)
+	t := qw.createTable(tableName)
 	for _, col := range t.Columns {
 		fkRelation, fk := qw.allRelations[tableName][col.ColumnName]
 		if fk {
@@ -98,9 +100,9 @@ func (qw *QueryWriter) ProcessTable() {
 	qw.TableOrderQueue.Remove(qw.TableOrderQueue.Front()) // remove the first in the queue
 }
 
-func createTable(tableName string) table {
+func (qw *QueryWriter) createTable(tableName string) table {
 	t := table{TableName: tableName}
-	columnMap := db.GetColumnMap(tableName)
+	columnMap := db.GetColumnMap(qw.db, tableName)
 	columns := make([]column, len(columnMap))
 	i := 0
 	for columnName, dataType := range columnMap {

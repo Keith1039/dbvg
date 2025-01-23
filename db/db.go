@@ -3,14 +3,10 @@ package db
 import (
 	"container/list"
 	"database/sql"
-	"fmt"
 	"github.com/jimsmart/schema"
 	_ "github.com/lib/pq"
 	"log"
-	"os"
 )
-
-var db *sql.DB
 
 const postgresFKRelations = `
 	SELECT 
@@ -42,46 +38,34 @@ var typeMap = map[string]string{
 	"DATE":    "DATE",
 }
 
-func init() {
-	var err error
-	err = os.Setenv("DATABASE_URL", "postgres://postgres:localDB12@localhost:5432/testgres?sslmode=disable")
-	if err != nil {
-		log.Fatal(err)
-	}
-	db, err = sql.Open("postgres", os.Getenv("DATABASE_URL"))
-	if err != nil {
-		panic(err)
-	}
-}
+//func DisplayTable() {
+//	// Fetch names of all tables
+//	tnames, err := schema.TableNames(db)
+//	if err != nil {
+//		log.Fatal(err)
+//	}
+//	// tnames is [][2]string
+//	for i := range tnames {
+//		tableName := tnames[i][1]
+//		fmt.Println("Table:", tableName)
+//		// Fetch column metadata for given table
+//		tcols, _ := schema.ColumnTypes(db, "", tableName)
+//		// tcols is []*sql.ColumnType
+//		for i := range tcols {
+//			fmt.Println("Column:", tcols[i].Name(), tcols[i].DatabaseTypeName())
+//		}
+//		// Fetch primary key for given table
+//		pks, _ := schema.PrimaryKey(db, "", tableName)
+//
+//		// pks is []string
+//		for i := range pks {
+//			fmt.Println("Primary Key:", pks[i])
+//		}
+//		fmt.Println("........................")
+//	}
+//}
 
-func DisplayTable() {
-	// Fetch names of all tables
-	tnames, err := schema.TableNames(db)
-	if err != nil {
-		log.Fatal(err)
-	}
-	// tnames is [][2]string
-	for i := range tnames {
-		tableName := tnames[i][1]
-		fmt.Println("Table:", tableName)
-		// Fetch column metadata for given table
-		tcols, _ := schema.ColumnTypes(db, "", tableName)
-		// tcols is []*sql.ColumnType
-		for i := range tcols {
-			fmt.Println("Column:", tcols[i].Name(), tcols[i].DatabaseTypeName())
-		}
-		// Fetch primary key for given table
-		pks, _ := schema.PrimaryKey(db, "", tableName)
-
-		// pks is []string
-		for i := range pks {
-			fmt.Println("Primary Key:", pks[i])
-		}
-		fmt.Println("........................")
-	}
-}
-
-func GetTableMap() map[string]int {
+func GetTableMap(db *sql.DB) map[string]int {
 	tnames, err := schema.TableNames(db)
 	allNames := make(map[string]int)
 	if err != nil {
@@ -94,7 +78,7 @@ func GetTableMap() map[string]int {
 	return allNames
 }
 
-func GetColumnMap(tableName string) map[string]string {
+func GetColumnMap(db *sql.DB, tableName string) map[string]string {
 	m := make(map[string]string)                        // make initial map
 	tcols, err := schema.ColumnTypes(db, "", tableName) // get the column info
 	if err != nil {
@@ -107,7 +91,7 @@ func GetColumnMap(tableName string) map[string]string {
 	return m
 }
 
-func GetRawColumnMap(tableName string) map[string]string {
+func GetRawColumnMap(db *sql.DB, tableName string) map[string]string {
 	m := make(map[string]string)                        // make initial map
 	tcols, err := schema.ColumnTypes(db, "", tableName) // get the column info
 	if err != nil {
@@ -120,7 +104,7 @@ func GetRawColumnMap(tableName string) map[string]string {
 	return m
 }
 
-func GetTablePKMap() map[string]string {
+func GetTablePKMap(db *sql.DB) map[string]string {
 	tnames, err := schema.TableNames(db)
 	pkMap := make(map[string]string)
 	if err != nil {
@@ -141,7 +125,7 @@ func GetTablePKMap() map[string]string {
 	return pkMap
 }
 
-func CreateRelationships() map[string]map[string]map[string]string {
+func CreateRelationships(db *sql.DB) map[string]map[string]map[string]string {
 	relations := make(map[string]map[string]map[string]string)
 	var tableName, fkColumnName, refTableName, refColumnName string
 	rows, err := db.Query(postgresFKRelations)
@@ -164,7 +148,7 @@ func CreateRelationships() map[string]map[string]map[string]string {
 	return relations
 }
 
-func CreateInverseRelationships() map[string]map[string]map[string]string {
+func CreateInverseRelationships(db *sql.DB) map[string]map[string]map[string]string {
 	relations := make(map[string]map[string]map[string]string)
 	var tableName, fkColumnName, refTableName, refColumnName string
 	rows, err := db.Query(postgresFKRelations)
@@ -186,30 +170,7 @@ func CreateInverseRelationships() map[string]map[string]map[string]string {
 	return relations
 }
 
-func CreateRelationshipsWithDB(database *sql.DB) map[string]map[string]map[string]string {
-	relations := make(map[string]map[string]map[string]string)
-	var tableName, fkColumnName, refTableName, refColumnName string
-	rows, err := database.Query(postgresFKRelations)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	for rows.Next() {
-		err = rows.Scan(&tableName, &fkColumnName, &refTableName, &refColumnName)
-		if err != nil {
-			log.Fatal(err)
-		}
-		table, ok := relations[tableName]
-		if !ok {
-			relations[tableName] = map[string]map[string]string{fkColumnName: {"Table": refTableName, "Column": refColumnName}}
-		} else {
-			table[fkColumnName] = map[string]string{"Table": refTableName, "Column": refColumnName}
-		}
-	}
-	return relations
-}
-
-func RunQueries(queries *list.List) error {
+func RunQueries(db *sql.DB, queries *list.List) error {
 	var err error
 	node := queries.Front()
 	for node != nil && err == nil {
