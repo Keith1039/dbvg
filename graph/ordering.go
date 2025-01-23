@@ -2,27 +2,30 @@ package graph
 
 import (
 	"container/list"
+	"database/sql"
 	"fmt"
-	"github.com/Keith1039/Capstone_Test/db"
+	database "github.com/Keith1039/Capstone_Test/db"
 	"strings"
 )
 
-func NewOrdering() *Ordering {
+func NewOrdering(db *sql.DB) *Ordering {
 	// get a new ordering
 	ord := Ordering{}
-	ord.Init()
+	ord.Init(db)
 	return &ord
 }
 
 type Ordering struct {
+	db           *sql.DB
 	allTables    map[string]int
 	allRelations map[string]map[string]map[string]string
 	stack        *list.List
 }
 
-func (tl *Ordering) Init() {
-	tl.allTables = db.GetTableMap()
-	tl.allRelations = db.CreateRelationships()
+func (tl *Ordering) Init(db *sql.DB) {
+	tl.db = db
+	tl.allTables = database.GetTableMap(tl.db)
+	tl.allRelations = database.CreateRelationships(tl.db)
 	tl.stack = list.New()
 }
 
@@ -42,6 +45,23 @@ func (tl *Ordering) GetCycles() *list.List {
 		}
 	}
 	return cycles // return all cycles found
+}
+
+func (tl *Ordering) GetSuggestionQueries() *list.List {
+	cycles := tl.GetCycles() // get the cycles
+	cycleBreaking := tl.getCycleBreakingOrder(cycles)
+	suggestionQueries := tl.getSuggestions(cycleBreaking) // get the suggestions
+	return suggestionQueries                              // return the suggestions
+}
+
+func (tl *Ordering) GetAndResolveCycles() {
+	cycles := tl.GetCycles() // get your cycles
+	cycleBreaking := tl.getCycleBreakingOrder(cycles)
+	suggestions := tl.getSuggestions(cycleBreaking) // get your suggestions
+	err := database.RunQueries(tl.db, suggestions)  // run the suggestions
+	if err != nil {
+		panic(err) // panic if it fails
+	}
 }
 
 func (tl *Ordering) getCyclesForTable(tableName string) *list.List {
@@ -191,19 +211,19 @@ func getMostMentioned(fmap map[string]int) string {
 	}
 	return k
 }
-func (tl *Ordering) GetCycleBreakingOrder(cycles *list.List) *list.List {
+func (tl *Ordering) getCycleBreakingOrder(problemTables *list.List) *list.List {
 	tables := list.New()
-	tablesMap := getTablesMap(cycles) // a map that stores which tables are in each cycle
-	for cycles.Len() > 0 {
-		tablesMentioned := getFrequency(cycles)            // we get a map of tables and how often they appear
+	tablesMap := getTablesMap(problemTables) // a map that stores which tables are in each cycle
+	for problemTables.Len() > 0 {
+		tablesMentioned := getFrequency(problemTables)     // we get a map of tables and how often they appear
 		mostMentioned := getMostMentioned(tablesMentioned) // get the problem table
 		tables.PushBack(mostMentioned)                     // add the most mentioned to the list
-		node := cycles.Front()
+		node := problemTables.Front()
 		for node != nil {
 			nextNode := node.Next()
 			// if the most mentioned is in this node, remove the node from the list
 			if tablesMap[node.Value.(string)][mostMentioned] {
-				cycles.Remove(node)
+				problemTables.Remove(node)
 			}
 			node = nextNode // move to the next node
 		}
@@ -211,18 +231,18 @@ func (tl *Ordering) GetCycleBreakingOrder(cycles *list.List) *list.List {
 	return tables
 }
 
-func (tl *Ordering) CreateSuggestions(cycles *list.List) *list.List {
+func (tl *Ordering) getSuggestions(cycles *list.List) *list.List {
 	var builder strings.Builder
-	inverseRelationships := db.CreateInverseRelationships()
+	inverseRelationships := database.CreateInverseRelationships(tl.db)
 	queries := list.New()
 	node := cycles.Front()
-	pkMap := db.GetTablePKMap()
+	pkMap := database.GetTablePKMap(tl.db)
 	for node != nil {
 		refTable := node.Value.(string)
 		tableRelations := inverseRelationships[refTable]
-		colMap := db.GetRawColumnMap(refTable)
+		colMap := database.GetRawColumnMap(tl.db, refTable)
 		for problemTable, relation := range tableRelations {
-			refColMap := db.GetRawColumnMap(problemTable)
+			refColMap := database.GetRawColumnMap(tl.db, problemTable)
 			// first format the string to get rid of the reference column
 			queries.PushBack(fmt.Sprintf("ALTER TABLE %s DROP COLUMN %s;", problemTable, relation["FKColumn"]))
 			query := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s_%s(\n", refTable, problemTable)

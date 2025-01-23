@@ -78,7 +78,7 @@ func TestOrdering_FindOrderCase1(t *testing.T) {
 		t.Fatal(err)
 	}
 	ordering := Ordering{}
-	ordering.Init()
+	ordering.Init(database)
 	order, err := ordering.GetOrder("a")
 	if err != nil {
 		t.Fatal(err)
@@ -116,7 +116,7 @@ func TestOrdering_FindOrderCase2(t *testing.T) {
 	}
 
 	ordering := Ordering{}
-	ordering.Init()
+	ordering.Init(database)
 	_, err = ordering.GetOrder("team_members")
 	properError := errors.As(err, &cyclicError)
 	if !properError || err == nil {
@@ -134,7 +134,7 @@ func TestOrdering_FindOrderCase3(t *testing.T) {
 	}
 
 	ordering := Ordering{}
-	ordering.Init()
+	ordering.Init(database)
 	order, err := ordering.GetOrder("users")
 	if err != nil {
 		t.Errorf("Unexpected Error: %s", err.Error())
@@ -151,7 +151,7 @@ func TestOrdering_FindOrderCase4(t *testing.T) {
 		t.Fatal("Error should have been given")
 	}
 	ordering := Ordering{}
-	ordering.Init()
+	ordering.Init(database)
 	order, err := ordering.GetOrder("team_members")
 	if err == nil {
 		t.Fatal("Missing table error should have occurred")

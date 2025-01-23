@@ -1,29 +1,33 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
-	"github.com/Keith1039/Capstone_Test/db"
+	database "github.com/Keith1039/Capstone_Test/db"
 	"github.com/Keith1039/Capstone_Test/graph"
 	"github.com/Keith1039/Capstone_Test/parameters"
 	"log"
+	"os"
 )
+
+var db *sql.DB
+
+func init() {
+	var err error
+	err = os.Setenv("DATABASE_URL", "postgres://postgres:localDB12@localhost:5432/testgres?sslmode=disable")
+	if err != nil {
+		log.Fatal(err)
+	}
+	db, err = sql.Open("postgres", os.Getenv("DATABASE_URL"))
+	if err != nil {
+		panic(err)
+	}
+}
 
 func main() {
 
-	//writer := parameters.QueryWriter{TableName: "students"}
-	//err := writer.Init()
-	//if err != nil {
-	//	panic(err)
-	//}
-	//writer.ProcessTables()
-	//e := writer.InsertQueryQueue.Front()
-	//for e != nil {
-	//	fmt.Println(e.Value.(string))
-	//	e = e.Next()
-	//}
-
-	ord := graph.NewOrdering()
-	queryWriter, err := parameters.NewQueryWriterFor("b")
+	ord := graph.NewOrdering(db)
+	queryWriter, err := parameters.NewQueryWriterFor(db, "b")
 	if err != nil {
 		fmt.Println("Cannot create QueryWriter for table 'b' while cycles exist")
 	}
@@ -35,8 +39,7 @@ func main() {
 		node = node.Next()
 	}
 	fmt.Println("Generating queries to break cycle while maintaining relationships...")
-	problemTables := ord.GetCycleBreakingOrder(cycles)
-	queries := ord.CreateSuggestions(problemTables) // create the suggestions
+	queries := ord.GetSuggestionQueries() // create the suggestions
 	node = queries.Front()
 	i := 1
 	// print out the queries
@@ -46,21 +49,21 @@ func main() {
 		node = node.Next()
 	}
 	fmt.Println("Running queries...")
-	err = db.RunQueries(queries) // run the queries
+	err = database.RunQueries(db, queries) // run the queries
 	if err != nil {
 		panic(err)
 	} else {
 		fmt.Println("Finished running queries!")
 	}
 	fmt.Println("Checking if cycles still exist...")
-	ord.Init()               // reset the maps
+	ord.Init(db)             // reset the maps
 	cycles = ord.GetCycles() // check for cycles
 	if cycles.Len() == 0 {
 		fmt.Println("No cycles found!")
 	} else {
 		log.Fatal("Cycles found! Guess this didn't work...")
 	}
-	queryWriter, err = parameters.NewQueryWriterFor("b")
+	queryWriter, err = parameters.NewQueryWriterFor(db, "b")
 	if err == nil {
 		fmt.Println("QueryWriter can now be generated for table 'b'")
 	} else {
@@ -76,7 +79,7 @@ func main() {
 		i++
 	}
 
-	err = db.RunQueries(queryWriter.InsertQueryQueue)
+	err = database.RunQueries(db, queryWriter.InsertQueryQueue)
 	if err != nil {
 		panic(err)
 	}
