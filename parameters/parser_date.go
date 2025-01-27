@@ -33,7 +33,7 @@ func (p *DateParser) ParseColumn() (string, error) {
 }
 
 func (p *DateParser) handleRandom() (string, error) {
-	r, _ := p.Column.Other["Range"]
+	r := p.Column.Other
 	if r == "" {
 		r = DEFAULTDATERANGE
 	}
@@ -45,7 +45,7 @@ func (p *DateParser) handleRandom() (string, error) {
 }
 
 func (p *DateParser) handleStatic() (string, error) {
-	r, _ := p.Column.Other["Value"]
+	r := p.Column.Other
 	if isDate(r) {
 		return r, nil
 	} else {

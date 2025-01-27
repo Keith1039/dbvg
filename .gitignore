@@ -1,2 +1,5 @@
 .idea
 reset.sh
+script.sh
+# Added by goreleaser init:
+dist/
