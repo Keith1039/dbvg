@@ -19,3 +19,22 @@ const (
 	NULL
 	NOW
 )
+
+var stringToEnum = map[string]int{
+	"RANDOM":    RANDOM,
+	"STATIC":    STATIC,
+	"SEQ":       SEQ,
+	"UUID":      UUID,
+	"REGEX":     REGEX,
+	"EMAIL":     EMAIL,
+	"FIRSTNAME": FIRSTNAME,
+	"LASTNAME":  LASTNAME,
+	"FULLNAME":  FULLNAME,
+	"PHONE":     PHONE,
+	"COUNTRY":   COUNTRY,
+	"ADDRESS":   ADDRESS,
+	"ZIPCODE":   ZIPCODE,
+	"CITY":      CITY,
+	"NULL":      NULL,
+	"NOW":       NOW,
+}

@@ -39,7 +39,7 @@ func (p *BooleanParser) handleRandom() (string, error) {
 }
 
 func (p *BooleanParser) handleStatic() (string, error) {
-	val := p.Column.Other["Value"]
+	val := p.Column.Other
 	val = strings.Trim(strings.ToLower(val), " ")
 	if val != "true" && val != "false" {
 		return "", errors.New("invalid Value given")

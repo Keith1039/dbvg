@@ -3,10 +3,12 @@ package parameters
 import (
 	"container/list"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"github.com/Keith1039/Capstone_Test/db"
 	"github.com/Keith1039/Capstone_Test/graph"
 	"log"
+	"os"
 	"strings"
 )
 
@@ -17,6 +19,38 @@ func NewQueryWriterFor(db *sql.DB, tableName string) (*QueryWriter, error) {
 		return nil, err // return the error
 	}
 	return &qw, nil // return the writer
+}
+
+func NewQueryWriterWithTemplateFor(db *sql.DB, tableName string, filePath string) (*QueryWriter, error) {
+	// check to see if file exists
+	m := make(map[string]map[string]map[string]string)
+	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+		return nil, err
+	}
+	qw := QueryWriter{db: db, TableName: tableName}
+	err := qw.Init()
+	if err != nil {
+		return nil, err
+	}
+
+	bytes, err := os.ReadFile(filePath) // read the bytes
+	if err != nil {
+		return nil, err
+	}
+
+	err = json.Unmarshal(bytes, &m) // unmarshal the JSON
+	if err != nil {
+		return nil, err
+	}
+
+	flag := qw.verifyTemplate(m) // do further verifications on the template
+	if !flag {
+		// print some error message
+		// TODO make an error for this and give more detail to end user
+		log.Fatal("Corrupted or outdated template detected. Please verify if the template is still valid")
+	}
+	qw.updateTableMap(m) // actually update the table
+	return &qw, nil
 }
 
 type QueryWriter struct {
@@ -135,6 +169,51 @@ func (qw *QueryWriter) createTable(tableName string) table {
 	}
 	t.Columns = columns
 	return t
+}
+
+func (qw *QueryWriter) verifyTemplate(m map[string]map[string]map[string]string) bool {
+	// TODO have this return a custom error
+	relations := db.CreateInverseRelationships(qw.db)
+	flag := qw.TableOrderQueue.Len() == len(m) // number of keys should match number of tables
+	if !flag {
+		return false
+	}
+	// loop through the keys in the template
+	for key := range m {
+		t := qw.tableMap[key]
+		flag = len(t.Columns) == len(m[key]) // check to see if the number of columns lines up
+		if !flag {
+			return false
+		}
+		// check if all the column names match
+		for _, col := range t.Columns {
+			_, exists := m[key][col.ColumnName] // check if there's an entry for the column in the template
+			if !exists {
+				_, exists = relations[key][col.ColumnName] // check to see if the column is missing because it's an FK
+				if !exists {
+					return false // return false because the missing column isn't an FK
+				}
+			}
+
+			_, exists = stringToEnum[strings.ToUpper(m[key][col.ColumnName]["Code"])] // check to see if the code exists
+			// check to see if the code doesn't exist AND the code isn't empty string
+			if !exists && strings.TrimSpace(m[key][col.ColumnName]["Code"]) != "" {
+				return false
+			}
+
+		}
+	}
+	return true
+}
+
+func (qw *QueryWriter) updateTableMap(m map[string]map[string]map[string]string) {
+	for key := range m {
+		t := qw.tableMap[key]
+		for _, col := range t.Columns {
+			col.Code = stringToEnum[m[key][col.ColumnName]["Code"]]
+			col.Other = m[key][col.ColumnName]["Value"]
+		}
+	}
 }
 
 func appendValues(colBuilder *strings.Builder, colValBuilder *strings.Builder, newColumn string, newVal string) {

@@ -9,6 +9,6 @@ type column struct {
 	ColumnName string
 	Type       string
 	Code       int
-	Other      map[string]string
+	Other      string
 	Parser     ColumnParser
 }

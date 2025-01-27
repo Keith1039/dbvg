@@ -48,7 +48,7 @@ func (p *VarcharColumnParser) ParseColumn() (string, error) {
 }
 
 func (p *VarcharColumnParser) handleRegex() (string, error) {
-	expression := p.Column.Other["Expression"]
+	expression := p.Column.Other
 	if expression == "" {
 		expression = DEFAULTEXPR
 	}
@@ -93,7 +93,7 @@ func (p *VarcharColumnParser) handleCity() (string, error) {
 }
 
 func (p *VarcharColumnParser) handleStatic() (string, error) {
-	return p.Column.Other["Value"], nil
+	return p.Column.Other, nil
 }
 
 func (p *VarcharColumnParser) handleNull() (string, error) {

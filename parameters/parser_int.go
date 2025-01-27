@@ -38,8 +38,8 @@ func (p *IntColumnParser) ParseColumn() (string, error) {
 func (p *IntColumnParser) handleRandomCode() (string, error) {
 	var value string
 	var err error
-	r, ok := p.Column.Other["Range"]
-	if !ok {
+	r := p.Column.Other
+	if r == "" {
 		r = DEFAULTRANGE
 	}
 	ranges := strings.Split(r, ",")
@@ -66,8 +66,8 @@ func (p *IntColumnParser) handleRandomCode() (string, error) {
 func (p *IntColumnParser) handleStatic() (string, error) {
 	var value string
 	var err error
-	r, ok := p.Column.Other["Value"]
-	if !ok {
+	r := p.Column.Other
+	if r == "" {
 		r = DEFAULTSTATIC
 	}
 	_, err = strconv.Atoi(r)
