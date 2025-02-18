@@ -3,6 +3,7 @@ package db
 import (
 	"container/list"
 	"database/sql"
+	"fmt"
 	"github.com/jimsmart/schema"
 	_ "github.com/lib/pq"
 	"log"
@@ -173,6 +174,19 @@ func RunQueries(db *sql.DB, queries *list.List) error {
 	for node != nil && err == nil {
 		_, err = db.Query(node.Value.(string))
 		node = node.Next()
+	}
+	return err
+}
+
+func RunQueriesVerbose(db *sql.DB, queries *list.List) error {
+	var err error
+	node := queries.Front()
+	i := 1
+	for node != nil && err == nil {
+		fmt.Println(fmt.Sprintf("Query %d: %s", i, node.Value.(string)))
+		_, err = db.Query(node.Value.(string))
+		node = node.Next()
+		i++
 	}
 	return err
 }

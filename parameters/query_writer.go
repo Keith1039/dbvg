@@ -4,6 +4,7 @@ import (
 	"container/list"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/Keith1039/Capstone_Test/db"
 	"github.com/Keith1039/Capstone_Test/graph"
@@ -43,14 +44,14 @@ func NewQueryWriterWithTemplateFor(db *sql.DB, tableName string, filePath string
 		return nil, err
 	}
 
-	flag := qw.verifyTemplate(m) // do further verifications on the template
-	if !flag {
+	err = qw.verifyTemplate(m) // do further verifications on the template
+	if err != nil {
 		// print some error message
 		// TODO make an error for this and give more detail to end user
-		log.Fatal("Corrupted or outdated template detected. Please verify if the template is still valid")
+		log.Fatal(err)
 	}
 	qw.updateTableMap(m) // actually update the table
-	return &qw, nil
+	return &qw, nil      // return new parser
 }
 
 type QueryWriter struct {
@@ -101,15 +102,18 @@ func (qw *QueryWriter) setFKMap() {
 	qw.fkMap = m
 }
 
-func (qw *QueryWriter) ProcessTables() {
-	node := qw.TableOrderQueue.Front()
-	for node != nil {
-		qw.processTable(node.Value.(string))
-		node = node.Next()
+func (qw *QueryWriter) GenerateEntries(amount int) {
+	for i := 0; i < amount; i++ {
+		node := qw.TableOrderQueue.Front()
+		for node != nil {
+			qw.processTable(node.Value.(string))
+			node = node.Next()
+		}
 	}
-	//for qw.TableOrderQueue.Len() > 0 {
-	//	qw.processTable()
-	//}
+}
+
+func (qw *QueryWriter) GenerateEntry() {
+	qw.GenerateEntries(1) // only generate one
 }
 
 func (qw *QueryWriter) processTable(tableName string) {
@@ -125,7 +129,7 @@ func (qw *QueryWriter) processTable(tableName string) {
 			appendValues(&colBuilder, &colValBuilder, col.ColumnName, colVal)
 			buildDeleteQuery(&deleteBuilder, col.ColumnName, colVal)
 		} else {
-			colVal, err := col.Parser.ParseColumn()
+			colVal, err := col.Parser.ParseColumn(*col)
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -159,58 +163,54 @@ func (qw *QueryWriter) setTableMap() {
 func (qw *QueryWriter) createTable(tableName string) table {
 	t := table{TableName: tableName}
 	columnMap := db.GetColumnMap(qw.db, tableName)
-	columns := make([]column, len(columnMap))
+	columns := make([]*column, len(columnMap))
 	i := 0
 	for columnName, dataType := range columnMap {
 		parser := getColumnParser(dataType)
 		c := column{ColumnName: columnName, Type: dataType, Parser: parser}
-		columns[i] = c
+		columns[i] = &c
 		i++
 	}
 	t.Columns = columns
 	return t
 }
 
-func (qw *QueryWriter) verifyTemplate(m map[string]map[string]map[string]string) bool {
+func (qw *QueryWriter) verifyTemplate(m map[string]map[string]map[string]string) error {
 	// TODO have this return a custom error
-	relations := db.CreateInverseRelationships(qw.db)
+	relations := db.CreateRelationships(qw.db)
 	flag := qw.TableOrderQueue.Len() == len(m) // number of keys should match number of tables
 	if !flag {
-		return false
+		return errors.New("number of tables in template does not match the number of tables required")
 	}
 	// loop through the keys in the template
 	for key := range m {
 		t := qw.tableMap[key]
-		flag = len(t.Columns) == len(m[key]) // check to see if the number of columns lines up
-		if !flag {
-			return false
-		}
 		// check if all the column names match
 		for _, col := range t.Columns {
 			_, exists := m[key][col.ColumnName] // check if there's an entry for the column in the template
 			if !exists {
 				_, exists = relations[key][col.ColumnName] // check to see if the column is missing because it's an FK
 				if !exists {
-					return false // return false because the missing column isn't an FK
+					return errors.New(fmt.Sprintf("column %s from table %s exists in table but is missing in template and is not a foreign key reference", t.TableName, col.ColumnName))
 				}
 			}
 
 			_, exists = stringToEnum[strings.ToUpper(m[key][col.ColumnName]["Code"])] // check to see if the code exists
 			// check to see if the code doesn't exist AND the code isn't empty string
 			if !exists && strings.TrimSpace(m[key][col.ColumnName]["Code"]) != "" {
-				return false
+				return errors.New(fmt.Sprintf("Code %s is not supported or recognized by parser of type %s", m[key][col.ColumnName]["Code"], col.Type))
 			}
 
 		}
 	}
-	return true
+	return nil
 }
 
 func (qw *QueryWriter) updateTableMap(m map[string]map[string]map[string]string) {
 	for key := range m {
 		t := qw.tableMap[key]
 		for _, col := range t.Columns {
-			col.Code = stringToEnum[m[key][col.ColumnName]["Code"]]
+			col.Code = stringToEnum[strings.ToUpper(m[key][col.ColumnName]["Code"])]
 			col.Other = m[key][col.ColumnName]["Value"]
 		}
 	}

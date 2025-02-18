@@ -1,7 +1,7 @@
 package parameters
 
 type ColumnParser interface {
-	ParseColumn() (string, error)
+	ParseColumn(col column) (string, error)
 }
 
 var parserMap = map[string]ColumnParser{
