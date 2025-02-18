@@ -8,11 +8,10 @@ import (
 const DEFAULTUUIDCODE = UUID
 
 type UUIDParser struct {
-	Column column
 }
 
-func (p *UUIDParser) ParseColumn() (string, error) {
-	code := p.Column.Code
+func (p *UUIDParser) ParseColumn(col column) (string, error) {
+	code := col.Code
 	if code == 0 {
 		code = DEFAULTUUIDCODE
 	}

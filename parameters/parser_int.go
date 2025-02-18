@@ -2,6 +2,7 @@ package parameters
 
 import (
 	"errors"
+	"fmt"
 	"math/rand"
 	"strconv"
 	"strings"
@@ -12,19 +13,18 @@ const DEFAULTSTATIC = "0"
 const DEFAULTINTCODE = SEQ
 
 type IntColumnParser struct {
-	Column column
 	latest int
 }
 
-func (p *IntColumnParser) ParseColumn() (string, error) {
-	code := p.Column.Code
+func (p *IntColumnParser) ParseColumn(col column) (string, error) {
+	code := col.Code
 	if code == 0 {
 		code = DEFAULTINTCODE
 	}
 	if code == RANDOM {
-		return p.handleRandomCode()
+		return p.handleRandomCode(col)
 	} else if code == STATIC {
-		return p.handleStatic()
+		return p.handleStatic(col)
 	} else if code == SEQ {
 		return p.handleSeq()
 	} else if code == NULL {
@@ -35,10 +35,10 @@ func (p *IntColumnParser) ParseColumn() (string, error) {
 	}
 }
 
-func (p *IntColumnParser) handleRandomCode() (string, error) {
+func (p *IntColumnParser) handleRandomCode(col column) (string, error) {
 	var value string
 	var err error
-	r := p.Column.Other
+	r := col.Other
 	if r == "" {
 		r = DEFAULTRANGE
 	}
@@ -47,11 +47,11 @@ func (p *IntColumnParser) handleRandomCode() (string, error) {
 		err = errors.New("malformed range")
 		return "", err
 	}
-	lowerBound, boundErr := strconv.Atoi(ranges[0])
+	lowerBound, boundErr := strconv.Atoi(strings.TrimSpace(ranges[0]))
 	if boundErr != nil {
 		return "", boundErr
 	}
-	upperBound, boundErr2 := strconv.Atoi(ranges[1])
+	upperBound, boundErr2 := strconv.Atoi(strings.TrimSpace(ranges[1]))
 	if boundErr2 != nil {
 		return "", boundErr
 	}
@@ -63,10 +63,11 @@ func (p *IntColumnParser) handleRandomCode() (string, error) {
 	return value, err
 }
 
-func (p *IntColumnParser) handleStatic() (string, error) {
+func (p *IntColumnParser) handleStatic(col column) (string, error) {
 	var value string
 	var err error
-	r := p.Column.Other
+	r := col.Other
+	fmt.Println("r")
 	if r == "" {
 		r = DEFAULTSTATIC
 	}

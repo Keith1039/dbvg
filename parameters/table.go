@@ -2,7 +2,7 @@ package parameters
 
 type table struct {
 	TableName string
-	Columns   []column
+	Columns   []*column
 }
 
 type column struct {

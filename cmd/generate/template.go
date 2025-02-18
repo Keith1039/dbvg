@@ -80,27 +80,27 @@ func init() {
 
 func makeTemplates(db *sql.DB, l *list.List) map[string]map[string]map[string]string {
 	m := make(map[string]map[string]map[string]string)
-
+	relations := database.CreateRelationships(db) // get relationships
 	node := l.Front()
 	for node != nil {
 		tName := node.Value.(string)
-		m[tName] = makeTemplate(db, tName)
+		m[tName] = makeTemplate(db, tName, relations)
 		node = node.Next()
 	}
 	return m
 }
 
-func makeTemplate(db *sql.DB, tName string) map[string]map[string]string {
-	relations := database.CreateRelationships(db)
+func makeTemplate(db *sql.DB, tName string, relations map[string]map[string]map[string]string) map[string]map[string]string {
 	m := make(map[string]map[string]string)
 	cols, err := schema.ColumnTypes(db, "", tName)
+	colMap := database.GetColumnMap(db, tName)
 	if err != nil {
 		log.Fatal(err)
 	}
 	for _, col := range cols {
-		_, ok := relations[tName][col.Name()]
+		_, ok := relations[tName][col.Name()] // check if the column is a fk
 		if !ok {
-			m[col.Name()] = map[string]string{"Code": "", "Value": ""}
+			m[col.Name()] = map[string]string{"Type": colMap[col.Name()], "Code": "", "Value": ""}
 		}
 	}
 	return m

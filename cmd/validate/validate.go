@@ -24,8 +24,12 @@ var ValidateCmd = &cobra.Command{
 	},
 }
 
-func init() {
+func addSubCommands() {
 	ValidateCmd.AddCommand(schemaCmd)
+}
+
+func init() {
+	addSubCommands()
 	ValidateCmd.PersistentFlags().StringVarP(&ConnString, "database", "", "", "url to connect to the database with")
 
 	if err := ValidateCmd.MarkPersistentFlagRequired("database"); err != nil {

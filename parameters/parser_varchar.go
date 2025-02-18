@@ -10,16 +10,15 @@ const DEFAULTEXPR = "[a-zA-Z]+"
 const DEFAULVARCHARCODE = REGEX
 
 type VarcharColumnParser struct {
-	Column column
 }
 
-func (p *VarcharColumnParser) ParseColumn() (string, error) {
-	code := p.Column.Code
+func (p *VarcharColumnParser) ParseColumn(col column) (string, error) {
+	code := col.Code
 	if code == 0 {
 		code = DEFAULVARCHARCODE
 	}
 	if code == REGEX {
-		return p.handleRegex()
+		return p.handleRegex(col)
 	} else if code == EMAIL {
 		return p.handleEmail()
 	} else if code == FIRSTNAME {
@@ -39,7 +38,7 @@ func (p *VarcharColumnParser) ParseColumn() (string, error) {
 	} else if code == CITY {
 		return p.handleCity()
 	} else if code == STATIC {
-		return p.handleStatic()
+		return p.handleStatic(col)
 	} else if code == NULL {
 		return p.handleNull()
 	} else {
@@ -47,8 +46,8 @@ func (p *VarcharColumnParser) ParseColumn() (string, error) {
 	}
 }
 
-func (p *VarcharColumnParser) handleRegex() (string, error) {
-	expression := p.Column.Other
+func (p *VarcharColumnParser) handleRegex(col column) (string, error) {
+	expression := col.Other
 	if expression == "" {
 		expression = DEFAULTEXPR
 	}
@@ -92,8 +91,8 @@ func (p *VarcharColumnParser) handleCity() (string, error) {
 	return gofakeit.City(), nil
 }
 
-func (p *VarcharColumnParser) handleStatic() (string, error) {
-	return p.Column.Other, nil
+func (p *VarcharColumnParser) handleStatic(col column) (string, error) {
+	return col.Other, nil
 }
 
 func (p *VarcharColumnParser) handleNull() (string, error) {

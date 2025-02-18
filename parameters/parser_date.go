@@ -11,18 +11,17 @@ const DEFAULTDATECODE = NOW
 const DEFAULTDATERANGE = "2001-01-01,2024-12-31"
 
 type DateParser struct {
-	Column column
 }
 
-func (p *DateParser) ParseColumn() (string, error) {
-	code := p.Column.Code
+func (p *DateParser) ParseColumn(col column) (string, error) {
+	code := col.Code
 	if code == 0 {
 		code = DEFAULTDATECODE
 	}
 	if code == RANDOM {
-		return p.handleRandom()
+		return p.handleRandom(col)
 	} else if code == STATIC {
-		return p.handleStatic()
+		return p.handleStatic(col)
 	} else if code == NOW {
 		return p.handleNow()
 	} else if code == NULL {
@@ -32,8 +31,8 @@ func (p *DateParser) ParseColumn() (string, error) {
 	}
 }
 
-func (p *DateParser) handleRandom() (string, error) {
-	r := p.Column.Other
+func (p *DateParser) handleRandom(col column) (string, error) {
+	r := col.Other
 	if r == "" {
 		r = DEFAULTDATERANGE
 	}
@@ -44,8 +43,8 @@ func (p *DateParser) handleRandom() (string, error) {
 	return randomDataTime.GenerateDate(dates[0], dates[1])
 }
 
-func (p *DateParser) handleStatic() (string, error) {
-	r := p.Column.Other
+func (p *DateParser) handleStatic(col column) (string, error) {
+	r := col.Other
 	if isDate(r) {
 		return r, nil
 	} else {

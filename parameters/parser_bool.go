@@ -9,18 +9,17 @@ import (
 const DEFAULTBOOLCODE = RANDOM
 
 type BooleanParser struct {
-	Column column
 }
 
-func (p *BooleanParser) ParseColumn() (string, error) {
-	code := p.Column.Code
+func (p *BooleanParser) ParseColumn(col column) (string, error) {
+	code := col.Code
 	if code == 0 {
 		code = DEFAULTBOOLCODE
 	}
 	if code == RANDOM {
 		return p.handleRandom()
 	} else if code == STATIC {
-		return p.handleStatic()
+		return p.handleStatic(col)
 	} else if code == NULL {
 		return p.handleNull()
 	} else {
@@ -38,8 +37,8 @@ func (p *BooleanParser) handleRandom() (string, error) {
 	}
 }
 
-func (p *BooleanParser) handleStatic() (string, error) {
-	val := p.Column.Other
+func (p *BooleanParser) handleStatic(col column) (string, error) {
+	val := col.Other
 	val = strings.Trim(strings.ToLower(val), " ")
 	if val != "true" && val != "false" {
 		return "", errors.New("invalid Value given")
