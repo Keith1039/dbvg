@@ -4,8 +4,8 @@ Copyright © 2025 Keith Compere <KeithCompere150@gmail.com>
 package cmd
 
 import (
-	"github.com/Keith1039/Capstone_Test/cmd/generate"
-	"github.com/Keith1039/Capstone_Test/cmd/validate"
+	"github.com/Keith1039/dbvg/cmd/generate"
+	"github.com/Keith1039/dbvg/cmd/validate"
 	"os"
 
 	"github.com/spf13/cobra"

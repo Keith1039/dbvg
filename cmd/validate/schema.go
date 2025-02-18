@@ -5,8 +5,8 @@ package validate
 
 import (
 	"fmt"
-	database "github.com/Keith1039/Capstone_Test/db"
-	"github.com/Keith1039/Capstone_Test/graph"
+	database "github.com/Keith1039/dbvg/db"
+	"github.com/Keith1039/dbvg/graph"
 	"github.com/spf13/cobra"
 	"log"
 )
