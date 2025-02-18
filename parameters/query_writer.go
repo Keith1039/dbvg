@@ -1,3 +1,6 @@
+// Package parameters parses through parameters to generate data for a DB table
+//
+// the parameters package uses templates, either a default or a user defined template, to parse and generate data for a given database table
 package parameters
 
 import (
@@ -13,8 +16,9 @@ import (
 	"strings"
 )
 
+// NewQueryWriterFor takes in a database connection alongside a table name and returns a pointer to a QueryWriter that is initialized and any errors that occurred
 func NewQueryWriterFor(db *sql.DB, tableName string) (*QueryWriter, error) {
-	qw := QueryWriter{db: db, TableName: tableName} // set the table name
+	qw := QueryWriter{db: db, tableName: tableName} // set the table name
 	err := qw.Init()                                // init the writer
 	if err != nil {
 		return nil, err // return the error
@@ -22,13 +26,15 @@ func NewQueryWriterFor(db *sql.DB, tableName string) (*QueryWriter, error) {
 	return &qw, nil // return the writer
 }
 
+// NewQueryWriterWithTemplateFor takes in a database connection, table name as well as a file path to a template that is used to set the values in the QueryWriter
+// before returning a pointer to the initialized QueryWriter as well as any errors that occurred
 func NewQueryWriterWithTemplateFor(db *sql.DB, tableName string, filePath string) (*QueryWriter, error) {
 	// check to see if file exists
 	m := make(map[string]map[string]map[string]string)
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
 		return nil, err
 	}
-	qw := QueryWriter{db: db, TableName: tableName}
+	qw := QueryWriter{db: db, tableName: tableName}
 	err := qw.Init()
 	if err != nil {
 		return nil, err
@@ -47,31 +53,32 @@ func NewQueryWriterWithTemplateFor(db *sql.DB, tableName string, filePath string
 	err = qw.verifyTemplate(m) // do further verifications on the template
 	if err != nil {
 		// print some error message
-		// TODO make an error for this and give more detail to end user
 		log.Fatal(err)
 	}
 	qw.updateTableMap(m) // actually update the table
 	return &qw, nil      // return new parser
 }
 
+// QueryWriter is the struct responsible for generating data for it's given table
 type QueryWriter struct {
-	db               *sql.DB
-	TableName        string
-	tableMap         map[string]*table
-	allRelations     map[string]map[string]map[string]string
-	fkMap            map[string]map[string]string
-	TableOrderQueue  *list.List // queue
-	InsertQueryQueue *list.List // queue
-	DeleteQueryQueue *list.List // queue
+	db               *sql.DB                                 // the database connection
+	tableName        string                                  // name of the 'table' it's generating data for
+	tableMap         map[string]*table                       // a map of the 'table names' to their table object
+	allRelations     map[string]map[string]map[string]string // all 'table' relationships expressed as a map
+	fkMap            map[string]map[string]string            // a map of foreign keys
+	TableOrderQueue  *list.List                              // queue
+	InsertQueryQueue *list.List                              // queue
+	DeleteQueryQueue *list.List                              // queue
 }
 
+// Init initializes the QueryWriter and returns any errors that occur upon initialization
 func (qw *QueryWriter) Init() error {
 	var err error
-	qw.TableName = strings.ToLower(qw.TableName)
+	qw.tableName = strings.ToLower(qw.tableName)
 	ordering := graph.NewOrdering(qw.db) // get a new ordering
-	qw.allRelations = db.CreateRelationships(qw.db)
+	qw.allRelations = db.GetRelationships(qw.db)
 	qw.setFKMap()
-	qw.TableOrderQueue, err = ordering.GetOrder(qw.TableName) // get the topological ordering of tables
+	qw.TableOrderQueue, err = ordering.GetOrder(qw.tableName) // get the topological ordering of tables
 	if err != nil {
 		return err
 	}
@@ -81,9 +88,10 @@ func (qw *QueryWriter) Init() error {
 	return err
 }
 
+// ChangeTableToWriteFor takes in a new table name and re-inits the QueryWriter. It returns any errors that happen upon re-initialization
 func (qw *QueryWriter) ChangeTableToWriteFor(tableName string) error {
 	// change the table name of the writer and return any errors
-	qw.TableName = strings.ToLower(tableName)
+	qw.tableName = strings.ToLower(tableName)
 	return qw.Init()
 }
 
@@ -102,6 +110,7 @@ func (qw *QueryWriter) setFKMap() {
 	qw.fkMap = m
 }
 
+// GenerateEntries takes in a number and generates that amount of entries for the QueryWriter table
 func (qw *QueryWriter) GenerateEntries(amount int) {
 	for i := 0; i < amount; i++ {
 		node := qw.TableOrderQueue.Front()
@@ -112,6 +121,7 @@ func (qw *QueryWriter) GenerateEntries(amount int) {
 	}
 }
 
+// GenerateEntry is a wrapper around the GenerateEntries function that simply gives the later an amount of 1
 func (qw *QueryWriter) GenerateEntry() {
 	qw.GenerateEntries(1) // only generate one
 }
@@ -176,8 +186,7 @@ func (qw *QueryWriter) createTable(tableName string) table {
 }
 
 func (qw *QueryWriter) verifyTemplate(m map[string]map[string]map[string]string) error {
-	// TODO have this return a custom error
-	relations := db.CreateRelationships(qw.db)
+	relations := db.GetRelationships(qw.db)
 	flag := qw.TableOrderQueue.Len() == len(m) // number of keys should match number of tables
 	if !flag {
 		return errors.New("number of tables in template does not match the number of tables required")

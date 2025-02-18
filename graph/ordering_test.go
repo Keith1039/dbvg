@@ -14,13 +14,13 @@ import (
 	"testing"
 )
 
-var database *sql.DB
+var db *sql.DB
 
 const path = "file://../db/migrations/"
 
 func drop() {
 	// drop the database
-	driver, err := postgres.WithInstance(database, &postgres.Config{})
+	driver, err := postgres.WithInstance(db, &postgres.Config{})
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -43,7 +43,7 @@ func init() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	database, err = sql.Open("postgres", os.Getenv("DATABASE_URL"))
+	db, err = sql.Open("postgres", os.Getenv("DATABASE_URL"))
 	if err != nil {
 		panic(err)
 	}
@@ -53,7 +53,7 @@ func init() {
 
 func buildUp(caseName string) error {
 	// migrate the schema up
-	driver, err := postgres.WithInstance(database, &postgres.Config{})
+	driver, err := postgres.WithInstance(db, &postgres.Config{})
 	m, err2 := migrate.NewWithDatabaseInstance(
 		path+caseName,
 		"postgres", driver)
@@ -78,7 +78,7 @@ func TestOrdering_FindOrderCase1(t *testing.T) {
 		t.Fatal(err)
 	}
 	ordering := Ordering{}
-	ordering.Init(database)
+	ordering.Init(db)
 	order, err := ordering.GetOrder("a")
 	if err != nil {
 		t.Fatal(err)
@@ -116,7 +116,7 @@ func TestOrdering_FindOrderCase2(t *testing.T) {
 	}
 
 	ordering := Ordering{}
-	ordering.Init(database)
+	ordering.Init(db)
 	_, err = ordering.GetOrder("team_members")
 	properError := errors.As(err, &cyclicError)
 	if !properError || err == nil {
@@ -134,7 +134,7 @@ func TestOrdering_FindOrderCase3(t *testing.T) {
 	}
 
 	ordering := Ordering{}
-	ordering.Init(database)
+	ordering.Init(db)
 	order, err := ordering.GetOrder("users")
 	if err != nil {
 		t.Errorf("Unexpected Error: %s", err.Error())
@@ -151,7 +151,7 @@ func TestOrdering_FindOrderCase4(t *testing.T) {
 		t.Fatal("Error should have been given")
 	}
 	ordering := Ordering{}
-	ordering.Init(database)
+	ordering.Init(db)
 	order, err := ordering.GetOrder("team_members")
 	if err == nil {
 		t.Fatal("Missing table error should have occurred")

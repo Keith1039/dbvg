@@ -1,3 +1,6 @@
+// Package graph contains all graphing algorithms used
+//
+// the graph package contains all functions that relate to graphs such as the DFS implementation as well as the cycle resolution code
 package graph
 
 import (
@@ -5,9 +8,11 @@ import (
 	"database/sql"
 	"fmt"
 	database "github.com/Keith1039/dbvg/db"
+	"log"
 	"strings"
 )
 
+// NewOrdering returns the address of a properly initiated Ordering struct
 func NewOrdering(db *sql.DB) *Ordering {
 	// get a new ordering
 	ord := Ordering{}
@@ -15,20 +20,23 @@ func NewOrdering(db *sql.DB) *Ordering {
 	return &ord
 }
 
+// Ordering is a struct that contains the information necessary to detect and remove cycles
 type Ordering struct {
-	db           *sql.DB
-	allTables    map[string]int
-	allRelations map[string]map[string]map[string]string
-	stack        *list.List
+	db           *sql.DB                                 // the database connection
+	allTables    map[string]int                          // a map of all the tables in the database
+	allRelations map[string]map[string]map[string]string // all table relationships in a mapped form
+	stack        *list.List                              // a stack
 }
 
+// Init takes in a database connection and sets all private variables in the Ordering struct
 func (tl *Ordering) Init(db *sql.DB) {
 	tl.db = db
 	tl.allTables = database.GetTableMap(tl.db)
-	tl.allRelations = database.CreateRelationships(tl.db)
+	tl.allRelations = database.GetRelationships(tl.db)
 	tl.stack = list.New()
 }
 
+// GetCycles uses DFS to detect cycles, all detected cycles are added to a linked list and returned
 func (tl *Ordering) GetCycles() *list.List {
 	// check if there is a cycle in the entire database schema
 	cycles := list.New()
@@ -47,6 +55,7 @@ func (tl *Ordering) GetCycles() *list.List {
 	return cycles // return all cycles found
 }
 
+// GetSuggestionQueries returns a list of queries necessary to remove found cycles in the database schema
 func (tl *Ordering) GetSuggestionQueries() *list.List {
 	cycles := tl.GetCycles() // get the cycles
 	cycleBreaking := tl.getCycleBreakingOrder(cycles)
@@ -54,13 +63,14 @@ func (tl *Ordering) GetSuggestionQueries() *list.List {
 	return suggestionQueries                              // return the suggestions
 }
 
+// GetAndResolveCycles immediately runs the suggestion queries instead of returning them unlike GetSuggestionQueries
 func (tl *Ordering) GetAndResolveCycles() {
 	cycles := tl.GetCycles() // get your cycles
 	cycleBreaking := tl.getCycleBreakingOrder(cycles)
 	suggestions := tl.getSuggestions(cycleBreaking) // get your suggestions
 	err := database.RunQueries(tl.db, suggestions)  // run the suggestions
 	if err != nil {
-		panic(err) // panic if it fails
+		log.Fatal(err) // panic if it fails
 	}
 }
 
@@ -138,6 +148,7 @@ func (tl *Ordering) topological(tableName string) (*list.List, error) {
 	return l, nil
 }
 
+// GetOrder returns a list of table names that need entries before the given table can receive an entry alongside any errors that occur
 func (tl *Ordering) GetOrder(tableName string) (*list.List, error) {
 	_, exists := tl.allTables[tableName] // check if the table exists
 	if !exists {
@@ -236,7 +247,7 @@ func (tl *Ordering) getSuggestions(cycles *list.List) *list.List {
 	var dropBuilder strings.Builder
 	var foreignKeyBuilder strings.Builder
 	var primaryKeyBuilder strings.Builder
-	inverseRelationships := database.CreateInverseRelationships(tl.db)
+	inverseRelationships := database.GetInverseRelationships(tl.db)
 	queries := list.New()
 	node := cycles.Front()
 	pkMap := database.GetTablePKMap(tl.db)

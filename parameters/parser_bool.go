@@ -6,12 +6,15 @@ import (
 	"strings"
 )
 
+// default code for the boolean parser
 const DEFAULTBOOLCODE = RANDOM
 
-type BooleanParser struct {
+// BooleanColumnParser is the struct responsible for processing parameters and creating queries for the Boolean type columns
+type BooleanColumnParser struct {
 }
 
-func (p *BooleanParser) ParseColumn(col column) (string, error) {
+// ParseColumn takes in a column and processes it in order to return a string value along with any errors that occur
+func (p *BooleanColumnParser) ParseColumn(col column) (string, error) {
 	code := col.Code
 	if code == 0 {
 		code = DEFAULTBOOLCODE
@@ -28,7 +31,7 @@ func (p *BooleanParser) ParseColumn(col column) (string, error) {
 
 }
 
-func (p *BooleanParser) handleRandom() (string, error) {
+func (p *BooleanColumnParser) handleRandom() (string, error) {
 	num := rand.Intn(100)
 	if num < 50 {
 		return "true", nil
@@ -37,7 +40,7 @@ func (p *BooleanParser) handleRandom() (string, error) {
 	}
 }
 
-func (p *BooleanParser) handleStatic(col column) (string, error) {
+func (p *BooleanColumnParser) handleStatic(col column) (string, error) {
 	val := col.Other
 	val = strings.Trim(strings.ToLower(val), " ")
 	if val != "true" && val != "false" {
@@ -47,6 +50,6 @@ func (p *BooleanParser) handleStatic(col column) (string, error) {
 	}
 }
 
-func (p *BooleanParser) handleNull() (string, error) {
+func (p *BooleanColumnParser) handleNull() (string, error) {
 	return "NULL", nil
 }

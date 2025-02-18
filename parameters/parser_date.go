@@ -7,13 +7,18 @@ import (
 	"time"
 )
 
+// default code for the date parser
 const DEFAULTDATECODE = NOW
+
+// default date range for the RANDOM code of the date parser
 const DEFAULTDATERANGE = "2001-01-01,2024-12-31"
 
-type DateParser struct {
+// DateColumnParser is the struct responsible for processing parameters and creating queries for the Date type columns
+type DateColumnParser struct {
 }
 
-func (p *DateParser) ParseColumn(col column) (string, error) {
+// ParseColumn takes in a column and processes it in order to return a string value along with any errors that occur
+func (p *DateColumnParser) ParseColumn(col column) (string, error) {
 	code := col.Code
 	if code == 0 {
 		code = DEFAULTDATECODE
@@ -31,7 +36,7 @@ func (p *DateParser) ParseColumn(col column) (string, error) {
 	}
 }
 
-func (p *DateParser) handleRandom(col column) (string, error) {
+func (p *DateColumnParser) handleRandom(col column) (string, error) {
 	r := col.Other
 	if r == "" {
 		r = DEFAULTDATERANGE
@@ -43,7 +48,7 @@ func (p *DateParser) handleRandom(col column) (string, error) {
 	return randomDataTime.GenerateDate(dates[0], dates[1])
 }
 
-func (p *DateParser) handleStatic(col column) (string, error) {
+func (p *DateColumnParser) handleStatic(col column) (string, error) {
 	r := col.Other
 	if isDate(r) {
 		return r, nil
@@ -52,11 +57,11 @@ func (p *DateParser) handleStatic(col column) (string, error) {
 	}
 }
 
-func (p *DateParser) handleNow() (string, error) {
+func (p *DateColumnParser) handleNow() (string, error) {
 	return time.Now().String(), nil
 }
 
-func (p *DateParser) handleNull() (string, error) {
+func (p *DateColumnParser) handleNull() (string, error) {
 	return "NULL", nil
 }
 

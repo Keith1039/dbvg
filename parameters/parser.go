@@ -1,5 +1,6 @@
 package parameters
 
+// ColumnParser is an interface that contains the ParseColumn function which is defined by all other parsers
 type ColumnParser interface {
 	ParseColumn(col column) (string, error)
 }
@@ -11,9 +12,11 @@ func getColumnParser(dataType string) ColumnParser {
 	case "VARCHAR":
 		return &VarcharColumnParser{}
 	case "UUID":
-		return &UUIDParser{}
+		return &UUIDColumnParser{}
 	case "BOOL":
-		return &BooleanParser{}
+		return &BooleanColumnParser{}
+	case "DATE":
+		return &DateColumnParser{}
 	}
 	return nil
 }

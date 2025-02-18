@@ -5,12 +5,15 @@ import (
 	"github.com/google/uuid"
 )
 
+// default code for the UUID parser
 const DEFAULTUUIDCODE = UUID
 
-type UUIDParser struct {
+// UUIDColumnParser is the struct responsible for processing parameters and creating queries for the 'UUID' type columns
+type UUIDColumnParser struct {
 }
 
-func (p *UUIDParser) ParseColumn(col column) (string, error) {
+// ParseColumn takes in a column and processes it in order to return a string value along with any errors that occur
+func (p *UUIDColumnParser) ParseColumn(col column) (string, error) {
 	code := col.Code
 	if code == 0 {
 		code = DEFAULTUUIDCODE
@@ -25,10 +28,10 @@ func (p *UUIDParser) ParseColumn(col column) (string, error) {
 
 }
 
-func (p *UUIDParser) handleUUID() (string, error) {
+func (p *UUIDColumnParser) handleUUID() (string, error) {
 	return uuid.New().String(), nil
 }
 
-func (p *UUIDParser) handleNull() (string, error) {
+func (p *UUIDColumnParser) handleNull() (string, error) {
 	return uuid.Nil.String(), nil
 }

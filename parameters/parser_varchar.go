@@ -6,9 +6,13 @@ import (
 	regen "github.com/zach-klippenstein/goregen"
 )
 
+// default value for the REGEX code for the varchar parser
 const DEFAULTEXPR = "[a-zA-Z]+"
+
+// default code for the varchar parser
 const DEFAULVARCHARCODE = REGEX
 
+// VarcharColumnParser is the struct responsible for processing parameters and creating queries for Varchar type columns
 type VarcharColumnParser struct {
 }
 
