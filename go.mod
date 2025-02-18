@@ -1,4 +1,4 @@
-module github.com/Keith1039/Capstone_Test
+module github.com/Keith1039/dbvg
 
 go 1.23.3
 

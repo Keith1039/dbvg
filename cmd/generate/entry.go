@@ -6,8 +6,8 @@ package generate
 import (
 	"bufio"
 	"fmt"
-	database "github.com/Keith1039/Capstone_Test/db"
-	"github.com/Keith1039/Capstone_Test/parameters"
+	database "github.com/Keith1039/dbvg/db"
+	"github.com/Keith1039/dbvg/parameters"
 	"github.com/spf13/cobra"
 	"log"
 	"os"
