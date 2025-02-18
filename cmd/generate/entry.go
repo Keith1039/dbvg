@@ -1,6 +1,3 @@
-/*
-Copyright © 2025 NAME HERE <EMAIL ADDRESS>
-*/
 package generate
 
 import (
@@ -25,13 +22,17 @@ var (
 // entryCmd represents the entry command
 var entryCmd = &cobra.Command{
 	Use:   "entry",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
+	Short: "Command used to generate table entries",
+	Long: `Command that is used to generate table entries in the database.
+	This command requires the --table flag and either the --template or --default flags.
+	If you want the entries to disappear after execution use the --clean-up flag.
+	You can control how many entries generated with the --amount flag (default is 1).
+	Finally, if you want more information regarding the execution use -v or --verbose for a more verbose output.
 
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	examples of valid commands)
+		dbvg generate entry --database ${POSTGRES_URL} --default --table "example_table" --verbose
+		dbvg generate entry --database ${POSTGRES_URL} --template "path/to/file.json" --table "example_table" --amount 10 -v --clean-up
+	`,
 	Run: func(cmd *cobra.Command, args []string) {
 		var writer *parameters.QueryWriter
 		db, err := InitDB()
@@ -92,7 +93,6 @@ to quickly create a Cobra application.`,
 }
 
 func init() {
-
 	entryCmd.Flags().StringVarP(&template, "template", "", "", "path to the template file being used")
 	entryCmd.Flags().StringVarP(&table, "table", "", "", "table we are generating data for")
 	entryCmd.Flags().IntVarP(&amount, "amount", "", 1, "amount of entries this will generate")

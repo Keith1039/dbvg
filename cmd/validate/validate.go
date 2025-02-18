@@ -1,6 +1,6 @@
-/*
-Copyright © 2025 Keith Compere <KeithCompere150@gmail.com>
-*/
+// Package validate provides the commands relating to schema validation
+//
+// This package contains the validation code for the CLI. It mirrors the functionality and depends on the `graph` package
 package validate
 
 import (
@@ -17,7 +17,7 @@ var (
 var ValidateCmd = &cobra.Command{
 	Use:   "validate",
 	Short: "The palette responsible for schema validation",
-	Long: `This pallete is responsible for ensuring that the database schema has no
+	Long: `This palette is responsible for ensuring that the database schema has no
 		cycles. If a cycle is detected, a series of recommendation queries will be generated`,
 	Run: func(cmd *cobra.Command, args []string) {
 		cmd.Help()
@@ -47,6 +47,7 @@ func init() {
 	// validateCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
 
+// InitDB initiates the database and returns it
 func InitDB() (*sql.DB, error) {
 	db, err := sql.Open("postgres", ConnString)
 	if err != nil {

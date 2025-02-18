@@ -1,3 +1,6 @@
+// Package db is responsible for any database querying
+//
+// The db package provides a set of exported functions that returns formatted database outputs that are usable in the other packages
 package db
 
 import (
@@ -34,6 +37,8 @@ var typeMap = map[string]string{
 	"INT8":    "INT",
 	"INT16":   "INT",
 	"INT32":   "INT",
+	"INT64":   "INT",
+	"UUID":    "UUID",
 	"VARCHAR": "VARCHAR",
 	"BOOL":    "BOOL",
 	"DATE":    "DATE",
@@ -66,6 +71,7 @@ var typeMap = map[string]string{
 //	}
 //}
 
+// GetTableMap returns a map of existing table names mapped to the number 1 in the given database
 func GetTableMap(db *sql.DB) map[string]int {
 	tnames, err := schema.TableNames(db)
 	allNames := make(map[string]int)
@@ -79,6 +85,7 @@ func GetTableMap(db *sql.DB) map[string]int {
 	return allNames
 }
 
+// GetColumnMap returns a map of column names mapped to their "translated" string type
 func GetColumnMap(db *sql.DB, tableName string) map[string]string {
 	m := make(map[string]string)                        // make initial map
 	tcols, err := schema.ColumnTypes(db, "", tableName) // get the column info
@@ -92,6 +99,7 @@ func GetColumnMap(db *sql.DB, tableName string) map[string]string {
 	return m
 }
 
+// GetRawColumnMap returns a map of column names mapped to their string type
 func GetRawColumnMap(db *sql.DB, tableName string) map[string]string {
 	m := make(map[string]string)                        // make initial map
 	tcols, err := schema.ColumnTypes(db, "", tableName) // get the column info
@@ -105,6 +113,7 @@ func GetRawColumnMap(db *sql.DB, tableName string) map[string]string {
 	return m
 }
 
+// GetTablePKMap returns a map of table names mapped to an array of string primary keys
 func GetTablePKMap(db *sql.DB) map[string][]string {
 	var pks []string
 	tnames, err := schema.TableNames(db)
@@ -123,7 +132,8 @@ func GetTablePKMap(db *sql.DB) map[string][]string {
 	return pkMap
 }
 
-func CreateRelationships(db *sql.DB) map[string]map[string]map[string]string {
+// GetRelationships returns a map relating tables to each other via their columns. Format: {table1: {FKColumn: {"Table: table2, "Column": "table2_Col"}}}
+func GetRelationships(db *sql.DB) map[string]map[string]map[string]string {
 	relations := make(map[string]map[string]map[string]string)
 	var tableName, fkColumnName, refTableName, refColumnName string
 	rows, err := db.Query(postgresFKRelations)
@@ -146,7 +156,9 @@ func CreateRelationships(db *sql.DB) map[string]map[string]map[string]string {
 	return relations
 }
 
-func CreateInverseRelationships(db *sql.DB) map[string]map[string]map[string]string {
+// GetInverseRelationships returns a map relating tables to tables that relate to them. It's the same data as the `GetRelationship()` map
+// but formatted differently
+func GetInverseRelationships(db *sql.DB) map[string]map[string]map[string]string {
 	relations := make(map[string]map[string]map[string]string)
 	var tableName, fkColumnName, refTableName, refColumnName string
 	rows, err := db.Query(postgresFKRelations)
@@ -168,6 +180,7 @@ func CreateInverseRelationships(db *sql.DB) map[string]map[string]map[string]str
 	return relations
 }
 
+// RunQueries runs a given list of queries and returns any errors the moment they happen
 func RunQueries(db *sql.DB, queries *list.List) error {
 	var err error
 	node := queries.Front()
@@ -178,6 +191,7 @@ func RunQueries(db *sql.DB, queries *list.List) error {
 	return err
 }
 
+// RunQueriesVerbose runs a given list of queries but prints them out before executing them
 func RunQueriesVerbose(db *sql.DB, queries *list.List) error {
 	var err error
 	node := queries.Front()

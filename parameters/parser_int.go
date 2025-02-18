@@ -8,14 +8,21 @@ import (
 	"strings"
 )
 
+// default range for the RANGE code of the integer parser
 const DEFAULTRANGE = "0,100"
+
+// default value for the STATIC code of the integer parser
 const DEFAULTSTATIC = "0"
+
+// default code for the integer parser
 const DEFAULTINTCODE = SEQ
 
+// IntColumnParser is the struct responsible for processing parameters and creating queries for Integer type columns
 type IntColumnParser struct {
 	latest int
 }
 
+// ParseColumn takes in a column and processes it in order to return a string value along with any errors that occur
 func (p *IntColumnParser) ParseColumn(col column) (string, error) {
 	code := col.Code
 	if code == 0 {

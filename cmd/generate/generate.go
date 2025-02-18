@@ -1,6 +1,6 @@
-/*
-Copyright © 2025 NAME HERE <EMAIL ADDRESS>
-*/
+// Package generate is responsible for the commands that generate data in the database instance
+//
+// The generate package is all about enabling data generation through templates or other commands using the `parameters` package in CLI form
 package generate
 
 import (
@@ -16,13 +16,10 @@ var (
 // GenerateCmd represents the generate command
 var GenerateCmd = &cobra.Command{
 	Use:   "generate",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Short: "the palette of commands created for generating data",
+	Long: `The palette of commands created for generating data,
+	this can either be generating templates with the template command or 
+	table entries using the entry command`,
 	Run: func(cmd *cobra.Command, args []string) {
 		cmd.Help()
 	},
@@ -52,6 +49,7 @@ func init() {
 	// generateCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
 
+// InitDB initiates the database and returns it
 func InitDB() (*sql.DB, error) {
 	db, err := sql.Open("postgres", ConnString)
 	if err != nil {

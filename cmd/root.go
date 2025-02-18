@@ -1,6 +1,6 @@
-/*
-Copyright © 2025 Keith Compere <KeithCompere150@gmail.com>
-*/
+// Package cmd that contains the main executable code for the CLI
+//
+// cmd depends on the `generate` and `validate` packages to have all commands for the CLI
 package cmd
 
 import (

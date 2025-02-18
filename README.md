@@ -31,7 +31,7 @@ package main
 import (
 	"database/sql"
 	"fmt"
-	"github.com/Keith1039/Capstone_Test/graph"
+	"github.com/Keith1039/dbvg/graph"
 	"log"
 	"os"
 )
@@ -66,8 +66,8 @@ package main
 
 import (
 	"database/sql"
-	database "github.com/Keith1039/Capstone_Test/db"
-	"github.com/Keith1039/Capstone_Test/graph"
+	database "github.com/Keith1039/dbvg/db"
+	"github.com/Keith1039/dbvg/graph"
 	"log"
 	"os"
 )
@@ -118,8 +118,8 @@ package main
 
 import (
 	"database/sql"
-	database "github.com/Keith1039/Capstone_Test/db"
-	"github.com/Keith1039/Capstone_Test/parameters"
+	database "github.com/Keith1039/dbvg/db"
+	"github.com/Keith1039/dbvg/parameters"
 	"log"
 	"os"
 )
@@ -161,7 +161,7 @@ Query 4: DELETE FROM d WHERE dkey=0 AND eref=0;
 Query 5: DELETE FROM e WHERE ekey=0;
 ```
 *Note*: The `QueryWriter` struct cannot be used if a cycle exists in the path for the given table.
-It is recommended to always resolve necessary cycles before generating data. below is the result of using the above
+It is recommended to always resolve cycles before generating data. below is the result of using the above
 code on a schema that has cycles.
 ```
 2025/02/18 15:27:55 error, the following cycles have been detected in the database schema: b --> d --> e --> b | b --> c --> a --> b

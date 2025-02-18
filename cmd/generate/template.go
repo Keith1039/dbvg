@@ -1,6 +1,3 @@
-/*
-Copyright © 2025 NAME HERE <EMAIL ADDRESS>
-*/
 package generate
 
 import (
@@ -26,7 +23,13 @@ var (
 var templateCmd = &cobra.Command{
 	Use:   "template",
 	Short: "generates a template in a specific folder for a specific group of tables",
-	Long:  ``,
+	Long: `generates a template JSON file in a specific folder for a specific group of tables based off of the first
+	table given. This template is meant to be edited by the user and ingested by either the CLI or the library. As a result,
+	the --dir and --table flags are required.
+
+	example of valid command)
+		dbvg generate template --database ${POSTGRES_URL} --dir "some/directory"  --table "example_table"
+	`,
 	Run: func(cmd *cobra.Command, args []string) {
 		db, err := InitDB()
 		if err != nil {
@@ -80,7 +83,7 @@ func init() {
 
 func makeTemplates(db *sql.DB, l *list.List) map[string]map[string]map[string]string {
 	m := make(map[string]map[string]map[string]string)
-	relations := database.CreateRelationships(db) // get relationships
+	relations := database.GetRelationships(db) // get relationships
 	node := l.Front()
 	for node != nil {
 		tName := node.Value.(string)
