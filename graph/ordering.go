@@ -233,6 +233,7 @@ func (tl *Ordering) getCycleBreakingOrder(problemTables *list.List) *list.List {
 
 func (tl *Ordering) getSuggestions(cycles *list.List) *list.List {
 	var builder strings.Builder
+	var dropBuilder strings.Builder
 	var foreignKeyBuilder strings.Builder
 	var primaryKeyBuilder strings.Builder
 	inverseRelationships := database.CreateInverseRelationships(tl.db)
@@ -244,13 +245,18 @@ func (tl *Ordering) getSuggestions(cycles *list.List) *list.List {
 		pks := pkMap[refTable]
 		tableRelations := inverseRelationships[refTable]
 		colMap := database.GetRawColumnMap(tl.db, refTable)
-		for problemTable, relation := range tableRelations {
+		for problemTable, _ := range tableRelations {
 			problemTablePks := pkMap[problemTable]
 			refColMap := database.GetRawColumnMap(tl.db, problemTable)
 			newTablePKs := make([]string, len(pks)+len(problemTablePks)) // array of the primary keys we'll assign at the end
 			newTableSlider := 0
 			// first format the string to get rid of the reference column
-			queries.PushBack(fmt.Sprintf("ALTER TABLE %s DROP COLUMN %s;", problemTable, relation["FKColumn"]))
+			appendDropBuilder(&dropBuilder, refTable, problemTable, tl.allRelations)
+			dropQueries := strings.Split(dropBuilder.String(), "\n")
+			dropQueries = dropQueries[0 : len(dropQueries)-1] // cut off the end because it's always empty string
+			for _, dropQuery := range dropQueries {
+				queries.PushBack(dropQuery)
+			}
 			query := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s_%s(", refTable, problemTable)
 			builder.WriteString(query)
 			if refTable == problemTable {
@@ -280,6 +286,7 @@ func (tl *Ordering) getSuggestions(cycles *list.List) *list.List {
 			builder.WriteString(fmt.Sprintf("\n\tPRIMARY KEY %s\n)", primaryKeyBuilder.String()))
 			queries.PushBack(builder.String())
 			builder.Reset()
+			dropBuilder.Reset()
 			foreignKeyBuilder.Reset()
 			primaryKeyBuilder.Reset()
 
@@ -298,7 +305,14 @@ func appendBuilder(builder *strings.Builder, pks []string, table string, colMap 
 		*slider++                    // increment slider
 	}
 }
-
+func appendDropBuilder(builder *strings.Builder, refTable string, problemTable string, allRelations map[string]map[string]map[string]string) {
+	relations := allRelations[problemTable]
+	for column, relation := range relations {
+		if relation["Table"] == refTable { // check to see if the fk matches
+			builder.WriteString(fmt.Sprintf(fmt.Sprintf("ALTER TABLE %s DROP COLUMN %s;\n", problemTable, column)))
+		}
+	}
+}
 func appendForeignKey(foreignKeyBuilder *strings.Builder, table string, pks []string, refTablePks []string) {
 	// builds a foreign key constraint
 	var keyBuilder strings.Builder
