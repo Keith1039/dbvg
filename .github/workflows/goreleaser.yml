@@ -25,6 +25,8 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: stable
+      - name: Set COSIGN_PWD
+        run: echo "COSIGN_PWD=${{ secrets.COSIGN_PWD }}" >> $GITHUB_ENV
 
       # More assembly might be required: Docker logins, GPG, etc.
       # It all depends on your needs.
