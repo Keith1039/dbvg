@@ -8,7 +8,7 @@
 
 version: 2
 
-signs:
+binary_signs:
   - cmd: cosign
     stdin: "{{ .Env.COSIGN_PWD }}"
     args:
