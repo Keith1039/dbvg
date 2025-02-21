@@ -27,6 +27,10 @@ jobs:
           go-version: stable
       - name: Set COSIGN_PWD
         run: echo "COSIGN_PWD=${{ secrets.COSIGN_PWD }}" >> $GITHUB_ENV
+      - name: cosign-get
+        uses: sigstore/cosign-installer@v3.8.1
+        with:
+          cosign-release: 'v2.4.3' # optional
 
       # More assembly might be required: Docker logins, GPG, etc.
       # It all depends on your needs.
