@@ -7,6 +7,8 @@ on:
     tags:
       - "*"
 
+env:
+  COSIGN_PWD=${{ env.COSIGN_PWD }}
 permissions:
   contents: write
   # packages: write
@@ -25,10 +27,6 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: stable
-      - name: Set COSIGN_PWD
-        run: echo "COSIGN_PWD=${{ secrets.COSIGN_PWD }}" >> $GITHUB_ENV
-      - name: Verify
-        run: echo "${{secrets.COSIGN_PWD}}" -eq ""
       - name: cosign-get
         uses: sigstore/cosign-installer@v3.8.1
         with:
