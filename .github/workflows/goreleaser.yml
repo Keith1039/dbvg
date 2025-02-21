@@ -8,7 +8,7 @@ on:
       - "*"
 
 env:
-  COSIGN_PWD=${{ env.COSIGN_PWD }}
+  COSIGN_PWD=${{ vars.COSIGN_PWD }}
 permissions:
   contents: write
   # packages: write
