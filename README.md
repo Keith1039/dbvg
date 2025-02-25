@@ -1,25 +1,46 @@
 # DBVG (Work in progress)
 
-Database validator and generator for Postgres. Use as a CLI or import as a library
+Database validator and generator (dbvg) for Postgres. Use as a CLI or import as a library.
 
 __[CLI Documentation](cmd/README.md)__
 
 __[Go Documentation]()__
 
 ## Main Offering
-This project provides tools to help a fledgling database mature quickly while allowing the developer to side step
-hours of planning. This tool is intended for use in a new PERSONAL project or during a high speed race to get a functional 
-product out  like in a hackathon. Please don't use this in prod...
+This project provides tools to detect/resolve cycles in a database schema.
+This project also provides tools to generate X amount of table entries
+while maintaining table relationships.
+
+This helps the developer by allowing them to avoid making and updating 
+scripts that manually create table entries for their database.
+
+This tool is intended for use in a new personal project or for helping to create a 
+proof of concept. This tool is designed to be used in a database with 
+little to no table entries. In other words, please don't use this in prod...
 
 ### Validation
-The validation provided by DBVG is cycle aversion as well as cycle resolution. As databases grow, it becomes incredibly easy to 
-accidentally create cyclic relationships between tables without noticing. This can be averted with proper planning but sometimes
-the situation is out of your hands, and you need to move fast and break things.
+The validation provided by dbvg is cycle aversion and cycle resolution. As databases grow, 
+it becomes easy to inadvertently create cyclic relationships between tables. 
+This can be averted with proper planning but in cases where time is limited, such as hackathons
+or hack days, this is often skipped. 
+
+This library offers a way to handle this for you. This allows you to work on
+the more important aspects of your project while having confidence in your schema.
 
 ### Data Generation
-As a database grows it also becomes harder to generate data for it as you manage the complex web of relationships you've 
-constructed. This problem is further compounded when you're actively making changes to the database schema. With this library,
-you can generate test data on the fly with no worries, let the code handle the hard work.
+As a database grows, it also becomes harder to generate test data for it, due to the table relationships.
+
+One solution to this problem is to create scripts that generate manual table entries. 
+The consequence of this approach is the technical debt of maintaining this script.
+
+Another solution is to use real data for testing. With this, you don't need to worry about
+the table relationships, and you have realistic data to use for testing. The consequence of this approach
+is that if any changes are made to the schema, it might take time for you to receive new test data. 
+Another consequence is that, for you to get real data, you need users for your application. Depending
+on the scope of your project, getting users for an unfinished product would be difficult.
+
+With this library, you can allow the code to handle test data generation and focus on more
+the finer aspects of your project.
 
 ## Basic Usage (As a library)
 
@@ -160,7 +181,7 @@ Query 3: DELETE FROM a WHERE akey=0;
 Query 4: DELETE FROM d WHERE dkey=0 AND eref=0;
 Query 5: DELETE FROM e WHERE ekey=0;
 ```
-*Note*: The `QueryWriter` struct cannot be used if a cycle exists in the path for the given table.
+*Note*: The `QueryWriter` struct cannot be used if a cycle exists in the path for the desired table.
 It is recommended to always resolve cycles before generating data. below is the result of using the above
 code on a schema that has cycles.
 ```
