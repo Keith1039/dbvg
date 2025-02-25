@@ -62,14 +62,14 @@ Finished INSERT query execution!
 # CLI Usage Details
 
 The CLI comprises the 2 subcommand palettes. These are `validate` and `generate`, `validate` is focused on database schema
-validation and `generate` is focused on database entry creation.
+validation and `generate` is focused on database table entry creation.
 
-*Note*: In all the examples, for the connection string I use an environmental variable, ${POSTGRES_URL}, for it. That is
-mostly out of preference and because connections strings tend to be very long, and it would make the commands look less concise.
-You can represent the connection string any way you like so long as it's value is a valid sql connection string
+*Note*: In all the examples, for the connection string I use an environmental variable, ${POSTGRES_URL}. That is
+because connections strings tend to be very long, and it would make the commands look less concise.
+You can represent the connection string any way you like so long as it's value is a valid sql connection string.
 
 ## Subcommand Palette: validate
-This subcommand palette is focused on schema validation. This means, detecting and resolving database relationship cycles.
+This subcommand palette is focused on schema validation. This means, detecting and resolving database cyclic relationships.
 As such, this palette only has one command, that being `schema`. 
 
 ### schema
@@ -98,7 +98,7 @@ Global Flags:
 
 ## Subcommand Palette: generate
 This subcommand palette is focused on generating data. This data generation is either generating a template for future use
-or database entries. As such it follows that the two commands in the palette are `template` and `entry`
+or database table entries. As such, the two commands in the palette are `template` and `entry`
 
 ### template
 
