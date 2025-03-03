@@ -1,6 +1,7 @@
 package validate
 
 import (
+	"database/sql"
 	"fmt"
 	database "github.com/Keith1039/dbvg/db"
 	"github.com/Keith1039/dbvg/graph"
@@ -28,42 +29,39 @@ var schemaCmd = &cobra.Command{
 	`,
 	Run: func(cmd *cobra.Command, args []string) {
 		db, err := InitDB()
+		defer func(db *sql.DB) {
+			err := db.Close()
+			if err != nil {
+				log.Fatal(err)
+			}
+		}(db)
+
 		if err != nil {
 			log.Fatal(err)
 		}
 		ordering := graph.NewOrdering(db)
 		cycles := ordering.GetCycles()
-		node := cycles.Front()
-		if cycles.Len() > 0 {
-			for node != nil {
-				fmt.Println(fmt.Sprintf("Cycle Detected!: %s", node.Value.(string)))
-				node = node.Next()
+		if len(cycles) > 0 {
+			for _, cycle := range cycles {
+				fmt.Println(fmt.Sprintf("Cycle Detected!: %s", cycle))
 			}
 		} else {
 			fmt.Println("No cycles detected!")
 		}
 		if suggestions {
 			suggestions := ordering.GetSuggestionQueries()
-			if suggestions.Len() > 0 {
-				node = suggestions.Front()
-				i := 1
-				for node != nil {
-					fmt.Println(fmt.Sprintf("Query %d: %s", i, node.Value.(string)))
-					node = node.Next()
-					i++
+			if len(suggestions) > 0 {
+				for i, query := range suggestions {
+					fmt.Println(fmt.Sprintf("Query %d: %s", i+1, query))
 				}
 			} else {
 				fmt.Println("No suggestions to be made")
 			}
 		} else if run {
 			suggestions := ordering.GetSuggestionQueries()
-			if suggestions.Len() > 0 {
-				node = suggestions.Front()
-				i := 1
-				for node != nil {
-					fmt.Println(fmt.Sprintf("Query %d: %s", i, node.Value.(string)))
-					node = node.Next()
-					i++
+			if len(suggestions) > 0 {
+				for i, query := range suggestions {
+					fmt.Println(fmt.Sprintf("Query %d: %s", i+1, query))
 				}
 				err := database.RunQueries(db, suggestions)
 				if err != nil {

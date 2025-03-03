@@ -3,7 +3,6 @@ package graph
 import (
 	"database/sql"
 	"errors"
-	"fmt"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
@@ -48,7 +47,6 @@ func init() {
 		panic(err)
 	}
 	drop() // drop the database
-
 }
 
 func buildUp(caseName string) error {
@@ -70,7 +68,6 @@ func buildUp(caseName string) error {
 
 func TestOrdering_FindOrderCase1(t *testing.T) {
 	// case where something on level 2 is moved down to level 4
-	var builder strings.Builder
 	defer drop()
 	caseName := "case1"
 	err := buildUp(caseName)
@@ -84,24 +81,17 @@ func TestOrdering_FindOrderCase1(t *testing.T) {
 		t.Fatal(err)
 	}
 	correctOrder := []string{"b", "d", "c", "a"}
-	if order.Len() != len(correctOrder) {
-		t.Fatalf("order.Len() = %d, want %d", order.Len(), len(correctOrder))
+	if len(order) != len(correctOrder) {
+		t.Fatalf("order.Len() = %d, want %d", len(order), len(correctOrder))
 	}
-	i := 0
+
 	flag := true
-	node := order.Front()
-	for node != nil && flag {
-		flag = node.Value.(string) == correctOrder[i]
-		i++
-		node = node.Next()
-	}
-	if !flag {
-		node = order.Front()
-		for node != nil {
-			builder.WriteString(node.Value.(string))
-			node = node.Next()
+
+	for i, tableName := range order {
+		flag = tableName == correctOrder[i]
+		if !flag {
+			t.Errorf("Incorect order. Correct order should be %s Instead got %s", strings.Join(correctOrder, ","), strings.Join(order, ","))
 		}
-		t.Errorf("Incorect order. Correct order should be a:1, b:4, c:2, d:3. Instead got %s", builder.String())
 	}
 }
 
@@ -138,7 +128,7 @@ func TestOrdering_FindOrderCase3(t *testing.T) {
 	order, err := ordering.GetOrder("users")
 	if err != nil {
 		t.Errorf("Unexpected Error: %s", err.Error())
-	} else if order.Front().Value.(string) != "users" {
+	} else if order[0] != "users" {
 		t.Errorf("Missing root table")
 	}
 }
@@ -157,8 +147,11 @@ func TestOrdering_FindOrderCase4(t *testing.T) {
 		t.Fatal("Missing table error should have occurred")
 	}
 	// I only nil check because IDE was being annoying about it
-	if order != nil && order.Len() != 0 {
-		fmt.Println(order)
-		t.Errorf("Empty schema given so the length should be 0 but it isn't. Length is %d", order.Len())
+	if order != nil && len(order) != 0 {
+		t.Errorf("Empty schema given so the length should be 0 but it isn't. Length is %d", len(order))
+	}
+	err = db.Close()
+	if err != nil {
+		log.Fatal(err)
 	}
 }

@@ -4,7 +4,6 @@
 package db
 
 import (
-	"container/list"
 	"database/sql"
 	"fmt"
 	"github.com/jimsmart/schema"
@@ -43,33 +42,6 @@ var typeMap = map[string]string{
 	"BOOL":    "BOOL",
 	"DATE":    "DATE",
 }
-
-//func DisplayTable() {
-//	// Fetch names of all tables
-//	tnames, err := schema.TableNames(db)
-//	if err != nil {
-//		log.Fatal(err)
-//	}
-//	// tnames is [][2]string
-//	for i := range tnames {
-//		tableName := tnames[i][1]
-//		fmt.Println("Table:", tableName)
-//		// Fetch column metadata for given table
-//		tcols, _ := schema.ColumnTypes(db, "", tableName)
-//		// tcols is []*sql.ColumnType
-//		for i := range tcols {
-//			fmt.Println("Column:", tcols[i].Name(), tcols[i].DatabaseTypeName())
-//		}
-//		// Fetch primary key for given table
-//		pks, _ := schema.PrimaryKey(db, "", tableName)
-//
-//		// pks is []string
-//		for i := range pks {
-//			fmt.Println("Primary Key:", pks[i])
-//		}
-//		fmt.Println("........................")
-//	}
-//}
 
 // GetTableMap returns a map of existing table names mapped to the number 1 in the given database
 func GetTableMap(db *sql.DB) map[string]int {
@@ -158,9 +130,9 @@ func GetRelationships(db *sql.DB) map[string]map[string]map[string]string {
 
 // GetInverseRelationships returns a map relating tables to tables that relate to them. It's the same data as the `GetRelationship()` map
 // but formatted differently
-func GetInverseRelationships(db *sql.DB) map[string]map[string]map[string]string {
-	relations := make(map[string]map[string]map[string]string)
+func GetInverseRelationships(db *sql.DB) map[string]map[string]bool {
 	var tableName, fkColumnName, refTableName, refColumnName string
+	relations := make(map[string]map[string]bool)
 	rows, err := db.Query(postgresFKRelations)
 	if err != nil {
 		log.Fatal(err)
@@ -172,35 +144,37 @@ func GetInverseRelationships(db *sql.DB) map[string]map[string]map[string]string
 		}
 		table, ok := relations[refTableName]
 		if !ok {
-			relations[refTableName] = map[string]map[string]string{tableName: {"Column": refColumnName, "FKColumn": fkColumnName}}
+			relations[refTableName] = map[string]bool{tableName: true}
 		} else {
-			table[tableName] = map[string]string{"Column": refColumnName, "FKColumn": fkColumnName}
+			table[tableName] = true
 		}
 	}
 	return relations
 }
 
 // RunQueries runs a given list of queries and returns any errors the moment they happen
-func RunQueries(db *sql.DB, queries *list.List) error {
+func RunQueries(db *sql.DB, queries []string) error {
 	var err error
-	node := queries.Front()
-	for node != nil && err == nil {
-		_, err = db.Query(node.Value.(string))
-		node = node.Next()
+	for _, query := range queries {
+		_, err = db.Exec(query)
+		if err != nil {
+			return err
+		}
 	}
 	return err
 }
 
 // RunQueriesVerbose runs a given list of queries but prints them out before executing them
-func RunQueriesVerbose(db *sql.DB, queries *list.List) error {
+func RunQueriesVerbose(db *sql.DB, queries []string) error {
 	var err error
-	node := queries.Front()
-	i := 1
-	for node != nil && err == nil {
-		fmt.Println(fmt.Sprintf("Query %d: %s", i, node.Value.(string)))
-		_, err = db.Query(node.Value.(string))
-		node = node.Next()
-		i++
+
+	for i, query := range queries {
+
+		fmt.Println(fmt.Sprintf("Query %d: %s", i+1, query))
+		_, err = db.Exec(query)
+		if err != nil {
+			return err
+		}
 	}
 	return err
 }
