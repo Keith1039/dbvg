@@ -14,14 +14,14 @@ func getTopologicalNodes(allTables map[string]int, allRelations map[string]map[s
 	for tableName := range allTables {
 		relations, exists := allRelations[tableName]
 		if exists {
-			temp := make(map[string]int) // make a temporary map
+			temp := make(map[string]bool) // make a temporary map
 			for _, relation := range relations {
 				table := relation["Table"] // take the table
-				temp[table] = 1            // if it exists, who cares it's a map
+				temp[table] = true         // if it exists, who cares it's a map
 			}
 			arr := make([]string, len(temp))
 			slider := 0
-			for key, _ := range temp {
+			for key := range temp {
 				arr[slider] = key
 				slider++
 			}

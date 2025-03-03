@@ -8,6 +8,7 @@ import (
 	"database/sql"
 	"fmt"
 	database "github.com/Keith1039/dbvg/db"
+	"github.com/Keith1039/dbvg/utils"
 	"log"
 	"strings"
 )
@@ -37,7 +38,7 @@ func (tl *Ordering) Init(db *sql.DB) {
 }
 
 // GetCycles uses DFS to detect cycles, all detected cycles are added to a linked list and returned
-func (tl *Ordering) GetCycles() *list.List {
+func (tl *Ordering) GetCycles() []string {
 	// check if there is a cycle in the entire database schema
 	cycles := list.New()
 	visited := make(map[string]bool)
@@ -52,15 +53,14 @@ func (tl *Ordering) GetCycles() *list.List {
 			delete(visited, local) // delete visited tables since they have already been covered
 		}
 	}
-	return cycles // return all cycles found
+	return utils.ListToStringArray(cycles) // return all cycles found
 }
 
 // GetSuggestionQueries returns a list of queries necessary to remove found cycles in the database schema
-func (tl *Ordering) GetSuggestionQueries() *list.List {
+func (tl *Ordering) GetSuggestionQueries() []string {
 	cycles := tl.GetCycles() // get the cycles
 	cycleBreaking := tl.getCycleBreakingOrder(cycles)
-	suggestionQueries := tl.getSuggestions(cycleBreaking) // get the suggestions
-	return suggestionQueries                              // return the suggestions
+	return tl.getSuggestions(cycleBreaking) // get and return the suggestions in array format
 }
 
 // GetAndResolveCycles immediately runs the suggestion queries instead of returning them unlike GetSuggestionQueries
@@ -149,7 +149,7 @@ func (tl *Ordering) topological(tableName string) (*list.List, error) {
 }
 
 // GetOrder returns a list of table names that need entries before the given table can receive an entry alongside any errors that occur
-func (tl *Ordering) GetOrder(tableName string) (*list.List, error) {
+func (tl *Ordering) GetOrder(tableName string) ([]string, error) {
 	_, exists := tl.allTables[tableName] // check if the table exists
 	if !exists {
 		return nil, MissingTableError{tableName} // return missing table error
@@ -158,7 +158,11 @@ func (tl *Ordering) GetOrder(tableName string) (*list.List, error) {
 	if cycles.Len() > 0 {
 		return nil, CyclicError{cycles: cycles} // return cyclic error
 	}
-	return tl.topological(tableName) // return the topological ordering
+	topologicalOrdering, err := tl.topological(tableName) // return the topological ordering
+	if err != nil {
+		return nil, err
+	}
+	return utils.ListToStringArray(topologicalOrdering), nil
 }
 
 func cleanCyclicPath(cString string) string {
@@ -175,38 +179,37 @@ func cleanCyclicPath(cString string) string {
 	// the first string is also the last so we cut the last string off to not have duplicates in string
 	return strings.Join(allTables[i:], " --> ")
 }
-func getTablesMap(cycles *list.List) map[string]map[string]bool {
+func getTablesMap(cycles []string) map[string]map[string]bool {
 	m := make(map[string]map[string]bool)
-	node := cycles.Front()
-	for node != nil {
+
+	for _, cycle := range cycles {
 		l := make(map[string]bool)
-		cycleArr := strings.Split(node.Value.(string), " --> ") // get the array of strings
-		for i := 0; i < len(cycleArr)-1; i++ {                  // we skip the last since it's a duplicate of the first
+		cycleArr := strings.Split(cycle, " --> ") // get the array of strings
+		for i := 0; i < len(cycleArr)-1; i++ {    // we skip the last since it's a duplicate of the first
 			table := cycleArr[i]
 			l[table] = true // add the table to the map
 		}
-		m[node.Value.(string)] = l // set the array
-		node = node.Next()         // move to the next
+		m[cycle] = l // set the array
 	}
 	return m
 }
 
-func getFrequency(cycles *list.List) map[string]int {
+func getFrequency(cycles []string) map[string]int {
 	m := make(map[string]int)
-	node := cycles.Front()
-	for node != nil {
-		cycleArr := strings.Split(node.Value.(string), " --> ") // get the array of strings
-		cycleArr = cycleArr[0 : len(cycleArr)-1]                // cut off the end
-		for _, table := range cycleArr {
-			_, exists := m[table]
-			// unnecessary but it makes more sense this way
-			if !exists {
-				m[table] = 1
-			} else {
-				m[table] = m[table] + 1
+	for _, cycle := range cycles {
+		if cycle != "" {
+			cycleArr := strings.Split(cycle, " --> ")
+			cycleArr = cycleArr[1 : len(cycleArr)-1]
+			for _, table := range cycleArr {
+				_, exists := m[table]
+				// unnecessary but it makes more sense this way
+				if !exists {
+					m[table] = 1
+				} else {
+					m[table] = m[table] + 1
+				}
 			}
 		}
-		node = node.Next() // move to the next node
 	}
 	return m
 }
@@ -222,27 +225,28 @@ func getMostMentioned(fmap map[string]int) string {
 	}
 	return k
 }
-func (tl *Ordering) getCycleBreakingOrder(problemTables *list.List) *list.List {
+func (tl *Ordering) getCycleBreakingOrder(cycles []string) *list.List {
 	tables := list.New()
-	tablesMap := getTablesMap(problemTables) // a map that stores which tables are in each cycle
-	for problemTables.Len() > 0 {
-		tablesMentioned := getFrequency(problemTables)     // we get a map of tables and how often they appear
+
+	tablesMap := getTablesMap(cycles) // a map that stores which tables are in each cycle
+	remainingCycles := len(cycles)    // the rest of the cycles
+
+	for remainingCycles > 0 {
+		tablesMentioned := getFrequency(cycles)            // we get a map of tables and how often they appear
 		mostMentioned := getMostMentioned(tablesMentioned) // get the problem table
 		tables.PushBack(mostMentioned)                     // add the most mentioned to the list
-		node := problemTables.Front()
-		for node != nil {
-			nextNode := node.Next()
-			// if the most mentioned is in this node, remove the node from the list
-			if tablesMap[node.Value.(string)][mostMentioned] {
-				problemTables.Remove(node)
+		// loop through the cycles
+		for i, cycle := range cycles {
+			if cycle != "" && tablesMap[cycle][mostMentioned] { // check to see if the cycle is in the most mentioned
+				cycles[i] = ""    // remove the cycle from the array
+				remainingCycles-- // decrement the value
 			}
-			node = nextNode // move to the next node
 		}
 	}
 	return tables
 }
 
-func (tl *Ordering) getSuggestions(cycles *list.List) *list.List {
+func (tl *Ordering) getSuggestions(cycles *list.List) []string {
 	var builder strings.Builder
 	var dropBuilder strings.Builder
 	var foreignKeyBuilder strings.Builder
@@ -256,7 +260,7 @@ func (tl *Ordering) getSuggestions(cycles *list.List) *list.List {
 		pks := pkMap[refTable]
 		tableRelations := inverseRelationships[refTable]
 		colMap := database.GetRawColumnMap(tl.db, refTable)
-		for problemTable, _ := range tableRelations {
+		for problemTable := range tableRelations {
 			problemTablePks := pkMap[problemTable]
 			refColMap := database.GetRawColumnMap(tl.db, problemTable)
 			newTablePKs := make([]string, len(pks)+len(problemTablePks)) // array of the primary keys we'll assign at the end
@@ -304,7 +308,7 @@ func (tl *Ordering) getSuggestions(cycles *list.List) *list.List {
 		}
 		node = node.Next()
 	}
-	return queries
+	return utils.ListToStringArray(queries) // convert to a string array
 }
 
 func appendBuilder(builder *strings.Builder, pks []string, table string, colMap map[string]string, newTablePKs []string, slider *int) {

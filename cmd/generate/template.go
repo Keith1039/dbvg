@@ -1,7 +1,6 @@
 package generate
 
 import (
-	"container/list"
 	"database/sql"
 	"encoding/json"
 	"fmt"
@@ -32,6 +31,12 @@ var templateCmd = &cobra.Command{
 	`,
 	Run: func(cmd *cobra.Command, args []string) {
 		db, err := InitDB()
+		defer func(db *sql.DB) {
+			err := db.Close()
+			if err != nil {
+				log.Fatal(err)
+			}
+		}(db)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -81,14 +86,11 @@ func init() {
 	// templateCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
 
-func makeTemplates(db *sql.DB, l *list.List) map[string]map[string]map[string]string {
+func makeTemplates(db *sql.DB, tableOrder []string) map[string]map[string]map[string]string {
 	m := make(map[string]map[string]map[string]string)
 	relations := database.GetRelationships(db) // get relationships
-	node := l.Front()
-	for node != nil {
-		tName := node.Value.(string)
+	for _, tName := range tableOrder {
 		m[tName] = makeTemplate(db, tName, relations)
-		node = node.Next()
 	}
 	return m
 }

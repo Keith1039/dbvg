@@ -2,6 +2,7 @@ package generate
 
 import (
 	"bufio"
+	"database/sql"
 	"fmt"
 	database "github.com/Keith1039/dbvg/db"
 	"github.com/Keith1039/dbvg/parameters"
@@ -34,8 +35,15 @@ var entryCmd = &cobra.Command{
 		dbvg generate entry --database ${POSTGRES_URL} --template "path/to/file.json" --table "example_table" --amount 10 -v --clean-up
 	`,
 	Run: func(cmd *cobra.Command, args []string) {
+
 		var writer *parameters.QueryWriter
 		db, err := InitDB()
+		defer func(db *sql.DB) {
+			err := db.Close()
+			if err != nil {
+				log.Fatal(err)
+			}
+		}(db)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -52,23 +60,19 @@ var entryCmd = &cobra.Command{
 			if err != nil {
 				log.Fatal(err)
 			}
-			writer.GenerateEntries(amount)
 		} else {
-			if _, err := os.Stat(template); !os.IsNotExist(err) {
-				writer, err = parameters.NewQueryWriterWithTemplateFor(db, table, template)
-				if err != nil {
-					log.Fatal(err)
-				}
-				writer.GenerateEntries(amount)
-			} else {
-				log.Fatal("template path is invalid")
+			writer, err = parameters.NewQueryWriterWithTemplateFor(db, table, template)
+			if err != nil {
+				log.Fatal(err)
 			}
 		}
+		insertQueries, deleteQueries := writer.GenerateEntries(amount)
+
 		fmt.Println("Beginning INSERT query execution...")
 		if verbose {
-			err = database.RunQueriesVerbose(db, writer.InsertQueryQueue)
+			err = database.RunQueriesVerbose(db, insertQueries)
 		} else {
-			err = database.RunQueries(db, writer.InsertQueryQueue)
+			err = database.RunQueries(db, insertQueries)
 		}
 		if err != nil {
 			log.Fatal(err)
@@ -80,9 +84,9 @@ var entryCmd = &cobra.Command{
 			br.ReadString('\n') // error doesn't matter
 			fmt.Println("Beginning DELETE query execution...")
 			if verbose {
-				err = database.RunQueriesVerbose(db, writer.DeleteQueryQueue)
+				err = database.RunQueriesVerbose(db, deleteQueries)
 			} else {
-				err = database.RunQueries(db, writer.DeleteQueryQueue)
+				err = database.RunQueries(db, deleteQueries)
 			}
 			if err != nil {
 				log.Fatal(err)

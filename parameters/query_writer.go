@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"github.com/Keith1039/dbvg/db"
 	"github.com/Keith1039/dbvg/graph"
+	"github.com/Keith1039/dbvg/utils"
 	"log"
 	"os"
 	"strings"
@@ -66,9 +67,9 @@ type QueryWriter struct {
 	tableMap         map[string]*table                       // a map of the 'table names' to their table object
 	allRelations     map[string]map[string]map[string]string // all 'table' relationships expressed as a map
 	fkMap            map[string]map[string]string            // a map of foreign keys
-	TableOrderQueue  *list.List                              // queue
-	InsertQueryQueue *list.List                              // queue
-	DeleteQueryQueue *list.List                              // queue
+	TableOrder       []string                                // queue
+	insertQueryQueue *list.List                              // queue
+	deleteQueryQueue *list.List                              // queue
 }
 
 // Init initializes the QueryWriter and returns any errors that occur upon initialization
@@ -78,13 +79,13 @@ func (qw *QueryWriter) Init() error {
 	ordering := graph.NewOrdering(qw.db) // get a new ordering
 	qw.allRelations = db.GetRelationships(qw.db)
 	qw.setFKMap()
-	qw.TableOrderQueue, err = ordering.GetOrder(qw.tableName) // get the topological ordering of tables
+	qw.TableOrder, err = ordering.GetOrder(qw.tableName) // get the topological ordering of tables
 	if err != nil {
 		return err
 	}
 	qw.setTableMap()
-	qw.InsertQueryQueue = list.New()
-	qw.DeleteQueryQueue = list.New()
+	qw.insertQueryQueue = list.New()
+	qw.deleteQueryQueue = list.New()
 	return err
 }
 
@@ -110,20 +111,25 @@ func (qw *QueryWriter) setFKMap() {
 	qw.fkMap = m
 }
 
-// GenerateEntries takes in a number and generates that amount of entries for the QueryWriter table
-func (qw *QueryWriter) GenerateEntries(amount int) {
+// GenerateEntries takes in a number and generates that amount of entries in the form of INSERT and DELETE queries which it returns as a string array
+func (qw *QueryWriter) GenerateEntries(amount int) ([]string, []string) {
 	for i := 0; i < amount; i++ {
-		node := qw.TableOrderQueue.Front()
-		for node != nil {
-			qw.processTable(node.Value.(string))
-			node = node.Next()
+		for _, tableName := range qw.TableOrder {
+			qw.processTable(tableName)
 		}
 	}
+	insertQueries := utils.ListToStringArray(qw.insertQueryQueue)
+	deleteQueries := utils.ListToStringArray(qw.deleteQueryQueue)
+
+	qw.insertQueryQueue.Init() // clear the list
+	qw.deleteQueryQueue.Init() // clear the list
+
+	return insertQueries, deleteQueries
 }
 
 // GenerateEntry is a wrapper around the GenerateEntries function that simply gives the later an amount of 1
-func (qw *QueryWriter) GenerateEntry() {
-	qw.GenerateEntries(1) // only generate one
+func (qw *QueryWriter) GenerateEntry() ([]string, []string) {
+	return qw.GenerateEntries(1) // only generate one
 }
 
 func (qw *QueryWriter) processTable(tableName string) {
@@ -154,18 +160,15 @@ func (qw *QueryWriter) processTable(tableName string) {
 	colBuilder.WriteString(")")
 	colValBuilder.WriteString(")")
 	query := fmt.Sprintf("INSERT INTO %s %s VALUES %s;", t.TableName, colBuilder.String(), colValBuilder.String())
-	qw.InsertQueryQueue.PushBack(query)
-	qw.DeleteQueryQueue.PushFront(fmt.Sprintf("DELETE FROM %s WHERE %s;", tableName, deleteBuilder.String()))
+	qw.insertQueryQueue.PushBack(query)
+	qw.deleteQueryQueue.PushFront(fmt.Sprintf("DELETE FROM %s WHERE %s;", tableName, deleteBuilder.String()))
 }
 
 func (qw *QueryWriter) setTableMap() {
 	m := make(map[string]*table)
-	node := qw.TableOrderQueue.Front()
-	for node != nil {
-		tableName := node.Value.(string)         // get the table
+	for _, tableName := range qw.TableOrder {
 		tableStruct := qw.createTable(tableName) // create the table struct
 		m[tableName] = &tableStruct              // map it
-		node = node.Next()
 	}
 	qw.tableMap = m
 }
@@ -187,7 +190,7 @@ func (qw *QueryWriter) createTable(tableName string) table {
 
 func (qw *QueryWriter) verifyTemplate(m map[string]map[string]map[string]string) error {
 	relations := db.GetRelationships(qw.db)
-	flag := qw.TableOrderQueue.Len() == len(m) // number of keys should match number of tables
+	flag := len(qw.TableOrder) == len(m) // number of keys should match number of tables
 	if !flag {
 		return errors.New("number of tables in template does not match the number of tables required")
 	}
