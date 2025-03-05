@@ -15,9 +15,8 @@ var (
 // ValidateCmd represents the validate command
 var ValidateCmd = &cobra.Command{
 	Use:   "validate",
-	Short: "The palette responsible for schema validation",
-	Long: `This palette is responsible for ensuring that the database schema has no
-		cycles. If a cycle is detected, a series of recommendation queries will be generated`,
+	Short: "The palette responsible for schema validation.",
+	Long:  `This palette is responsible for detecting and removing cycles from the database schema.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		cmd.Help()
 	},

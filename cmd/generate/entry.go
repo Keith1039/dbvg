@@ -24,15 +24,15 @@ var entryCmd = &cobra.Command{
 	Use:   "entry",
 	Short: "Command used to generate table entries",
 	Long: `Command that is used to generate table entries in the database.
-	This command requires the --table flag and either the --template or --default flags.
-	If you want the entries to disappear after execution use the --clean-up flag.
-	You can control how many entries generated with the --amount flag (default is 1).
-	Finally, if you want more information regarding the execution use -v or --verbose for a more verbose output.
+This command requires the --table flag. It also requires either the --template or --default flag, not both.
+If you want the entries to disappear after execution use the --clean-up flag.
+You can control how many entries generated with the --amount flag (default is 1).
+Finally, if you want more information regarding the execution use -v or --verbose for a more verbose output.
 
-	examples of valid commands)
-		dbvg generate entry --database ${POSTGRES_URL} --default --table "example_table" --verbose
-		dbvg generate entry --database ${POSTGRES_URL} --template "path/to/file.json" --table "example_table" --amount 10 -v --clean-up
-	`,
+examples:
+	dbvg generate entry --database ${POSTGRES_URL} --default --table "example_table" --verbose
+	dbvg generate entry --database ${POSTGRES_URL} --template "path/to/file.json" --table "example_table" --amount 10 -v --clean-up
+`,
 	Run: func(cmd *cobra.Command, args []string) {
 
 		var writer *parameters.QueryWriter

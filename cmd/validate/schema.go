@@ -16,16 +16,16 @@ var (
 // schemaCmd represents the schema command
 var schemaCmd = &cobra.Command{
 	Use:   "schema",
-	Short: "command used to validate the entire schema",
-	Long: `command used to validate the database schema and identify cycles. These
-	cycles can be resolved immediately by using the --run flag or the suggestions can be
-	printed without running them by using the --suggestions flag. These two flags cannot be 
-	used simultaneously
+	Short: "Command used to validate the entire database schema.",
+	Long: `Command used to validate the database schema and identify cycles. 
+These cycles can be resolved immediately by using the --run flag or the suggestion queries can be
+printed, without running them, by using the --suggestions flag. These two flags cannot be 
+used simultaneously.
 
-	example of valid commands)
-		dbvg validate schema --database ${POSTGRES_URL} --run
-		dbvg validate schema --database ${POSTGRES_URL} --suggestions
-	`,
+examples:
+	dbvg validate schema --database ${POSTGRES_URL} --run
+	dbvg validate schema --database ${POSTGRES_URL} --suggestions
+`,
 	Run: func(cmd *cobra.Command, args []string) {
 		db, err := database.InitDB(ConnString)
 		defer database.CloseDB(db)

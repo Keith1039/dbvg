@@ -23,8 +23,13 @@ var (
 var templateCmd = &cobra.Command{
 	Use:   "template",
 	Short: "Command that updates an existing template",
-	Long: `Command that updates an existing template. The command verifies for corruption before overwriting the current template with the new one.
-This command also maps entries from the old template over to the new template.`,
+	Long: `Command that updates an existing template. The command verifies for file corruption, whether the file is formatted correctly, before overwriting 
+the current template with the new one. This command also maps entries from the old template over to the new template. 
+As a result, the CLI needs to know which template to update and what table it was based off. Meaning, the --path and --table flags are mandatory. 
+
+example:
+	dbvg update template --database ${POSTGRES_URL} --path ./some/dir/shop_template.json  --table "shop"
+`,
 	Run: func(cmd *cobra.Command, args []string) {
 		// check to see if file exists
 		if _, err := os.Stat(templatePath); !os.IsNotExist(err) {
