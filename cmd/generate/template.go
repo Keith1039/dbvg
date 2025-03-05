@@ -13,8 +13,7 @@ import (
 )
 
 var (
-	dirPath   string
-	tableName string
+	dirPath string
 )
 
 // templateCmd represents the template command
@@ -37,7 +36,7 @@ example:
 		}
 		ordering := graph.NewOrdering(db)
 
-		tableOrder, err := ordering.GetOrder(strings.ToLower(tableName))
+		tableOrder, err := ordering.GetOrder(strings.ToLower(table))
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -49,7 +48,7 @@ example:
 				log.Fatal(err)
 			}
 		}
-		err = os.WriteFile(fmt.Sprintf("%s/%s_template.json", dirPath, tableName), jsonString, os.ModePerm)
+		err = os.WriteFile(fmt.Sprintf("%s%s_template.json", dirPath, table), jsonString, os.ModePerm)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -58,15 +57,9 @@ example:
 }
 
 func init() {
-
-	templateCmd.Flags().StringVarP(&dirPath, "dir", "", "", "relative path of a directory to place the template file in, if the path doesn't exist it will make the folder")
-	templateCmd.Flags().StringVarP(&tableName, "table", "", "", "the name of the table we want an entry for")
+	templateCmd.Flags().StringVarP(&dirPath, "dir", "", "./", "relative path of a directory to place the template file in, if the path doesn't exist it will make the folder")
 
 	err := templateCmd.MarkFlagRequired("dir")
-	if err != nil {
-		log.Fatal(err)
-	}
-	err = templateCmd.MarkFlagRequired("table")
 	if err != nil {
 		log.Fatal(err)
 	}

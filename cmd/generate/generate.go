@@ -10,6 +10,7 @@ import (
 
 var (
 	ConnString string
+	table      string
 )
 
 // GenerateCmd represents the generate command
@@ -28,15 +29,21 @@ table entries using the entry command
 func addSubCommands() {
 	GenerateCmd.AddCommand(templateCmd)
 	GenerateCmd.AddCommand(entryCmd)
+	GenerateCmd.AddCommand(queriesCmd)
 }
 
 func init() {
 
 	GenerateCmd.PersistentFlags().StringVarP(&ConnString, "database", "", "", "url to connect to the database with")
+	GenerateCmd.PersistentFlags().StringVarP(&table, "table", "t", "", "name of sql table in the database")
 
 	if err := GenerateCmd.MarkPersistentFlagRequired("database"); err != nil {
 		log.Fatal(err)
 	}
+	if err := GenerateCmd.MarkPersistentFlagRequired("table"); err != nil {
+		log.Fatal(err)
+	}
+
 	addSubCommands()
 	// Here you will define your flags and configuration settings.
 

@@ -8,10 +8,10 @@ import (
 	"github.com/spf13/cobra"
 	"log"
 	"os"
+	"strings"
 )
 
 var (
-	table         string
 	template      string
 	amount        int
 	verbose       bool
@@ -43,6 +43,7 @@ examples:
 			log.Fatal(err)
 		}
 		tMap := database.GetTableMap(db)
+		table = strings.ToLower(table)
 		_, ok := tMap[table]
 		if !ok {
 			log.Fatalf("Table %s does not exist in database", table)
@@ -93,15 +94,11 @@ examples:
 
 func init() {
 	entryCmd.Flags().StringVarP(&template, "template", "", "", "path to the template file being used")
-	entryCmd.Flags().StringVarP(&table, "table", "", "", "table we are generating data for")
 	entryCmd.Flags().IntVarP(&amount, "amount", "", 1, "amount of entries this will generate")
 	entryCmd.Flags().BoolVarP(&defaultConfig, "default", "", false, "run using the default template")
 	entryCmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "Shows which queries are run and in what order")
-	entryCmd.Flags().BoolVarP(&cleanUp, "clean-up", "", false, "cleans up after generating data")
-	err := entryCmd.MarkFlagRequired("table")
-	if err != nil {
-		log.Fatal(err)
-	}
+	entryCmd.Flags().BoolVarP(&cleanUp, "clean-up", "c", false, "cleans up after generating data")
+
 	entryCmd.MarkFlagsOneRequired("template", "default")
 	entryCmd.MarkFlagsMutuallyExclusive("template", "default") // either use a template or use the default
 
