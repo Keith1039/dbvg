@@ -65,14 +65,12 @@ func main() {
 
 	ord := graph.NewOrdering(db) // get a new ordering struct
 	cycles := ord.GetCycles()    // get a linked list of cycles
-	// loop through the list
-	node := cycles.Front()
-	for node != nil {
-		fmt.Println(node.Value.(string)) // print out the cycles
-		node = node.Next()
+	// loop through and print cycles
+	for _, cycle := range cycles {
+		fmt.Println(cycle)
 	}
 
-	defer db.Close()
+	defer db.Close()  // close database connection
 }
 ```
 Sample output:
@@ -100,12 +98,13 @@ func main() {
 	}
 
 	ord := graph.NewOrdering(db)                      // get a new ordering struct
-	suggestions := ord.GetSuggestionQueries()         // get a linked list of the suggestion queries
-	err = database.RunQueriesVerbose(db, suggestions) // runs the suggestion queries and prints them
+	suggestions := ord.GetSuggestionQueries()         // get an array of the queries to be run on the database
+	err = database.RunQueriesVerbose(db, suggestions) // runs the queries while printing them
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal(err) // log the error and close
 	}
-	defer db.Close()
+
+	defer db.Close() // close the database connection
 }
 ```
 
@@ -151,35 +150,30 @@ func main() {
 		log.Fatal(err)
 	}
 
-	writer, err := parameters.NewQueryWriterFor(db, "b")  // create a new query writer for table "b"
+	writer, err := parameters.NewQueryWriter(db, "b")
+	if err != nil {
+		log.Fatal(err)  // log error
+	}
+	insertQueries, deleteQueries := writer.GenerateEntries(1)  // functional equivalent to calling writer.GenerateEntry()
+	
+	err = database.RunQueriesVerbose(db, insertQueries)  // run the insert queries while printing them out
 	if err != nil {
 		log.Fatal(err)
 	}
-	writer.GenerateEntries(1)  // functional equivalent of writer.GenerateEntry() 
-
-	err = database.RunQueriesVerbose(db, writer.InsertQueryQueue) // run the insert queries
+	fmt.Println(".................................................") // print a divider
+	err = database.RunQueriesVerbose(db, deleteQueries)  // run the delete queries to delete the inserted values
 	if err != nil {
 		log.Fatal(err)
 	}
-	err = database.RunQueries(db, writer.DeleteQueryQueue) // run the deletion queries for cleanup (optional)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer db.Close()
+	
+	defer db.Close() // close the database connection
 }
 ```
 sample output:
 ```
-Query 1: INSERT INTO e (ekey) VALUES (0);
-Query 2: INSERT INTO d (dkey, eref) VALUES (0, 0);
-Query 3: INSERT INTO a (akey) VALUES (0);
-Query 4: INSERT INTO c (aref, ckey) VALUES (0, 0);
-Query 5: INSERT INTO b (bkey, bkey2, cref, dref) VALUES (0, 0, 0, 0);
-Query 1: DELETE FROM b WHERE bkey=0 AND bkey2=0 AND cref=0 AND dref=0;
-Query 2: DELETE FROM c WHERE aref=0 AND ckey=0;
-Query 3: DELETE FROM a WHERE akey=0;
-Query 4: DELETE FROM d WHERE dkey=0 AND eref=0;
-Query 5: DELETE FROM e WHERE ekey=0;
+Query 1: INSERT INTO b (bkey2, bkey) VALUES (0, 0);
+.................................................
+Query 1: DELETE FROM b WHERE bkey2=0 AND bkey=0;
 ```
 *Note*: The `QueryWriter` struct cannot be used if a cycle exists in the path for the desired table.
 It is recommended to always resolve cycles before generating data. below is the result of using the above

@@ -17,8 +17,8 @@ import (
 	"strings"
 )
 
-// NewQueryWriterFor takes in a database connection alongside a table name and returns a pointer to a QueryWriter that is initialized and any errors that occurred
-func NewQueryWriterFor(db *sql.DB, tableName string) (*QueryWriter, error) {
+// NewQueryWriter takes in a database connection alongside a table name and returns a pointer to a QueryWriter that is initialized and any errors that occurred
+func NewQueryWriter(db *sql.DB, tableName string) (*QueryWriter, error) {
 	qw := QueryWriter{db: db, tableName: tableName} // set the table name
 	err := qw.Init()                                // init the writer
 	if err != nil {
@@ -27,9 +27,9 @@ func NewQueryWriterFor(db *sql.DB, tableName string) (*QueryWriter, error) {
 	return &qw, nil // return the writer
 }
 
-// NewQueryWriterWithTemplateFor takes in a database connection, table name as well as a file path to a template that is used to set the values in the QueryWriter
+// NewQueryWriterWithTemplate takes in a database connection, table name as well as a file path to a template that is used to set the values in the QueryWriter
 // before returning a pointer to the initialized QueryWriter as well as any errors that occurred
-func NewQueryWriterWithTemplateFor(db *sql.DB, tableName string, filePath string) (*QueryWriter, error) {
+func NewQueryWriterWithTemplate(db *sql.DB, tableName string, filePath string) (*QueryWriter, error) {
 	// check to see if file exists
 	m := make(map[string]map[string]map[string]string)
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
