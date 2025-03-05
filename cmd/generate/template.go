@@ -20,14 +20,15 @@ var (
 // templateCmd represents the template command
 var templateCmd = &cobra.Command{
 	Use:   "template",
-	Short: "generates a template in a specific folder for a specific group of tables",
-	Long: `generates a template JSON file in a specific folder for a specific group of tables based off of the first
-	table given. This template is meant to be edited by the user and ingested by either the CLI or the library. As a result,
-	the --dir and --table flags are required.
+	Short: "Command used to generate a template in a specific folder, for a group of tables",
+	Long: `Command used to generate a template JSON file in a specific folder, for a group of tables. 
+The group of tables is based off of the first table given by the user. 
+This template is meant to be edited by the user and ingested by either the CLI or the library. As a result,
+the --dir and --table flags are required.
 
-	example of valid command)
-		dbvg generate template --database ${POSTGRES_URL} --dir "some/directory"  --table "example_table"
-	`,
+example:
+	dbvg generate template --database ${POSTGRES_URL} --dir "some/directory"  --table "example_table"
+`,
 	Run: func(cmd *cobra.Command, args []string) {
 		db, err := database.InitDB(ConnString) // starts up the database connection
 		defer database.CloseDB(db)             // closes the database connection

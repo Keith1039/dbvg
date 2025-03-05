@@ -15,10 +15,11 @@ var (
 // GenerateCmd represents the generate command
 var GenerateCmd = &cobra.Command{
 	Use:   "generate",
-	Short: "the palette of commands created for generating data",
-	Long: `The palette of commands created for generating data,
-	this can either be generating templates with the template command or 
-	table entries using the entry command`,
+	Short: "The palette responsible for generating data.",
+	Long: `This palette is responsible for generating data,
+this can either be generating templates with the template command or 
+table entries using the entry command
+`,
 	Run: func(cmd *cobra.Command, args []string) {
 		cmd.Help()
 	},
