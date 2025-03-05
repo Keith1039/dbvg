@@ -150,8 +150,4 @@ func TestOrdering_FindOrderCase4(t *testing.T) {
 	if order != nil && len(order) != 0 {
 		t.Errorf("Empty schema given so the length should be 0 but it isn't. Length is %d", len(order))
 	}
-	err = db.Close()
-	if err != nil {
-		log.Fatal(err)
-	}
 }

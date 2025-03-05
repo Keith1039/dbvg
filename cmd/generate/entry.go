@@ -56,12 +56,12 @@ var entryCmd = &cobra.Command{
 			log.Fatal("amount must be greater than zero")
 		}
 		if defaultConfig {
-			writer, err = parameters.NewQueryWriterFor(db, table)
+			writer, err = parameters.NewQueryWriter(db, table)
 			if err != nil {
 				log.Fatal(err)
 			}
 		} else {
-			writer, err = parameters.NewQueryWriterWithTemplateFor(db, table, template)
+			writer, err = parameters.NewQueryWriterWithTemplate(db, table, template)
 			if err != nil {
 				log.Fatal(err)
 			}
