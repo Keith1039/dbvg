@@ -2,7 +2,6 @@ package generate
 
 import (
 	"bufio"
-	"database/sql"
 	"fmt"
 	database "github.com/Keith1039/dbvg/db"
 	"github.com/Keith1039/dbvg/parameters"
@@ -37,13 +36,9 @@ var entryCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 
 		var writer *parameters.QueryWriter
-		db, err := InitDB()
-		defer func(db *sql.DB) {
-			err := db.Close()
-			if err != nil {
-				log.Fatal(err)
-			}
-		}(db)
+		db, err := database.InitDB(ConnString) // starts up database connection
+		defer database.CloseDB(db)             // closes the database connection
+
 		if err != nil {
 			log.Fatal(err)
 		}

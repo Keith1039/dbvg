@@ -1,7 +1,6 @@
 package validate
 
 import (
-	"database/sql"
 	"fmt"
 	database "github.com/Keith1039/dbvg/db"
 	"github.com/Keith1039/dbvg/graph"
@@ -28,13 +27,8 @@ var schemaCmd = &cobra.Command{
 		dbvg validate schema --database ${POSTGRES_URL} --suggestions
 	`,
 	Run: func(cmd *cobra.Command, args []string) {
-		db, err := InitDB()
-		defer func(db *sql.DB) {
-			err := db.Close()
-			if err != nil {
-				log.Fatal(err)
-			}
-		}(db)
+		db, err := database.InitDB(ConnString)
+		defer database.CloseDB(db)
 
 		if err != nil {
 			log.Fatal(err)

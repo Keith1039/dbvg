@@ -43,6 +43,20 @@ var typeMap = map[string]string{
 	"DATE":    "DATE",
 }
 
+// InitDB takes in a connection string and returns a database connection alongside any errors that occur
+func InitDB(connString string) (*sql.DB, error) {
+	db, err := sql.Open("postgres", connString)
+	return db, err
+}
+
+// CloseDB takes in a database connection and calls the Close() fun and logs any errors
+func CloseDB(db *sql.DB) {
+	err := db.Close()
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
 // GetTableMap returns a map of existing table names mapped to the number 1 in the given database
 func GetTableMap(db *sql.DB) map[string]int {
 	tnames, err := schema.TableNames(db)
