@@ -5,18 +5,15 @@ import (
 	"fmt"
 	database "github.com/Keith1039/dbvg/db"
 	"github.com/Keith1039/dbvg/parameters"
+	"github.com/Keith1039/dbvg/utils"
 	"github.com/spf13/cobra"
 	"log"
 	"os"
-	"strings"
 )
 
 var (
-	template      string
-	amount        int
-	verbose       bool
-	cleanUp       bool
-	defaultConfig bool
+	verbose bool
+	cleanUp bool
 )
 
 // entryCmd represents the entry command
@@ -24,10 +21,8 @@ var entryCmd = &cobra.Command{
 	Use:   "entry",
 	Short: "Command used to generate table entries",
 	Long: `Command that is used to generate table entries in the database.
-This command requires the --table flag. It also requires either the --template or --default flag, not both.
-If you want the entries to disappear after execution use the --clean-up flag.
-You can control how many entries generated with the --amount flag (default is 1).
-Finally, if you want more information regarding the execution use -v or --verbose for a more verbose output.
+The user chooses if the database table entries are generated from the default configuration
+or from a specified template file.
 
 examples:
 	dbvg generate entry --database ${POSTGRES_URL} --default --table "example_table" --verbose
@@ -43,7 +38,7 @@ examples:
 			log.Fatal(err)
 		}
 		tMap := database.GetTableMap(db)
-		table = strings.ToLower(table)
+		table = utils.TrimAndLowerString(table)
 		_, ok := tMap[table]
 		if !ok {
 			log.Fatalf("Table %s does not exist in database", table)
@@ -93,14 +88,8 @@ examples:
 }
 
 func init() {
-	entryCmd.Flags().StringVarP(&template, "template", "", "", "path to the template file being used")
-	entryCmd.Flags().IntVarP(&amount, "amount", "", 1, "amount of entries this will generate")
-	entryCmd.Flags().BoolVarP(&defaultConfig, "default", "", false, "run using the default template")
 	entryCmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "Shows which queries are run and in what order")
 	entryCmd.Flags().BoolVarP(&cleanUp, "clean-up", "c", false, "cleans up after generating data")
-
-	entryCmd.MarkFlagsOneRequired("template", "default")
-	entryCmd.MarkFlagsMutuallyExclusive("template", "default") // either use a template or use the default
 
 	// Here you will define your flags and configuration settings.
 

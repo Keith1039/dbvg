@@ -9,8 +9,11 @@ import (
 )
 
 var (
-	ConnString string
-	table      string
+	ConnString    string
+	table         string
+	template      string
+	amount        int
+	defaultConfig bool
 )
 
 // GenerateCmd represents the generate command
@@ -18,8 +21,8 @@ var GenerateCmd = &cobra.Command{
 	Use:   "generate",
 	Short: "The palette responsible for generating data.",
 	Long: `This palette is responsible for generating data,
-this can either be generating templates with the template command or 
-table entries using the entry command
+this can either be generating database table entries with the entry command or 
+INSERT and DELETE queries using the queries command
 `,
 	Run: func(cmd *cobra.Command, args []string) {
 		cmd.Help()
@@ -27,7 +30,6 @@ table entries using the entry command
 }
 
 func addSubCommands() {
-	GenerateCmd.AddCommand(templateCmd)
 	GenerateCmd.AddCommand(entryCmd)
 	GenerateCmd.AddCommand(queriesCmd)
 }
@@ -35,7 +37,10 @@ func addSubCommands() {
 func init() {
 
 	GenerateCmd.PersistentFlags().StringVarP(&ConnString, "database", "", "", "url to connect to the database with")
-	GenerateCmd.PersistentFlags().StringVarP(&table, "table", "t", "", "name of sql table in the database")
+	GenerateCmd.PersistentFlags().StringVarP(&table, "table", "", "", "name of sql table in the database")
+	GenerateCmd.PersistentFlags().StringVarP(&template, "template", "", "", "path to the template file")
+	GenerateCmd.PersistentFlags().IntVarP(&amount, "amount", "", 1, "amount of items to generate")
+	GenerateCmd.PersistentFlags().BoolVarP(&defaultConfig, "default", "", false, "flag that determines if the default configuration is used")
 
 	if err := GenerateCmd.MarkPersistentFlagRequired("database"); err != nil {
 		log.Fatal(err)
@@ -43,6 +48,9 @@ func init() {
 	if err := GenerateCmd.MarkPersistentFlagRequired("table"); err != nil {
 		log.Fatal(err)
 	}
+
+	GenerateCmd.MarkFlagsOneRequired("template", "default")
+	GenerateCmd.MarkFlagsMutuallyExclusive("template", "default") // either use a template or use the default
 
 	addSubCommands()
 	// Here you will define your flags and configuration settings.

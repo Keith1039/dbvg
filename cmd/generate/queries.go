@@ -7,6 +7,7 @@ import (
 	"fmt"
 	database "github.com/Keith1039/dbvg/db"
 	"github.com/Keith1039/dbvg/parameters"
+	"github.com/Keith1039/dbvg/utils"
 	"github.com/spf13/cobra"
 	"log"
 	"os"
@@ -14,23 +15,24 @@ import (
 )
 
 var (
-	amounts      int
-	folder       string
-	defaultR     bool
-	templatePath string
-	name         string
+	dir  string
+	name string
 )
 
 // queriesCmd represents the queries command
 var queriesCmd = &cobra.Command{
 	Use:   "queries",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
+	Short: "Command that saves the generated queries to output files.",
+	Long: `Command that saves the generated queries to output files. These output
+files are meant to provide the user the option to reuse generated queries rather than
+having to use the entry command to make them again. The commands are split between two files.
+The INSERT queries are saved to a file with the extension .build.sql and the DELETE queries are saved to a 
+file with the extension .clean.sql
 
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+examples:
+	dbvg generate queries --database "${URL}" --dir something/somewhere --amount 500 --template some/file.json --table "b" --name "test"
+	dbvg generate queries --database "${URL}" --dir something/somewhere --amount 500 --default --table "b" --name "test"
+`,
 	Run: func(cmd *cobra.Command, args []string) {
 		var writer *parameters.QueryWriter
 		var filePrefix string
@@ -45,7 +47,7 @@ to quickly create a Cobra application.`,
 			log.Fatal(err)
 		}
 		tMap := database.GetTableMap(db)
-		table = strings.ToLower(table) // make it lower case
+		table = utils.TrimAndLowerString(table)
 		_, ok := tMap[table]
 		if !ok {
 			log.Fatalf("Table %s does not exist in database", table)
@@ -53,7 +55,7 @@ to quickly create a Cobra application.`,
 		if amount <= 0 {
 			log.Fatal("amount must be greater than zero")
 		}
-		if defaultR {
+		if defaultConfig {
 			writer, err = parameters.NewQueryWriter(db, table)
 			if err != nil {
 				log.Fatal(err)
@@ -66,14 +68,21 @@ to quickly create a Cobra application.`,
 		}
 		insertQueries, deleteQueries := writer.GenerateEntries(amount)
 		name = strings.TrimSpace(name)
-		if name != "" {
+		if name == "" {
 			filePrefix = table
 		} else {
 			filePrefix = name
 		}
 
-		folder := strings.TrimSpace(folder) // trim space
-		if folder[len(folder)-1:] != "/" {
+		// if the folder doesn't exist, make it
+		if _, err := os.Stat(dir); os.IsNotExist(err) {
+			err = os.MkdirAll(dir, os.ModePerm)
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
+		folder := strings.TrimSpace(dir) // trim space
+		if folder[len(folder)-1] != '/' {
 			folder = folder + "/"
 		}
 
@@ -100,15 +109,13 @@ func writeToFile(file *os.File, queries []string) {
 }
 
 func init() {
-	queriesCmd.Flags().IntVarP(&amounts, "amount", "", 0, "Amount of queries to generate")
-	queriesCmd.Flags().StringVarP(&folder, "dir", "", "./", "Path to the directory for the file output")
-	queriesCmd.Flags().BoolVarP(&defaultR, "default", "", false, "Run with the default config")
-	queriesCmd.Flags().StringVarP(&templatePath, "template", "", "", "Path to the template file")
+	queriesCmd.Flags().StringVarP(&dir, "dir", "", "./", "Path to the directory for the file output")
 	queriesCmd.Flags().StringVarP(&name, "name", "", "", "Name of the output files")
 
-	entryCmd.MarkFlagsOneRequired("template", "default")
-	entryCmd.MarkFlagsMutuallyExclusive("template", "default") // either use a template or use the default
-
+	err := queriesCmd.MarkFlagDirname("dir") // mark the flag as a directory for autocomplete
+	if err != nil {
+		log.Fatal(err)
+	}
 	// Here you will define your flags and configuration settings.
 
 	// Cobra supports Persistent Flags which will work for this command

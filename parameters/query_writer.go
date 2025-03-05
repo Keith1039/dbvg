@@ -75,7 +75,7 @@ type QueryWriter struct {
 // Init initializes the QueryWriter and returns any errors that occur upon initialization
 func (qw *QueryWriter) Init() error {
 	var err error
-	qw.tableName = strings.ToLower(qw.tableName)
+	qw.tableName = utils.TrimAndLowerString(qw.tableName)
 	ordering := graph.NewOrdering(qw.db) // get a new ordering
 	qw.allRelations = db.GetRelationships(qw.db)
 	qw.setFKMap()
@@ -92,7 +92,7 @@ func (qw *QueryWriter) Init() error {
 // ChangeTableToWriteFor takes in a new table name and re-inits the QueryWriter. It returns any errors that happen upon re-initialization
 func (qw *QueryWriter) ChangeTableToWriteFor(tableName string) error {
 	// change the table name of the writer and return any errors
-	qw.tableName = strings.ToLower(tableName)
+	qw.tableName = utils.TrimAndLowerString(tableName)
 	return qw.Init()
 }
 

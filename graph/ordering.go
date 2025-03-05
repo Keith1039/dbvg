@@ -150,6 +150,7 @@ func (tl *Ordering) topological(tableName string) (*list.List, error) {
 
 // GetOrder returns a list of table names that need entries before the given table can receive an entry alongside any errors that occur
 func (tl *Ordering) GetOrder(tableName string) ([]string, error) {
+	tableName = utils.TrimAndLowerString(tableName)
 	_, exists := tl.allTables[tableName] // check if the table exists
 	if !exists {
 		return nil, MissingTableError{tableName} // return missing table error
@@ -199,7 +200,8 @@ func getFrequency(cycles []string) map[string]int {
 	for _, cycle := range cycles {
 		if cycle != "" {
 			cycleArr := strings.Split(cycle, " --> ")
-			cycleArr = cycleArr[1 : len(cycleArr)-1]
+			fmt.Println(cycle)
+			cycleArr = cycleArr[:len(cycleArr)-1]
 			for _, table := range cycleArr {
 				_, exists := m[table]
 				// unnecessary but it makes more sense this way

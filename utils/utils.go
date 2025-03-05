@@ -6,6 +6,7 @@ import (
 	database "github.com/Keith1039/dbvg/db"
 	"github.com/jimsmart/schema"
 	"log"
+	"strings"
 )
 
 // ListToStringArray takes in a linked list and returns it as a string array
@@ -46,4 +47,9 @@ func makeTemplate(db *sql.DB, tName string, relations map[string]map[string]map[
 		}
 	}
 	return m
+}
+
+// TrimAndLowerString trims space and lowers the given string
+func TrimAndLowerString(s string) string {
+	return strings.ToLower(strings.TrimSpace(s))
 }

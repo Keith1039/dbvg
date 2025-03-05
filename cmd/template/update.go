@@ -1,7 +1,7 @@
 /*
 Copyright © 2025 NAME HERE <EMAIL ADDRESS>
 */
-package update
+package template
 
 import (
 	"encoding/json"
@@ -15,24 +15,22 @@ import (
 )
 
 var (
-	templatePath string
-	tableName    string
+	template string
 )
 
-// updateCmd represents the update command
-var templateCmd = &cobra.Command{
-	Use:   "template",
+// updateCmd represents the template command
+var updateCmd = &cobra.Command{
+	Use:   "update",
 	Short: "Command that updates an existing template",
 	Long: `Command that updates an existing template. The command verifies for file corruption, whether the file is formatted correctly, before overwriting 
-the current template with the new one. This command also maps entries from the old template over to the new template. 
-As a result, the CLI needs to know which template to update and what table it was based off. Meaning, the --path and --table flags are mandatory. 
+the current template with the new one. This command also maps entries from the old template over to the new template, saving previous settings.
 
 example:
-	dbvg update template --database ${POSTGRES_URL} --path ./some/dir/shop_template.json  --table "shop"
+	dbvg template update --database ${POSTGRES_URL} --template ./some/dir/shop_template.json  --table "shop"
 `,
 	Run: func(cmd *cobra.Command, args []string) {
 		// check to see if file exists
-		if _, err := os.Stat(templatePath); !os.IsNotExist(err) {
+		if _, err := os.Stat(template); !os.IsNotExist(err) {
 			db, err := database.InitDB(ConnString) // start up the database
 			defer database.CloseDB(db)             // close the database connection
 
@@ -40,24 +38,25 @@ example:
 				log.Fatal(err)
 			}
 
-			oldTemplate, err := verifyTemplate(templatePath) // verify that the old template is a valid template and return information
+			oldTemplate, err := verifyTemplate(template) // verify that the old template is a valid template and return information
 			if err != nil {
 				log.Fatal(err)
 			}
-			ord := graph.NewOrdering(db)               // get a new ordering
-			tableOrder, err := ord.GetOrder(tableName) // get the order of the tables
+			ord := graph.NewOrdering(db)            // get a new ordering
+			table = utils.TrimAndLowerString(table) // clean the table value
+			tableOrder, err := ord.GetOrder(table)  // get the order of the tables
 			if err != nil {
 				log.Fatal(err)
 			}
 
 			newTemplate := utils.MakeTemplates(db, tableOrder)          // get a new blank template
-			updateTemplate(oldTemplate, newTemplate)                    // update the new template with the info in the old template
+			updateTemplate(oldTemplate, newTemplate)                    // template the new template with the info in the old template
 			jsonBytes, err := json.MarshalIndent(newTemplate, "", "  ") // marshall the map
 			if err != nil {
 				log.Fatal(err)
 			}
 
-			err = os.WriteFile(templatePath, jsonBytes, os.ModePerm)
+			err = os.WriteFile(template, jsonBytes, os.ModePerm)
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -69,13 +68,13 @@ example:
 }
 
 func init() {
-	templateCmd.Flags().StringVarP(&templatePath, "path", "", "", "path to the template path")
-	templateCmd.Flags().StringVarP(&tableName, "table", "", "", "name of the table that the template was generated from")
-	err := templateCmd.MarkFlagRequired("path")
+	updateCmd.Flags().StringVarP(&template, "template", "", "", "path to the template path")
+	err := updateCmd.MarkFlagRequired("template") // mark it as required
 	if err != nil {
 		log.Fatal(err)
 	}
-	err = templateCmd.MarkFlagRequired("table")
+
+	err = updateCmd.MarkFlagFilename("template") // make autocomplete look for files
 	if err != nil {
 		log.Fatal(err)
 	}
