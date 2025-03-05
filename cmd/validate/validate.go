@@ -4,7 +4,6 @@
 package validate
 
 import (
-	"database/sql"
 	"github.com/spf13/cobra"
 	"log"
 )
@@ -13,7 +12,7 @@ var (
 	ConnString string
 )
 
-// validateCmd represents the validate command
+// ValidateCmd represents the validate command
 var ValidateCmd = &cobra.Command{
 	Use:   "validate",
 	Short: "The palette responsible for schema validation",
@@ -45,13 +44,4 @@ func init() {
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
 	// validateCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
-}
-
-// InitDB initiates the database and returns it
-func InitDB() (*sql.DB, error) {
-	db, err := sql.Open("postgres", ConnString)
-	if err != nil {
-		log.Fatal(err)
-	}
-	return db, nil
 }

@@ -1,12 +1,11 @@
 package generate
 
 import (
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	database "github.com/Keith1039/dbvg/db"
 	"github.com/Keith1039/dbvg/graph"
-	"github.com/jimsmart/schema"
+	"github.com/Keith1039/dbvg/utils"
 	"github.com/spf13/cobra"
 	"log"
 	"os"
@@ -30,13 +29,8 @@ var templateCmd = &cobra.Command{
 		dbvg generate template --database ${POSTGRES_URL} --dir "some/directory"  --table "example_table"
 	`,
 	Run: func(cmd *cobra.Command, args []string) {
-		db, err := InitDB()
-		defer func(db *sql.DB) {
-			err := db.Close()
-			if err != nil {
-				log.Fatal(err)
-			}
-		}(db)
+		db, err := database.InitDB(ConnString) // starts up the database connection
+		defer database.CloseDB(db)             // closes the database connection
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -46,7 +40,7 @@ var templateCmd = &cobra.Command{
 		if err != nil {
 			log.Fatal(err)
 		}
-		templates := makeTemplates(db, tableOrder)
+		templates := utils.MakeTemplates(db, tableOrder)
 		jsonString, err := json.MarshalIndent(templates, "", "  ")
 		if _, err := os.Stat(dirPath); os.IsNotExist(err) {
 			err = os.MkdirAll(dirPath, os.ModePerm)
@@ -84,29 +78,4 @@ func init() {
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
 	// templateCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
-}
-
-func makeTemplates(db *sql.DB, tableOrder []string) map[string]map[string]map[string]string {
-	m := make(map[string]map[string]map[string]string)
-	relations := database.GetRelationships(db) // get relationships
-	for _, tName := range tableOrder {
-		m[tName] = makeTemplate(db, tName, relations)
-	}
-	return m
-}
-
-func makeTemplate(db *sql.DB, tName string, relations map[string]map[string]map[string]string) map[string]map[string]string {
-	m := make(map[string]map[string]string)
-	cols, err := schema.ColumnTypes(db, "", tName)
-	colMap := database.GetColumnMap(db, tName)
-	if err != nil {
-		log.Fatal(err)
-	}
-	for _, col := range cols {
-		_, ok := relations[tName][col.Name()] // check if the column is a fk
-		if !ok {
-			m[col.Name()] = map[string]string{"Type": colMap[col.Name()], "Code": "", "Value": ""}
-		}
-	}
-	return m
 }
