@@ -8,31 +8,29 @@ import (
 )
 
 // default range for the RANGE code of the integer parser
-const DEFAULTRANGE = "0,100"
+const DEFAULTFLOATRANGE = "0, 100"
 
 // default value for the STATIC code of the integer parser
-const DEFAULTSTATIC = "0"
+const DEFAULTFLOATSTATIC = "0.0"
 
 // default code for the integer parser
-const DEFAULTINTCODE = SEQ
+const DEFAULTFLOATCODE = RANDOM
 
-// IntColumnParser is the struct responsible for processing parameters and creating queries for Integer type columns
-type IntColumnParser struct {
+// FloatColumnParser is the struct responsible for processing parameters and creating queries for Integer type columns
+type FloatColumnParser struct {
 	latest int
 }
 
 // ParseColumn takes in a column and processes it in order to return a string value along with any errors that occur
-func (p *IntColumnParser) ParseColumn(col column) (string, error) {
+func (p *FloatColumnParser) ParseColumn(col column) (string, error) {
 	code := col.Code
 	if code == 0 {
-		code = DEFAULTINTCODE
+		code = DEFAULTFLOATCODE
 	}
 	if code == RANDOM {
 		return p.handleRandomCode(col)
 	} else if code == STATIC {
 		return p.handleStatic(col)
-	} else if code == SEQ {
-		return p.handleSeq()
 	} else if code == NULL {
 		return p.handleNull()
 	} else {
@@ -41,7 +39,7 @@ func (p *IntColumnParser) ParseColumn(col column) (string, error) {
 	}
 }
 
-func (p *IntColumnParser) handleRandomCode(col column) (string, error) {
+func (p *FloatColumnParser) handleRandomCode(col column) (string, error) {
 	var value string
 	var err error
 	r := col.Other
@@ -54,11 +52,11 @@ func (p *IntColumnParser) handleRandomCode(col column) (string, error) {
 		err = errors.New("malformed range")
 		return "", err
 	}
-	lowerBound, boundErr := strconv.Atoi(strings.TrimSpace(ranges[0]))
+	lowerBound, boundErr := strconv.ParseFloat(strings.TrimSpace(ranges[0]), 64)
 	if boundErr != nil {
 		return "", boundErr
 	}
-	upperBound, boundErr2 := strconv.Atoi(strings.TrimSpace(ranges[1]))
+	upperBound, boundErr2 := strconv.ParseFloat(strings.TrimSpace(ranges[1]), 64)
 	if boundErr2 != nil {
 		return "", boundErr
 	}
@@ -66,19 +64,19 @@ func (p *IntColumnParser) handleRandomCode(col column) (string, error) {
 		err = errors.New("lower bound is greater than upper bound")
 		return "", err
 	}
-	value = strconv.Itoa(rand.Intn(upperBound-lowerBound) + lowerBound)
+	value = strconv.FormatFloat(rand.Float64()*(upperBound-lowerBound)+lowerBound, 'f', -1, 64) // format float
 	return value, err
 }
 
-func (p *IntColumnParser) handleStatic(col column) (string, error) {
+func (p *FloatColumnParser) handleStatic(col column) (string, error) {
 	var value string
 	var err error
 	r := col.Other
-	r = strings.TrimSpace(r) // trim space
+	r = strings.TrimSpace(r) // trim the input
 	if r == "" {
-		r = DEFAULTSTATIC
+		r = DEFAULTFLOATSTATIC
 	}
-	_, err = strconv.Atoi(r)
+	_, err = strconv.ParseFloat(r, 64) // check if it's a float
 	if err != nil {
 		return "", err
 	} else {
@@ -87,12 +85,6 @@ func (p *IntColumnParser) handleStatic(col column) (string, error) {
 	return value, err
 }
 
-func (p *IntColumnParser) handleSeq() (string, error) {
-	p.latest++    // increment
-	l := p.latest // get the latest
-	return strconv.Itoa(l), nil
-}
-
-func (p *IntColumnParser) handleNull() (string, error) {
+func (p *FloatColumnParser) handleNull() (string, error) {
 	return "NULL", nil
 }

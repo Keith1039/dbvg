@@ -149,6 +149,10 @@ func (qw *QueryWriter) processTable(tableName string) {
 			if err != nil {
 				log.Fatal(err)
 			}
+			// add single quotes to varchar vals
+			if col.Type != "INT" && col.Type != "FLOAT" {
+				colVal = fmt.Sprintf("'%s'", colVal)
+			}
 			_, isFK := qw.fkMap[tableName][col.ColumnName]
 			if isFK {
 				qw.fkMap[tableName][col.ColumnName] = colVal

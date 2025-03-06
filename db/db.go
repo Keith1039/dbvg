@@ -32,15 +32,25 @@ const postgresFKRelations = `
 `
 
 var typeMap = map[string]string{
-	"INT4":    "INT",
-	"INT8":    "INT",
-	"INT16":   "INT",
-	"INT32":   "INT",
-	"INT64":   "INT",
-	"UUID":    "UUID",
-	"VARCHAR": "VARCHAR",
-	"BOOL":    "BOOL",
-	"DATE":    "DATE",
+	"INT4":        "INT",
+	"INT8":        "INT",
+	"INT16":       "INT",
+	"INT32":       "INT",
+	"INT64":       "INT",
+	"NUMERIC":     "FLOAT",
+	"MONEY":       "FLOAT",
+	"FLOAT4":      "FLOAT",
+	"FLOAT8":      "FLOAT",
+	"UUID":        "UUID",
+	"VARCHAR":     "VARCHAR",
+	"BPCHAR":      "VARCHAR",
+	"TEXT":        "VARCHAR",
+	"BOOL":        "BOOL",
+	"DATE":        "DATE",
+	"TIME":        "DATE",
+	"TIMETZ":      "DATE",
+	"TIMESTAMP":   "DATE",
+	"TIMESTAMPTZ": "DATE",
 }
 
 // InitDB takes in a connection string and returns a database connection alongside any errors that occur
@@ -79,8 +89,13 @@ func GetColumnMap(db *sql.DB, tableName string) map[string]string {
 		log.Fatal(err)
 		return nil
 	}
+
 	for i := range tcols {
-		m[tcols[i].Name()] = typeMap[tcols[i].DatabaseTypeName()] // map the column name to it's type
+		colType, ok := typeMap[tcols[i].DatabaseTypeName()]
+		if !ok {
+			log.Fatal(fmt.Sprintf("Unsupported column type: %s", tcols[i].DatabaseTypeName()))
+		}
+		m[tcols[i].Name()] = colType // map the column name to it's type
 	}
 	return m
 }
@@ -89,6 +104,7 @@ func GetColumnMap(db *sql.DB, tableName string) map[string]string {
 func GetRawColumnMap(db *sql.DB, tableName string) map[string]string {
 	m := make(map[string]string)                        // make initial map
 	tcols, err := schema.ColumnTypes(db, "", tableName) // get the column info
+
 	if err != nil {
 		log.Fatal(err)
 		return nil
