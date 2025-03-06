@@ -10,8 +10,7 @@ Cycle Detected!: b --> c --> a --> b
 Cycle Detected!: b --> d --> e --> b
 ```
 
-## Resolve cycles using CLI
-
+## Resolve cycles using CLI [[schema used]](../db/migrations/case8/000001_create_compound_table.up.sql)
 `dbvg validate schema --database ${POSTGRES_URL} --run`
 
 Sample output:
@@ -41,45 +40,155 @@ Query 6: CREATE TABLE IF NOT EXISTS b_e(
 Queries ran successfully
 ```
 
-## Generate a Template
-`dbvg generate template --database ${POSTGRES_URL} --dir "dir/" --table "b"`
+## Generate a template
+`dbvg template create --database ${POSTGRES_URL} --dir "templates/" --table "purchases" --name "purchase_template.json"`
+
+## Update an existing template
+`dbvg template update --database ${POSTGRES_URL} --template ./templates/purchase_template.json  --table "purchases"`
 
 For more regarding templates, please see [this](generate/README.md)
 
-## Generate a table entry
-`dbvg generate template --database ${POSTGRES_URL} --default --table "b" -v`
+## Generate a table entry [[schema used]](../db/real_migrations/000001_shop_example.up.sql)
+`dbvg generate entry --database ${POSTGRES_URL} --amount 1 --default --table "purchases" -v`
 
 sample output:
 ```
-Query 1: INSERT INTO a (akey) VALUES (0);
-Query 2: INSERT INTO c (ckey, aref) VALUES (0, 0);
-Query 3: INSERT INTO e (ekey) VALUES (0);
-Query 4: INSERT INTO d (dkey, eref) VALUES (0, 0);
-Query 5: INSERT INTO b (bkey2, cref, dref, bkey) VALUES (0, 0, 0, 0);
+Beginning INSERT query execution...
+Query 1: INSERT INTO users (name, last_name, email, address, created, id) VALUES ('xODhzCQGqX', 'esvogNvCwh', 'vvmrQWrfwg', 'qBOXYSvuEM', '2025-03-06 18:17:23', '85c25f76-4e80-4bd2-98bf-439426f3ad23');
+Query 2: INSERT INTO companies (email, created, id, name) VALUES ('BFngvsLunt', '2025-03-06 18:17:23', '9ef36a65-e7e0-4dc0-abff-fa62b7de6103', 'IbYlbEbpda');
+Query 3: INSERT INTO products (created, id, company_id, item_name, price, quantity, description) VALUES ('2025-03-06 18:17:23', 'e32eb3b6-62f4-463d-aea2-a00002c5c578', '9ef36a65-e7e0-4dc0-abff-fa62b7de6103', 'WwJeJu', 38.86501279821432::MONEY, 1, 'bCUmKcDepV');
+Query 4: INSERT INTO purchases (quantity, created, user_id, product_id) VALUES (1, '2025-03-06 18:17:23', '85c25f76-4e80-4bd2-98bf-439426f3ad23', 'e32eb3b6-62f4-463d-aea2-a00002c5c578');
 Finished INSERT query execution!
 ```
 
+### Generate INSERT and DELETE queries (with specified output file name)
+`dbvg generate queries --database ${POSTGRES_URL} --amount 1 --default --table "purchases" --name "purchase_queries"`
+
 # CLI Usage Details
 
-The CLI comprises the 2 subcommand palettes. These are `validate` and `generate`, `validate` is focused on database schema
-validation and `generate` is focused on database table entry creation.
+The CLI has 3 subcommand palettes. These are `generate`, `template` and `validate`. `generate` focuses on
+generating table entries. `Template` focuses on generating and updating JSON template files. 
+Finally, `validate` focuses on cycle detection, suggestion and resolution.
 
 *Note*: In all the examples, for the connection string I use an environmental variable, ${POSTGRES_URL}. That is
 because connections strings tend to be very long, and it would make the commands look less concise.
-You can represent the connection string any way you like so long as it's value is a valid sql connection string.
+You can represent the connection string any way you like so long as it is a valid sql connection string.
+
+## Subcommand Palette: generate
+This subcommand palette focuses on generating data. This data generation is either generating table entries
+or outputting a set of INSERT and DElETE queries as files. The two commands in the palette are `entry` and `queries`.
+
+### entry
+```
+Command that is used to generate table entries in the database.
+The user chooses if the table entries are generated from the default configuration
+or from a specified template file.
+
+examples:
+        dbvg generate entry --database ${POSTGRES_URL} --default --table "purchases" --verbose
+        dbvg generate entry --database ${POSTGRES_URL} --template "./templates/purchase_template.json" --table "purchases" --amount 10 -v --clean-up
+
+Usage:
+  dbvg generate entry [flags]
+
+Flags:
+  -c, --clean-up   cleans up after generating data
+  -h, --help       help for entry
+  -v, --verbose    Shows which queries are run and in what order
+
+Global Flags:
+      --amount int        amount of items to generate (default 1)
+      --database string   url to connect to the database with
+      --default           flag that determines if the default configuration is used
+      --table string      name of sql table in the database
+      --template string   path to the template file
+```
+
+### queries
+```
+Command that saves the generated queries to output files. These output
+files are meant to provide the user the option to reuse generated queries. The queries are split between two files.
+The INSERT queries are saved to a file with the extension .build.sql and the DELETE queries are saved to a
+file with the extension .clean.sql
+
+examples:
+        dbvg generate queries --database "${URL}" --dir queries --amount 1 --template ./templates/purchase_template.json --table "purchases" --name "purchases"
+        dbvg generate queries --database "${URL}" --dir queries/ --amount 1 --default --table "b" --name "purchases"
+
+Usage:
+  dbvg generate queries [flags]
+
+Flags:
+      --dir string    Path to the directory for the file output (default "./")
+  -h, --help          help for queries
+      --name string   Name of the output files
+
+Global Flags:
+      --amount int        amount of items to generate (default 1)
+      --database string   url to connect to the database with
+      --default           flag that determines if the default configuration is used
+      --table string      name of sql table in the database
+      --template string   path to the template file
+```
+
+## Subcommand Palette: template
+This subcommand palette focuses on generating and updating template files. These templates are formatted as JSON files.
+Templates are made to allow the user to control what type of data is being generated through the CLI. For more information
+regarding templates, please read [THIS](template/README.md). The commands in this palette are `create` and `update`.
+
+### create
+```
+Command used to generate a template JSON file in a specific folder for a group of tables. 
+The group of tables are the given table and all the tables it depends on.
+
+examples:
+        dbvg template create --database ${POSTGRES_URL} --dir "templates/"  --table "purchases"
+        dbvg template create --database ${POSTGRES_URL} --dir "./templates/"  --table "purchases" --name "purchase_template.json"
+
+Usage:
+  dbvg template create [flags]
+
+Flags:
+      --dir string    path to the output directory (default "./")
+  -h, --help          help for create
+      --name string   name of the output template file
+
+Global Flags:
+      --database string   url to connect to the database with
+      --table string      the name of the sql table that the template is based off of
+```
+
+### update
+```
+Command that updates an existing template. The command verifies for file corruption, whether the file is formatted correctly, before overwriting 
+the current template with the new one. This command also maps entries from the old template over to the new template, saving previous settings.
+
+example:
+        dbvg template update --database ${POSTGRES_URL} --template ./templates/purchase_template.json  --table "shop"
+
+Usage:
+  dbvg template update [flags]
+
+Flags:
+  -h, --help              help for update
+      --template string   path to the template path
+
+Global Flags:
+      --database string   url to connect to the database with
+      --table string      the name of the sql table that the template is based off of
+```
 
 ## Subcommand Palette: validate
-This subcommand palette is focused on schema validation. This means, detecting and resolving database cyclic relationships.
-As such, this palette only has one command, that being `schema`. 
+This subcommand palette focuses on schema validation. Specifically, detecting and resolving cyclic relationships between tables.
+This palette has one command, `schema`. 
 
 ### schema
 ```
-command used to validate the database schema and identify cycles. These
-cycles can be resolved immediately by using the --run flag or the suggestions can be
-printed without running them by using the --suggestions flag. These two flags cannot be
-used simultaneously
+Command used to validate the database schema and identify cycles. 
+These cycles can immediately be resolved by running a set of queries or
+these suggestions to the user.
 
-example of valid commands)
+examples:
         dbvg validate schema --database ${POSTGRES_URL} --run
         dbvg validate schema --database ${POSTGRES_URL} --suggestions
 
@@ -93,63 +202,6 @@ Flags:
 
 Global Flags:
       --database string   url to connect to the database with
-
 ```
 
-## Subcommand Palette: generate
-This subcommand palette is focused on generating data. This data generation is either generating a template for future use
-or database table entries. As such, the two commands in the palette are `template` and `entry`
-
-### template
-
-```
-generates a template JSON file in a specific folder for a specific group of tables based off of the first
-table given. This template is meant to be edited by the user and ingested by either the CLI or the library. As a result,
-the --dir and --table flags are required.
-
-example of valid command)
-        dbvg generate template --database ${POSTGRES_URL} --dir "some/directory"  --table "example_table"
-
-Usage:
-  dbvg generate template [flags]
-
-Flags:
-      --dir string     relative path of a directory to place the template file in, if the path doesn't exist it will make the folder
-  -h, --help           help for template
-      --table string   the name of the table we want an entry for
-
-Global Flags:
-      --database string   url to connect to the database with
-
-```
-
-### entry
-
-```
-Command that is used to generate table entries in the database.
-This command requires the --table flag and either the --template or --default flags.
-If you want the entries to disappear after execution use the --clean-up flag.
-You can control how many entries generated with the --amount flag (default is 1).
-Finally, if you want more information regarding the execution use -v or --verbose for a more verbose output.
-
-examples of valid commands)
-        dbvg generate entry --database ${POSTGRES_URL} --default --table "example_table" --verbose
-        dbvg generate entry --database ${POSTGRES_URL} --template "path/to/file.json" --table "example_table" --amount 10 -v --clean-up
-
-Usage:
-  dbvg generate entry [flags]
-
-Flags:
-      --amount int        amount of entries this will generate (default 1)
-      --clean-up          cleans up after generating data
-      --default           run using the default template
-  -h, --help              help for entry
-      --table string      table we are generating data for
-      --template string   path to the template file being used
-  -v, --verbose           Shows which queries are run and in what order
-
-Global Flags:
-      --database string   url to connect to the database with
-
-```
 

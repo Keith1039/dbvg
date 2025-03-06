@@ -20,13 +20,13 @@ var (
 // createCmd represents the template command
 var createCmd = &cobra.Command{
 	Use:   "create",
-	Short: "Command used to generate a template in a specific folder, for a group of tables",
-	Long: `Command used to generate a template JSON file in a specific folder, for a group of tables. 
-The group of tables is based off of the first table given by the user.
+	Short: "Command used to generate a template in a specific folder for a group of tables",
+	Long: `Command used to generate a template JSON file in a specific folder for a group of tables. 
+The group of tables are the given table and all the tables it depends on.
 
 examples:
-	dbvg template create --database ${POSTGRES_URL} --dir "some/directory"  --table "example_table"
-	dbvg template create --database ${POSTGRES_URL} --dir "some/directory"  --table "example_table" --name "test_template"
+	dbvg template create --database ${POSTGRES_URL} --dir "templates/"  --table "purchases"
+	dbvg template create --database ${POSTGRES_URL} --dir "./templates/"  --table "purchases" --name "purchase_template.json"
 `,
 	Run: func(cmd *cobra.Command, args []string) {
 		var filename string
@@ -71,8 +71,8 @@ examples:
 }
 
 func init() {
-	createCmd.Flags().StringVarP(&dir, "dir", "", "./", "path to the output directory (default: ./)")
-	createCmd.Flags().StringVarP(&name, "name", "", "", "name of the template file")
+	createCmd.Flags().StringVarP(&dir, "dir", "", "./", "path to the output directory")
+	createCmd.Flags().StringVarP(&name, "name", "", "", "name of the output template file")
 
 	err := createCmd.MarkFlagDirname("dir") // mark it as a directory name
 	if err != nil {

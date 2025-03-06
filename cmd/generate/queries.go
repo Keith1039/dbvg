@@ -24,14 +24,13 @@ var queriesCmd = &cobra.Command{
 	Use:   "queries",
 	Short: "Command that saves the generated queries to output files.",
 	Long: `Command that saves the generated queries to output files. These output
-files are meant to provide the user the option to reuse generated queries rather than
-having to use the entry command to make them again. The commands are split between two files.
+files are meant to provide the user the option to reuse generated queries. The queries are split between two files.
 The INSERT queries are saved to a file with the extension .build.sql and the DELETE queries are saved to a 
 file with the extension .clean.sql
 
 examples:
-	dbvg generate queries --database "${URL}" --dir something/somewhere --amount 500 --template some/file.json --table "b" --name "test"
-	dbvg generate queries --database "${URL}" --dir something/somewhere --amount 500 --default --table "b" --name "test"
+	dbvg generate queries --database "${URL}" --dir queries --amount 1 --template ./templates/purchase_template.json --table "purchases" --name "purchases"
+	dbvg generate queries --database "${URL}" --dir queries/ --amount 1 --default --table "b" --name "purchases"
 `,
 	Run: func(cmd *cobra.Command, args []string) {
 		var writer *parameters.QueryWriter
@@ -69,7 +68,7 @@ examples:
 		insertQueries, deleteQueries := writer.GenerateEntries(amount)
 		name = strings.TrimSpace(name)
 		if name == "" {
-			filePrefix = table
+			filePrefix = table + "_query"
 		} else {
 			filePrefix = name
 		}
@@ -86,11 +85,11 @@ examples:
 			folder = folder + "/"
 		}
 
-		buildFile, err = os.Create(fmt.Sprintf("%s%s_query.build.sql", folder, filePrefix))
+		buildFile, err = os.Create(fmt.Sprintf("%s%s.build.sql", folder, filePrefix))
 		if err != nil {
 			log.Fatal(err)
 		}
-		cleanUpFile, err = os.Create(fmt.Sprintf("%s%s_query.clean.sql", folder, filePrefix))
+		cleanUpFile, err = os.Create(fmt.Sprintf("%s%s.clean.sql", folder, filePrefix))
 		if err != nil {
 			log.Fatal(err)
 		}

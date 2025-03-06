@@ -21,12 +21,12 @@ var entryCmd = &cobra.Command{
 	Use:   "entry",
 	Short: "Command used to generate table entries",
 	Long: `Command that is used to generate table entries in the database.
-The user chooses if the database table entries are generated from the default configuration
+The user chooses if the table entries are generated from the default configuration
 or from a specified template file.
 
 examples:
-	dbvg generate entry --database ${POSTGRES_URL} --default --table "example_table" --verbose
-	dbvg generate entry --database ${POSTGRES_URL} --template "path/to/file.json" --table "example_table" --amount 10 -v --clean-up
+	dbvg generate entry --database ${POSTGRES_URL} --default --table "purchases" --verbose
+	dbvg generate entry --database ${POSTGRES_URL} --template "./templates/purchase_template.json" --table "purchases" --amount 10 -v --clean-up
 `,
 	Run: func(cmd *cobra.Command, args []string) {
 
