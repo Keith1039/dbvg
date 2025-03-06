@@ -18,8 +18,8 @@ var schemaCmd = &cobra.Command{
 	Use:   "schema",
 	Short: "Command used to validate the entire database schema.",
 	Long: `Command used to validate the database schema and identify cycles. 
-These cycles can immediately be resolved by running a series of queries or
-the program will output a series of suggestion queries for the user to inspect.
+These cycles can immediately be resolved by running a set of queries or
+these suggestions to the user.
 
 examples:
 	dbvg validate schema --database ${POSTGRES_URL} --run

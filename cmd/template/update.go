@@ -26,7 +26,7 @@ var updateCmd = &cobra.Command{
 the current template with the new one. This command also maps entries from the old template over to the new template, saving previous settings.
 
 example:
-	dbvg template update --database ${POSTGRES_URL} --template ./some/dir/shop_template.json  --table "shop"
+	dbvg template update --database ${POSTGRES_URL} --template ./templates/purchase_template.json  --table "shop"
 `,
 	Run: func(cmd *cobra.Command, args []string) {
 		// check to see if file exists
