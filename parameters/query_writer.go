@@ -181,10 +181,11 @@ func (qw *QueryWriter) createTable(tableName string) table {
 	t := table{TableName: tableName}
 	columnMap := db.GetColumnMap(qw.db, tableName)
 	columns := make([]*column, len(columnMap))
+	columnDetailsMap := db.GetRawColumnMap(qw.db, tableName) // get the column details map to add details to the column struct
 	i := 0
 	for columnName, dataType := range columnMap {
 		parser := getColumnParser(dataType)
-		c := column{ColumnName: columnName, Type: dataType, Parser: parser}
+		c := column{ColumnName: columnName, ColumnDetails: columnDetailsMap[columnName], Type: dataType, Parser: parser}
 		columns[i] = &c
 		i++
 	}
