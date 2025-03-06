@@ -2,6 +2,7 @@ package parameters
 
 import (
 	"errors"
+	"fmt"
 	"github.com/brianvoe/gofakeit/v7"
 	regen "github.com/zach-klippenstein/goregen"
 )
@@ -54,7 +55,12 @@ func (p *VarcharColumnParser) ParseColumn(col column) (string, error) {
 func (p *VarcharColumnParser) handleRegex(col column) (string, error) {
 	expression := col.Other // regen doesn't care about whitespace so there's no need to trim
 	if expression == "" {
-		expression = DEFAULTEXPR
+		length, _ := col.ColumnDetails.Length() // no point in checking since all types mapped to varchar give a valid length
+		if length != -5 && length < 10 {        // check if it's not default VARCHAR or BPCHAR
+			expression = fmt.Sprintf("[a-zA-Z]{%d}", length) // change the default expression to fit the container
+		} else {
+			expression = DEFAULTEXPR
+		}
 	}
 	genString, err := regen.Generate(expression)
 	return genString, err

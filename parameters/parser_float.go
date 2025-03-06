@@ -2,6 +2,8 @@ package parameters
 
 import (
 	"errors"
+	"fmt"
+	"log"
 	"math/rand"
 	"strconv"
 	"strings"
@@ -43,9 +45,20 @@ func (p *FloatColumnParser) handleRandomCode(col column) (string, error) {
 	var value string
 	var err error
 	r := col.Other
-	r = strings.TrimSpace(r) // trim space
+	r = strings.TrimSpace(r)                                // trim space
+	precision, scale, ok := col.ColumnDetails.DecimalSize() // get the precision and scale
 	if r == "" {
-		r = DEFAULTRANGE
+		difference := precision - scale
+		// precision - scale is the amount of digits we have before the decimal (in this case, if this value is less than 3 then the range of 1-100 doesn't work)
+		if difference < 3 && ok {
+			if difference <= 0 {
+				log.Fatalf("Difference between precision and scale for column %s is less than or equal to zero. Please verify your schema.", col.ColumnName)
+			} else {
+				r = fmt.Sprintf("1, %d", int(difference*10-1)) // create the new range
+			}
+		} else {
+			r = DEFAULTFLOATRANGE
+		}
 	}
 	ranges := strings.Split(r, ",")
 	if len(ranges) != 2 {
@@ -65,6 +78,13 @@ func (p *FloatColumnParser) handleRandomCode(col column) (string, error) {
 		return "", err
 	}
 	value = strconv.FormatFloat(rand.Float64()*(upperBound-lowerBound)+lowerBound, 'f', -1, 64) // format float
+	databaseType := col.ColumnDetails.DatabaseTypeName()                                        // get the underlying type
+	// conditions to perform type casting. Although this is done when inserting, since we need the exact value to delete, we apply the casting manually
+	if ok {
+		value = fmt.Sprintf("%s::%s(%d, %d)", value, databaseType, precision, scale)
+	} else {
+		value = fmt.Sprintf("%s::%s", value, databaseType)
+	}
 	return value, err
 }
 
@@ -81,6 +101,14 @@ func (p *FloatColumnParser) handleStatic(col column) (string, error) {
 		return "", err
 	} else {
 		value = r
+	}
+	precision, scale, ok := col.ColumnDetails.DecimalSize() // get the precision and scale
+	databaseType := col.ColumnDetails.DatabaseTypeName()    // get the type
+	// cast type appropriately
+	if ok {
+		value = fmt.Sprintf("%s::%s(%d, %d)", value, databaseType, precision, scale)
+	} else {
+		value = fmt.Sprintf("%s::%s", value, databaseType)
 	}
 	return value, err
 }

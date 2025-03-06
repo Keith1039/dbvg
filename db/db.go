@@ -101,8 +101,8 @@ func GetColumnMap(db *sql.DB, tableName string) map[string]string {
 }
 
 // GetRawColumnMap returns a map of column names mapped to their string type
-func GetRawColumnMap(db *sql.DB, tableName string) map[string]string {
-	m := make(map[string]string)                        // make initial map
+func GetRawColumnMap(db *sql.DB, tableName string) map[string]*sql.ColumnType {
+	m := make(map[string]*sql.ColumnType)               // make initial map
 	tcols, err := schema.ColumnTypes(db, "", tableName) // get the column info
 
 	if err != nil {
@@ -110,7 +110,7 @@ func GetRawColumnMap(db *sql.DB, tableName string) map[string]string {
 		return nil
 	}
 	for i := range tcols {
-		m[tcols[i].Name()] = tcols[i].DatabaseTypeName() // map the column name to it's type
+		m[tcols[i].Name()] = tcols[i] // map the column name to it's type
 	}
 	return m
 }

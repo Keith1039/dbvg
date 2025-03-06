@@ -313,11 +313,49 @@ func (tl *Ordering) getSuggestions(cycles *list.List) []string {
 	return utils.ListToStringArray(queries) // convert to a string array
 }
 
-func appendBuilder(builder *strings.Builder, pks []string, table string, colMap map[string]string, newTablePKs []string, slider *int) {
+func appendBuilder(builder *strings.Builder, pks []string, table string, colMap map[string]*sql.ColumnType, newTablePKs []string, slider *int) {
 	// appends the new column name and the datatype
+	var queryString string
 	for _, pk := range pks {
 		newPK := fmt.Sprintf("%s_%s_ref", table, pk)
-		builder.WriteString(fmt.Sprintf("\n\t %s %s,", newPK, colMap[pk]))
+		precision, scale, ok := colMap[pk].DecimalSize() // check to see if it's a variable float type
+		databaseType := colMap[pk].DatabaseTypeName()
+		// pretty unnecessary but oh well
+		if databaseType == "FLOAT4" || databaseType == "FLOAT8" {
+			switch databaseType {
+			case "FLOAT4":
+				queryString = fmt.Sprintf("\n\t %s %s,", newPK, "REAL")
+			case "FLOAT8":
+				queryString = fmt.Sprintf("\n\t %s %s,", newPK, "DOUBLE PRECISION")
+			}
+		} else {
+			if ok {
+				// NUMERIC types default is (65535, 65531) so we avoid that
+				if precision != 65535 && scale != 65531 {
+					queryString = fmt.Sprintf("\n\t %s %s(%d, %d),", newPK, databaseType, precision, scale) // add the precision to the new query
+				} else {
+					queryString = fmt.Sprintf("\n\t %s %s,", newPK, databaseType) // solely for NUMERIC
+				}
+			} else {
+				length, isVarchar := colMap[pk].Length() // get the size of the column
+				if isVarchar && databaseType != "TEXT" { // text is excluded from this
+					if databaseType == "VARCHAR" && length != -5 { // exclude default varchar
+						queryString = fmt.Sprintf("\n\t %s %s(%d),", newPK, databaseType, length)
+					} else if databaseType == "BPCHAR" {
+						if length != -5 && length != 1 { // exclude default BPCHAR and CHAR
+							queryString = fmt.Sprintf("\n\t %s %s(%d),", newPK, databaseType, length)
+						} else if length == 1 {
+							queryString = fmt.Sprintf("\n\t %s %s,", newPK, "CHAR")
+						} else {
+							queryString = fmt.Sprintf("\n\t %s %s,", newPK, databaseType)
+						}
+					}
+				} else {
+					queryString = fmt.Sprintf("\n\t %s %s,", newPK, databaseType) // in case all other conditions fail
+				}
+			}
+		}
+		builder.WriteString(queryString)
 		newTablePKs[*slider] = newPK // assign the new pk to the array
 		*slider++                    // increment slider
 	}
