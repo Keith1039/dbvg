@@ -38,6 +38,7 @@ func (p *DateColumnParser) ParseColumn(col column) (string, error) {
 
 func (p *DateColumnParser) handleRandom(col column) (string, error) {
 	r := col.Other
+	r = strings.TrimSpace(r) // trim space
 	if r == "" {
 		r = DEFAULTDATERANGE
 	}
@@ -50,6 +51,7 @@ func (p *DateColumnParser) handleRandom(col column) (string, error) {
 
 func (p *DateColumnParser) handleStatic(col column) (string, error) {
 	r := col.Other
+	r = strings.TrimSpace(r) // trim space
 	if isDate(r) {
 		return r, nil
 	} else {
@@ -58,7 +60,7 @@ func (p *DateColumnParser) handleStatic(col column) (string, error) {
 }
 
 func (p *DateColumnParser) handleNow() (string, error) {
-	return time.Now().String(), nil
+	return time.Now().String()[0:19], nil
 }
 
 func (p *DateColumnParser) handleNull() (string, error) {

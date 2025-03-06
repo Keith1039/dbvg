@@ -15,6 +15,8 @@ func getColumnParser(dataType string) ColumnParser {
 		return &UUIDColumnParser{}
 	case "BOOL":
 		return &BooleanColumnParser{}
+	case "FLOAT":
+		return &FloatColumnParser{}
 	case "DATE":
 		return &DateColumnParser{}
 	}

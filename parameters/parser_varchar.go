@@ -2,12 +2,12 @@ package parameters
 
 import (
 	"errors"
-	"github.com/brianvoe/gofakeit/v6"
+	"github.com/brianvoe/gofakeit/v7"
 	regen "github.com/zach-klippenstein/goregen"
 )
 
 // default value for the REGEX code for the varchar parser
-const DEFAULTEXPR = "[a-zA-Z]+"
+const DEFAULTEXPR = "[a-zA-Z]{10}"
 
 // default code for the varchar parser
 const DEFAULVARCHARCODE = REGEX
@@ -21,6 +21,7 @@ func (p *VarcharColumnParser) ParseColumn(col column) (string, error) {
 	if code == 0 {
 		code = DEFAULVARCHARCODE
 	}
+
 	if code == REGEX {
 		return p.handleRegex(col)
 	} else if code == EMAIL {
@@ -51,7 +52,7 @@ func (p *VarcharColumnParser) ParseColumn(col column) (string, error) {
 }
 
 func (p *VarcharColumnParser) handleRegex(col column) (string, error) {
-	expression := col.Other
+	expression := col.Other // regen doesn't care about whitespace so there's no need to trim
 	if expression == "" {
 		expression = DEFAULTEXPR
 	}

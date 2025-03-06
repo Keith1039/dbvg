@@ -71,13 +71,10 @@ examples:
 }
 
 func init() {
-	createCmd.Flags().StringVarP(&dir, "dir", "", "./", "relative path of a directory to place the template file in, if the path doesn't exist it will make the folder")
+	createCmd.Flags().StringVarP(&dir, "dir", "", "./", "path to the output directory (default: ./)")
 	createCmd.Flags().StringVarP(&name, "name", "", "", "name of the template file")
-	err := createCmd.MarkFlagRequired("dir") // mark the flag as required
-	if err != nil {
-		log.Fatal(err)
-	}
-	err = createCmd.MarkFlagDirname("dir") // mark it as a directory name
+
+	err := createCmd.MarkFlagDirname("dir") // mark it as a directory name
 	if err != nil {
 		log.Fatal(err)
 	}

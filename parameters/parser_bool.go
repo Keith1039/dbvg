@@ -2,8 +2,8 @@ package parameters
 
 import (
 	"errors"
+	"github.com/Keith1039/dbvg/utils"
 	"math/rand"
-	"strings"
 )
 
 // default code for the boolean parser
@@ -42,7 +42,7 @@ func (p *BooleanColumnParser) handleRandom() (string, error) {
 
 func (p *BooleanColumnParser) handleStatic(col column) (string, error) {
 	val := col.Other
-	val = strings.Trim(strings.ToLower(val), " ")
+	val = utils.TrimAndLowerString(val) // trim and lower string
 	if val != "true" && val != "false" {
 		return "", errors.New("invalid Value given")
 	} else {

@@ -3,7 +3,7 @@ module github.com/Keith1039/dbvg
 go 1.23.3
 
 require (
-	github.com/brianvoe/gofakeit/v6 v6.28.0
+	github.com/brianvoe/gofakeit/v7 v7.2.1
 	github.com/duktig-solutions/go-random-date-generator v0.0.0-20220823170630-1c67478b7653
 	github.com/golang-migrate/migrate/v4 v4.18.1
 	github.com/google/uuid v1.6.0
