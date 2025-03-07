@@ -276,17 +276,19 @@ func (tl *Ordering) getSuggestions(cycles *list.List) []string {
 			}
 			query := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s_%s(", refTable, problemTable)
 			builder.WriteString(query)
-			if refTable == problemTable {
+			if refTable == problemTable { // self reference in the table
 				for _, pk := range pks {
 					newPK := fmt.Sprintf("%s_primary_%s", refTable, pk)
-					builder.WriteString(fmt.Sprintf("\n\t %s %s,", newPK, colMap[pks[0]]))
-					newTablePKs[newTableSlider] = pk // assign the new pk to the array
-					newTableSlider++                 // increment the slider
+					queryString := getColumnQuery(pk, newPK, colMap)
+					builder.WriteString(queryString)
+					newTablePKs[newTableSlider] = newPK // assign the new pk to the array
+					newTableSlider++                    // increment the slider
 				}
-				appendForeignKey(&foreignKeyBuilder, refTable, pks, pks)
+				appendForeignKey(&foreignKeyBuilder, refTable, newTablePKs[0:len(pks)], pks)
 				for _, pk := range pks {
 					newPK := fmt.Sprintf("%s_related_%s", refTable, pk)
-					builder.WriteString(fmt.Sprintf("\n\t %s %s,", newPK, colMap[pk]))
+					queryString := getColumnQuery(pk, newPK, colMap)
+					builder.WriteString(queryString)
 					newTablePKs[newTableSlider] = newPK // assign the new pk to the array
 					newTableSlider++                    // increment slider
 				}
@@ -313,53 +315,58 @@ func (tl *Ordering) getSuggestions(cycles *list.List) []string {
 	return utils.ListToStringArray(queries) // convert to a string array
 }
 
-func appendBuilder(builder *strings.Builder, pks []string, table string, colMap map[string]*sql.ColumnType, newTablePKs []string, slider *int) {
-	// appends the new column name and the datatype
+func getColumnQuery(pk string, newPK string, colMap map[string]*sql.ColumnType) string {
 	var queryString string
-	for _, pk := range pks {
-		newPK := fmt.Sprintf("%s_%s_ref", table, pk)
-		precision, scale, ok := colMap[pk].DecimalSize() // check to see if it's a variable float type
-		databaseType := colMap[pk].DatabaseTypeName()
-		// pretty unnecessary but oh well
-		if databaseType == "FLOAT4" || databaseType == "FLOAT8" {
-			switch databaseType {
-			case "FLOAT4":
-				queryString = fmt.Sprintf("\n\t %s %s,", newPK, "REAL")
-			case "FLOAT8":
-				queryString = fmt.Sprintf("\n\t %s %s,", newPK, "DOUBLE PRECISION")
+	precision, scale, ok := colMap[pk].DecimalSize() // check to see if it's a variable float type
+	databaseType := colMap[pk].DatabaseTypeName()
+	// pretty unnecessary but oh well
+	if databaseType == "FLOAT4" || databaseType == "FLOAT8" {
+		switch databaseType {
+		case "FLOAT4":
+			queryString = fmt.Sprintf("\n\t %s %s,", newPK, "REAL")
+		case "FLOAT8":
+			queryString = fmt.Sprintf("\n\t %s %s,", newPK, "DOUBLE PRECISION")
+		}
+	} else {
+		if ok {
+			// NUMERIC types default is (65535, 65531) so we avoid that
+			if precision != 65535 && scale != 65531 {
+				queryString = fmt.Sprintf("\n\t %s %s(%d, %d),", newPK, databaseType, precision, scale) // add the precision to the new query
+			} else {
+				queryString = fmt.Sprintf("\n\t %s %s,", newPK, databaseType) // solely for NUMERIC
 			}
 		} else {
-			if ok {
-				// NUMERIC types default is (65535, 65531) so we avoid that
-				if precision != 65535 && scale != 65531 {
-					queryString = fmt.Sprintf("\n\t %s %s(%d, %d),", newPK, databaseType, precision, scale) // add the precision to the new query
-				} else {
-					queryString = fmt.Sprintf("\n\t %s %s,", newPK, databaseType) // solely for NUMERIC
+			length, isVarchar := colMap[pk].Length() // get the size of the column
+			if isVarchar && databaseType != "TEXT" { // text is excluded from this
+				if databaseType == "VARCHAR" && length != -5 { // exclude default varchar
+					queryString = fmt.Sprintf("\n\t %s %s(%d),", newPK, databaseType, length)
+				} else if databaseType == "BPCHAR" {
+					if length != -5 && length != 1 { // exclude default BPCHAR and CHAR
+						queryString = fmt.Sprintf("\n\t %s %s(%d),", newPK, databaseType, length)
+					} else if length == 1 {
+						queryString = fmt.Sprintf("\n\t %s %s,", newPK, "CHAR")
+					} else {
+						queryString = fmt.Sprintf("\n\t %s %s,", newPK, databaseType)
+					}
 				}
 			} else {
-				length, isVarchar := colMap[pk].Length() // get the size of the column
-				if isVarchar && databaseType != "TEXT" { // text is excluded from this
-					if databaseType == "VARCHAR" && length != -5 { // exclude default varchar
-						queryString = fmt.Sprintf("\n\t %s %s(%d),", newPK, databaseType, length)
-					} else if databaseType == "BPCHAR" {
-						if length != -5 && length != 1 { // exclude default BPCHAR and CHAR
-							queryString = fmt.Sprintf("\n\t %s %s(%d),", newPK, databaseType, length)
-						} else if length == 1 {
-							queryString = fmt.Sprintf("\n\t %s %s,", newPK, "CHAR")
-						} else {
-							queryString = fmt.Sprintf("\n\t %s %s,", newPK, databaseType)
-						}
-					}
-				} else {
-					queryString = fmt.Sprintf("\n\t %s %s,", newPK, databaseType) // in case all other conditions fail
-				}
+				queryString = fmt.Sprintf("\n\t %s %s,", newPK, databaseType) // in case all other conditions fail
 			}
 		}
+	}
+	return queryString
+}
+func appendBuilder(builder *strings.Builder, pks []string, table string, colMap map[string]*sql.ColumnType, newTablePKs []string, slider *int) {
+	// appends the new column name and the datatype
+	for _, pk := range pks {
+		newPK := fmt.Sprintf("%s_%s_ref", table, pk)
+		queryString := getColumnQuery(pk, newPK, colMap)
 		builder.WriteString(queryString)
 		newTablePKs[*slider] = newPK // assign the new pk to the array
 		*slider++                    // increment slider
 	}
 }
+
 func appendDropBuilder(builder *strings.Builder, refTable string, problemTable string, allRelations map[string]map[string]map[string]string) {
 	relations := allRelations[problemTable]
 	for column, relation := range relations {
