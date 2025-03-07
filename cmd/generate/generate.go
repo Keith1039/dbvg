@@ -12,6 +12,7 @@ var (
 	ConnString    string
 	table         string
 	template      string
+	schema        string
 	amount        int
 	defaultConfig bool
 )
@@ -39,6 +40,7 @@ func init() {
 	GenerateCmd.PersistentFlags().StringVarP(&ConnString, "database", "", "", "url to connect to the database with")
 	GenerateCmd.PersistentFlags().StringVarP(&table, "table", "", "", "name of sql table in the database")
 	GenerateCmd.PersistentFlags().StringVarP(&template, "template", "", "", "path to the template file")
+	GenerateCmd.PersistentFlags().StringVarP(&schema, "schema", "", "", "schema for the table")
 	GenerateCmd.PersistentFlags().IntVarP(&amount, "amount", "", 1, "amount of items to generate")
 	GenerateCmd.PersistentFlags().BoolVarP(&defaultConfig, "default", "", false, "flag that determines if the default configuration is used")
 

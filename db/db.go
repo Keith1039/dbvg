@@ -82,9 +82,9 @@ func GetTableMap(db *sql.DB) map[string]int {
 }
 
 // GetColumnMap returns a map of column names mapped to their "translated" string type
-func GetColumnMap(db *sql.DB, tableName string) map[string]string {
-	m := make(map[string]string)                        // make initial map
-	tcols, err := schema.ColumnTypes(db, "", tableName) // get the column info
+func GetColumnMap(db *sql.DB, schemaName string, tableName string) map[string]string {
+	m := make(map[string]string)                                // make initial map
+	tcols, err := schema.ColumnTypes(db, schemaName, tableName) // get the column info
 	if err != nil {
 		log.Fatal(err)
 		return nil
@@ -101,9 +101,9 @@ func GetColumnMap(db *sql.DB, tableName string) map[string]string {
 }
 
 // GetRawColumnMap returns a map of column names mapped to their string type
-func GetRawColumnMap(db *sql.DB, tableName string) map[string]*sql.ColumnType {
-	m := make(map[string]*sql.ColumnType)               // make initial map
-	tcols, err := schema.ColumnTypes(db, "", tableName) // get the column info
+func GetRawColumnMap(db *sql.DB, schemaName string, tableName string) map[string]*sql.ColumnType {
+	m := make(map[string]*sql.ColumnType)                       // make initial map
+	tcols, err := schema.ColumnTypes(db, schemaName, tableName) // get the column info
 
 	if err != nil {
 		log.Fatal(err)
@@ -116,7 +116,7 @@ func GetRawColumnMap(db *sql.DB, tableName string) map[string]*sql.ColumnType {
 }
 
 // GetTablePKMap returns a map of table names mapped to an array of string primary keys
-func GetTablePKMap(db *sql.DB) map[string][]string {
+func GetTablePKMap(db *sql.DB, schemaName string) map[string][]string {
 	var pks []string
 	tnames, err := schema.TableNames(db)
 	pkMap := make(map[string][]string)
@@ -125,7 +125,7 @@ func GetTablePKMap(db *sql.DB) map[string][]string {
 	}
 	for i := range tnames {
 		tableName := tnames[i][1]
-		pks, err = schema.PrimaryKey(db, "", tableName)
+		pks, err = schema.PrimaryKey(db, schemaName, tableName)
 		if err != nil {
 			log.Fatal(err)
 		}

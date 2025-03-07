@@ -47,12 +47,12 @@ examples:
 			log.Fatal("amount must be greater than zero")
 		}
 		if defaultConfig {
-			writer, err = parameters.NewQueryWriter(db, table)
+			writer, err = parameters.NewQueryWriter(db, schema, table)
 			if err != nil {
 				log.Fatal(err)
 			}
 		} else {
-			writer, err = parameters.NewQueryWriterWithTemplate(db, table, template)
+			writer, err = parameters.NewQueryWriterWithTemplate(db, schema, table, template)
 			if err != nil {
 				log.Fatal(err)
 			}

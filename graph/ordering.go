@@ -57,18 +57,18 @@ func (tl *Ordering) GetCycles() []string {
 }
 
 // GetSuggestionQueries returns a list of queries necessary to remove found cycles in the database schema
-func (tl *Ordering) GetSuggestionQueries() []string {
+func (tl *Ordering) GetSuggestionQueries(schemaName string) []string {
 	cycles := tl.GetCycles() // get the cycles
 	cycleBreaking := tl.getCycleBreakingOrder(cycles)
-	return tl.getSuggestions(cycleBreaking) // get and return the suggestions in array format
+	return tl.getSuggestions(cycleBreaking, schemaName) // get and return the suggestions in array format
 }
 
 // GetAndResolveCycles immediately runs the suggestion queries instead of returning them unlike GetSuggestionQueries
-func (tl *Ordering) GetAndResolveCycles() {
+func (tl *Ordering) GetAndResolveCycles(schemaName string) {
 	cycles := tl.GetCycles() // get your cycles
 	cycleBreaking := tl.getCycleBreakingOrder(cycles)
-	suggestions := tl.getSuggestions(cycleBreaking) // get your suggestions
-	err := database.RunQueries(tl.db, suggestions)  // run the suggestions
+	suggestions := tl.getSuggestions(cycleBreaking, schemaName) // get your suggestions
+	err := database.RunQueries(tl.db, suggestions)              // run the suggestions
 	if err != nil {
 		log.Fatal(err) // panic if it fails
 	}
@@ -248,7 +248,7 @@ func (tl *Ordering) getCycleBreakingOrder(cycles []string) *list.List {
 	return tables
 }
 
-func (tl *Ordering) getSuggestions(cycles *list.List) []string {
+func (tl *Ordering) getSuggestions(cycles *list.List, schemaName string) []string {
 	var builder strings.Builder
 	var dropBuilder strings.Builder
 	var foreignKeyBuilder strings.Builder
@@ -256,15 +256,15 @@ func (tl *Ordering) getSuggestions(cycles *list.List) []string {
 	inverseRelationships := database.GetInverseRelationships(tl.db)
 	queries := list.New()
 	node := cycles.Front()
-	pkMap := database.GetTablePKMap(tl.db)
+	pkMap := database.GetTablePKMap(tl.db, schemaName)
 	for node != nil {
 		refTable := node.Value.(string)
 		pks := pkMap[refTable]
 		tableRelations := inverseRelationships[refTable]
-		colMap := database.GetRawColumnMap(tl.db, refTable)
+		colMap := database.GetRawColumnMap(tl.db, schemaName, refTable)
 		for problemTable := range tableRelations {
 			problemTablePks := pkMap[problemTable]
-			refColMap := database.GetRawColumnMap(tl.db, problemTable)
+			refColMap := database.GetRawColumnMap(tl.db, schemaName, problemTable)
 			newTablePKs := make([]string, len(pks)+len(problemTablePks)) // array of the primary keys we'll assign at the end
 			newTableSlider := 0
 			// first format the string to get rid of the reference column

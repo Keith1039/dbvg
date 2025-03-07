@@ -11,6 +11,7 @@ import (
 var (
 	run         bool
 	suggestions bool
+	schemaName  string
 )
 
 // schemaCmd represents the schema command
@@ -42,7 +43,7 @@ examples:
 			fmt.Println("No cycles detected!")
 		}
 		if suggestions {
-			suggestions := ordering.GetSuggestionQueries()
+			suggestions := ordering.GetSuggestionQueries(schemaName)
 			if len(suggestions) > 0 {
 				for i, query := range suggestions {
 					fmt.Println(fmt.Sprintf("Query %d: %s", i+1, query))
@@ -51,7 +52,7 @@ examples:
 				fmt.Println("No suggestions to be made")
 			}
 		} else if run {
-			suggestions := ordering.GetSuggestionQueries()
+			suggestions := ordering.GetSuggestionQueries(schemaName)
 			if len(suggestions) > 0 {
 				for i, query := range suggestions {
 					fmt.Println(fmt.Sprintf("Query %d: %s", i+1, query))
@@ -72,6 +73,7 @@ examples:
 func init() {
 	schemaCmd.Flags().BoolVarP(&run, "run", "r", false, "run suggestions queries")
 	schemaCmd.Flags().BoolVarP(&suggestions, "suggestions", "s", false, "show suggestion queries")
+	schemaCmd.Flags().StringVarP(&schemaName, "schema", "", "", "name of the schema")
 	schemaCmd.MarkFlagsMutuallyExclusive("suggestions", "run")
 
 	// Here you will define your flags and configuration settings.

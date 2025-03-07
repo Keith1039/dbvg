@@ -18,9 +18,9 @@ import (
 )
 
 // NewQueryWriter takes in a database connection alongside a table name and returns a pointer to a QueryWriter that is initialized and any errors that occurred
-func NewQueryWriter(db *sql.DB, tableName string) (*QueryWriter, error) {
+func NewQueryWriter(db *sql.DB, schemaName string, tableName string) (*QueryWriter, error) {
 	qw := QueryWriter{db: db, tableName: tableName} // set the table name
-	err := qw.Init()                                // init the writer
+	err := qw.Init(schemaName)                      // init the writer
 	if err != nil {
 		return nil, err // return the error
 	}
@@ -29,14 +29,14 @@ func NewQueryWriter(db *sql.DB, tableName string) (*QueryWriter, error) {
 
 // NewQueryWriterWithTemplate takes in a database connection, table name as well as a file path to a template that is used to set the values in the QueryWriter
 // before returning a pointer to the initialized QueryWriter as well as any errors that occurred
-func NewQueryWriterWithTemplate(db *sql.DB, tableName string, filePath string) (*QueryWriter, error) {
+func NewQueryWriterWithTemplate(db *sql.DB, schemaName string, tableName string, filePath string) (*QueryWriter, error) {
 	// check to see if file exists
 	m := make(map[string]map[string]map[string]string)
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
 		return nil, err
 	}
 	qw := QueryWriter{db: db, tableName: tableName}
-	err := qw.Init()
+	err := qw.Init(schemaName)
 	if err != nil {
 		return nil, err
 	}
@@ -73,7 +73,7 @@ type QueryWriter struct {
 }
 
 // Init initializes the QueryWriter and returns any errors that occur upon initialization
-func (qw *QueryWriter) Init() error {
+func (qw *QueryWriter) Init(schemaName string) error {
 	var err error
 	qw.tableName = utils.TrimAndLowerString(qw.tableName)
 	ordering := graph.NewOrdering(qw.db) // get a new ordering
@@ -83,17 +83,17 @@ func (qw *QueryWriter) Init() error {
 	if err != nil {
 		return err
 	}
-	qw.setTableMap()
+	qw.setTableMap(schemaName)
 	qw.insertQueryQueue = list.New()
 	qw.deleteQueryQueue = list.New()
 	return err
 }
 
 // ChangeTableToWriteFor takes in a new table name and re-inits the QueryWriter. It returns any errors that happen upon re-initialization
-func (qw *QueryWriter) ChangeTableToWriteFor(tableName string) error {
+func (qw *QueryWriter) ChangeTableToWriteFor(schemaName string, tableName string) error {
 	// change the table name of the writer and return any errors
 	qw.tableName = utils.TrimAndLowerString(tableName)
-	return qw.Init()
+	return qw.Init(schemaName)
 }
 
 func (qw *QueryWriter) setFKMap() {
@@ -168,20 +168,20 @@ func (qw *QueryWriter) processTable(tableName string) {
 	qw.deleteQueryQueue.PushFront(fmt.Sprintf("DELETE FROM %s WHERE %s;", tableName, deleteBuilder.String()))
 }
 
-func (qw *QueryWriter) setTableMap() {
+func (qw *QueryWriter) setTableMap(schemaName string) {
 	m := make(map[string]*table)
 	for _, tableName := range qw.TableOrder {
-		tableStruct := qw.createTable(tableName) // create the table struct
-		m[tableName] = &tableStruct              // map it
+		tableStruct := qw.createTable(schemaName, tableName) // create the table struct
+		m[tableName] = &tableStruct                          // map it
 	}
 	qw.tableMap = m
 }
 
-func (qw *QueryWriter) createTable(tableName string) table {
+func (qw *QueryWriter) createTable(schemaName string, tableName string) table {
 	t := table{TableName: tableName}
-	columnMap := db.GetColumnMap(qw.db, tableName)
+	columnMap := db.GetColumnMap(qw.db, schemaName, tableName)
 	columns := make([]*column, len(columnMap))
-	columnDetailsMap := db.GetRawColumnMap(qw.db, tableName) // get the column details map to add details to the column struct
+	columnDetailsMap := db.GetRawColumnMap(qw.db, schemaName, tableName) // get the column details map to add details to the column struct
 	i := 0
 	for columnName, dataType := range columnMap {
 		parser := getColumnParser(dataType)
