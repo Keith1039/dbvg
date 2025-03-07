@@ -17,8 +17,8 @@ var rootCmd = &cobra.Command{
 	Use:   "dbvg",
 	Short: "A CLI designed to simplify validating database schemas and generating SQL queries",
 	Long: `dbvg is a CLI designed to simplify validating databases and generating SQL queries.
-	The validation provided is getting rid of cycles in database schemas. The CLI also provides
-	tools to generate table entries which will maintain dependencies.`,
+The validation provided is getting rid of cycles in database schemas. The CLI also provides
+tools to generate table entries which will maintain dependencies.`,
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
 	// Run: func(cmd *cobra.Command, args []string) { },
