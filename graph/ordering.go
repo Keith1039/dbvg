@@ -60,15 +60,15 @@ func (tl *Ordering) GetCycles() []string {
 func (tl *Ordering) GetSuggestionQueries() []string {
 	cycles := tl.GetCycles() // get the cycles
 	cycleBreaking := tl.getCycleBreakingOrder(cycles)
-	return tl.getSuggestions(cycleBreaking) // get and return the suggestions in array format
+	return tl.getSuggestions(cycleBreaking, cycles) // get and return the suggestions in array format
 }
 
 // GetAndResolveCycles immediately runs the suggestion queries instead of returning them unlike GetSuggestionQueries
 func (tl *Ordering) GetAndResolveCycles() {
 	cycles := tl.GetCycles() // get your cycles
 	cycleBreaking := tl.getCycleBreakingOrder(cycles)
-	suggestions := tl.getSuggestions(cycleBreaking) // get your suggestions
-	err := database.RunQueries(tl.db, suggestions)  // run the suggestions
+	suggestions := tl.getSuggestions(cycleBreaking, cycles) // get your suggestions
+	err := database.RunQueries(tl.db, suggestions)          // run the suggestions
 	if err != nil {
 		log.Fatal(err) // panic if it fails
 	}
@@ -200,7 +200,6 @@ func getFrequency(cycles []string) map[string]int {
 	for _, cycle := range cycles {
 		if cycle != "" {
 			cycleArr := strings.Split(cycle, " --> ")
-			fmt.Println(cycle)
 			cycleArr = cycleArr[:len(cycleArr)-1]
 			for _, table := range cycleArr {
 				_, exists := m[table]
@@ -232,82 +231,91 @@ func (tl *Ordering) getCycleBreakingOrder(cycles []string) *list.List {
 
 	tablesMap := getTablesMap(cycles) // a map that stores which tables are in each cycle
 	remainingCycles := len(cycles)    // the rest of the cycles
+	// copy cycles so that I can still use it
+	cyclesCopy := make([]string, len(cycles))
+	copy(cyclesCopy, cycles)
 
 	for remainingCycles > 0 {
-		tablesMentioned := getFrequency(cycles)            // we get a map of tables and how often they appear
+		tablesMentioned := getFrequency(cyclesCopy)        // we get a map of tables and how often they appear
 		mostMentioned := getMostMentioned(tablesMentioned) // get the problem table
 		tables.PushBack(mostMentioned)                     // add the most mentioned to the list
 		// loop through the cycles
-		for i, cycle := range cycles {
+		for i, cycle := range cyclesCopy {
 			if cycle != "" && tablesMap[cycle][mostMentioned] { // check to see if the cycle is in the most mentioned
-				cycles[i] = ""    // remove the cycle from the array
-				remainingCycles-- // decrement the value
+				cyclesCopy[i] = "" // remove the cycle from the array
+				remainingCycles--  // decrement the value
 			}
 		}
 	}
 	return tables
 }
 
-func (tl *Ordering) getSuggestions(cycles *list.List) []string {
+func (tl *Ordering) getSuggestions(cycleBreaking *list.List, cycles []string) []string {
 	var builder strings.Builder
 	var dropBuilder strings.Builder
 	var foreignKeyBuilder strings.Builder
 	var primaryKeyBuilder strings.Builder
 	inverseRelationships := database.GetInverseRelationships(tl.db)
 	queries := list.New()
-	node := cycles.Front()
+	node := cycleBreaking.Front()
 	pkMap := database.GetTablePKMap(tl.db)
+	cycleTableMap := getFrequency(cycles)
 	for node != nil {
 		refTable := node.Value.(string)
 		pks := pkMap[refTable]
 		tableRelations := inverseRelationships[refTable]
 		colMap := database.GetRawColumnMap(tl.db, refTable)
 		for problemTable := range tableRelations {
-			problemTablePks := pkMap[problemTable]
-			refColMap := database.GetRawColumnMap(tl.db, problemTable)
-			newTablePKs := make([]string, len(pks)+len(problemTablePks)) // array of the primary keys we'll assign at the end
-			newTableSlider := 0
-			// first format the string to get rid of the reference column
-			appendDropBuilder(&dropBuilder, refTable, problemTable, tl.allRelations)
-			dropQueries := strings.Split(dropBuilder.String(), "\n")
-			dropQueries = dropQueries[0 : len(dropQueries)-1] // cut off the end because it's always empty string
-			for _, dropQuery := range dropQueries {
-				queries.PushBack(dropQuery)
-			}
-			query := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s_%s(", refTable, problemTable)
-			builder.WriteString(query)
-			if refTable == problemTable { // self reference in the table
-				for _, pk := range pks {
-					newPK := fmt.Sprintf("%s_primary_%s", refTable, pk)
-					queryString := getColumnQuery(pk, newPK, colMap)
-					builder.WriteString(queryString)
-					newTablePKs[newTableSlider] = newPK // assign the new pk to the array
-					newTableSlider++                    // increment the slider
+			if _, actualProblem := cycleTableMap[problemTable]; actualProblem { // check to see if that dependency is part of the cycle
+				problemTablePks := pkMap[problemTable]
+				refColMap := database.GetRawColumnMap(tl.db, problemTable)
+				newTablePKs := make([]string, len(pks)+len(problemTablePks)) // array of the primary keys we'll assign at the end
+				newTableSlider := 0
+				// first format the string to get rid of the reference column
+				appendDropBuilder(&dropBuilder, refTable, problemTable, tl.allRelations)
+				if inverseRelationships[problemTable][refTable] {
+					appendDropBuilder(&dropBuilder, problemTable, refTable, tl.allRelations)
 				}
-				appendForeignKey(&foreignKeyBuilder, refTable, newTablePKs[0:len(pks)], pks)
-				for _, pk := range pks {
-					newPK := fmt.Sprintf("%s_related_%s", refTable, pk)
-					queryString := getColumnQuery(pk, newPK, colMap)
-					builder.WriteString(queryString)
-					newTablePKs[newTableSlider] = newPK // assign the new pk to the array
-					newTableSlider++                    // increment slider
+				dropQueries := strings.Split(dropBuilder.String(), "\n")
+				dropQueries = dropQueries[0 : len(dropQueries)-1] // cut off the end because it's always empty string
+				for _, dropQuery := range dropQueries {
+					queries.PushBack(dropQuery)
 				}
-				appendForeignKey(&foreignKeyBuilder, refTable, newTablePKs[len(pks):], pks)
+				query := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s_%s(", refTable, problemTable)
+				builder.WriteString(query)
+				if refTable == problemTable { // self reference in the table
+					for _, pk := range pks {
+						newPK := fmt.Sprintf("%s_primary_%s", refTable, pk)
+						queryString := getColumnQuery(pk, newPK, colMap)
+						builder.WriteString(queryString)
+						newTablePKs[newTableSlider] = newPK // assign the new pk to the array
+						newTableSlider++                    // increment the slider
+					}
+					appendForeignKey(&foreignKeyBuilder, refTable, newTablePKs[0:len(pks)], pks)
+					for _, pk := range pks {
+						newPK := fmt.Sprintf("%s_related_%s", refTable, pk)
+						queryString := getColumnQuery(pk, newPK, colMap)
+						builder.WriteString(queryString)
+						newTablePKs[newTableSlider] = newPK // assign the new pk to the array
+						newTableSlider++                    // increment slider
+					}
+					appendForeignKey(&foreignKeyBuilder, refTable, newTablePKs[len(pks):], pks)
 
-			} else {
-				appendBuilder(&builder, pks, refTable, colMap, newTablePKs, &newTableSlider)                    // append the primary tables columns
-				appendForeignKey(&foreignKeyBuilder, refTable, newTablePKs[:len(pks)], pks)                     // append the foreign keys
-				appendBuilder(&builder, problemTablePks, problemTable, refColMap, newTablePKs, &newTableSlider) // append the second tables columns
-				appendForeignKey(&foreignKeyBuilder, problemTable, newTablePKs[len(pks):], problemTablePks)     // append the second tables foreign keys
+				} else {
+					appendBuilder(&builder, pks, refTable, colMap, newTablePKs, &newTableSlider)                    // append the primary tables columns
+					appendForeignKey(&foreignKeyBuilder, refTable, newTablePKs[:len(pks)], pks)                     // append the foreign keys
+					appendBuilder(&builder, problemTablePks, problemTable, refColMap, newTablePKs, &newTableSlider) // append the second tables columns
+					appendForeignKey(&foreignKeyBuilder, problemTable, newTablePKs[len(pks):], problemTablePks)     // append the second tables foreign keys
+				}
+				appendPrimaryKeys(&primaryKeyBuilder, newTablePKs)
+				builder.WriteString(foreignKeyBuilder.String())
+				builder.WriteString(fmt.Sprintf("\n\tPRIMARY KEY %s\n)", primaryKeyBuilder.String()))
+				queries.PushBack(builder.String())
+				builder.Reset()
+				dropBuilder.Reset()
+				foreignKeyBuilder.Reset()
+				primaryKeyBuilder.Reset()
 			}
-			appendPrimaryKeys(&primaryKeyBuilder, newTablePKs)
-			builder.WriteString(foreignKeyBuilder.String())
-			builder.WriteString(fmt.Sprintf("\n\tPRIMARY KEY %s\n)", primaryKeyBuilder.String()))
-			queries.PushBack(builder.String())
-			builder.Reset()
-			dropBuilder.Reset()
-			foreignKeyBuilder.Reset()
-			primaryKeyBuilder.Reset()
 
 		}
 		node = node.Next()
