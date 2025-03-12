@@ -4,7 +4,20 @@ Database validator and generator (dbvg) for Postgres. Use as a CLI or import as 
 
 __[CLI Documentation](cmd/README.md)__
 
-__[Go Documentation]()__
+__[Go Documentation](https://pkg.go.dev/github.com/Keith1039/dbvg)__
+
+## Installation
+Currently, there are two ways to get the CLI.
+
+### Using Go Install
+`go install github.com/Keith1039/dbvg@latest`
+
+### Downloading via Releases on GitHub
+https://github.com/Keith1039/dbvg/releases
+
+**Warning:** If you are on Windows it is not recommended to use this method.
+Antivirus' on Windows sometimes flag Golang compiled executables as malware.
+This is shown [here](https://go.dev/doc/faq#virus).
 
 ## Main Offering
 dbvg provides tools to detect/resolve cycles in a database schema

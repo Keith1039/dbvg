@@ -1,6 +1,6 @@
-/*
-Copyright © 2025 NAME HERE <EMAIL ADDRESS>
-*/
+// Package template is all about creating and updating templates
+//
+// The template package provides the utility to create and update existing templates
 package template
 
 import (
