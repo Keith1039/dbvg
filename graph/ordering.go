@@ -59,15 +59,15 @@ func (tl *Ordering) GetCycles() []string {
 // GetSuggestionQueries returns a list of queries necessary to remove found cycles in the database schema
 func (tl *Ordering) GetSuggestionQueries() []string {
 	cycles := tl.GetCycles() // get the cycles
-	cycleBreaking := tl.getCycleBreakingOrder(cycles)
-	return tl.getSuggestions(cycleBreaking, cycles) // get and return the suggestions in array format
+	cycleBreaking, relMap := tl.getCycleBreakingOrder(cycles)
+	return tl.getSuggestions(cycleBreaking, relMap) // get and return the suggestions in array format
 }
 
 // GetAndResolveCycles immediately runs the suggestion queries instead of returning them unlike GetSuggestionQueries
 func (tl *Ordering) GetAndResolveCycles() {
 	cycles := tl.GetCycles() // get your cycles
-	cycleBreaking := tl.getCycleBreakingOrder(cycles)
-	suggestions := tl.getSuggestions(cycleBreaking, cycles) // get your suggestions
+	cycleBreaking, relMap := tl.getCycleBreakingOrder(cycles)
+	suggestions := tl.getSuggestions(cycleBreaking, relMap) // get your suggestions
 	err := database.RunQueries(tl.db, suggestions)          // run the suggestions
 	if err != nil {
 		log.Fatal(err) // panic if it fails
@@ -226,99 +226,114 @@ func getMostMentioned(fmap map[string]int) string {
 	}
 	return k
 }
-func (tl *Ordering) getCycleBreakingOrder(cycles []string) *list.List {
-	tables := list.New()
 
-	tablesMap := getTablesMap(cycles) // a map that stores which tables are in each cycle
-	remainingCycles := len(cycles)    // the rest of the cycles
+func constructProblemTableMap(problemTable string, tableMap map[string]map[string]bool) map[string]bool {
+	relevantTablesMap := make(map[string]bool) // tables entry
+	for _, tables := range tableMap {          // go through each map for the cycles
+		if _, ok := tables[problemTable]; ok { // if problem table is in the cycle
+			for table := range tables { // loop through the keys (table)
+				if _, alreadyThere := relevantTablesMap[table]; !alreadyThere { // check if the table already has an entry
+					relevantTablesMap[table] = true // add the entry
+				}
+			}
+		}
+	}
+	return relevantTablesMap // return the problem table map
+}
+
+func (tl *Ordering) getCycleBreakingOrder(cycles []string) (*list.List, map[string]map[string]bool) {
+	tables := list.New()
+	problemTableMap := make(map[string]map[string]bool) // map of all problem tables and the relevant tables
+	tablesMap := getTablesMap(cycles)                   // a map that stores which tables are in each cycle
 	// copy cycles so that I can still use it
 	cyclesCopy := make([]string, len(cycles))
 	copy(cyclesCopy, cycles)
 
-	for remainingCycles > 0 {
-		tablesMentioned := getFrequency(cyclesCopy)        // we get a map of tables and how often they appear
-		mostMentioned := getMostMentioned(tablesMentioned) // get the problem table
-		tables.PushBack(mostMentioned)                     // add the most mentioned to the list
+	for len(tablesMap) > 0 { // since we delete from tables map whenever a cycle is solved, once it is 0 we can stop looping
+		tablesMentioned := getFrequency(cyclesCopy)                                         // we get a map of tables and how often they appear
+		mostMentioned := getMostMentioned(tablesMentioned)                                  // get the problem table
+		problemTableMap[mostMentioned] = constructProblemTableMap(mostMentioned, tablesMap) // get related tables for given table
+		tables.PushBack(mostMentioned)                                                      // add the most mentioned to the list
 		// loop through the cycles
 		for i, cycle := range cyclesCopy {
 			if cycle != "" && tablesMap[cycle][mostMentioned] { // check to see if the cycle is in the most mentioned
-				cyclesCopy[i] = "" // remove the cycle from the array
-				remainingCycles--  // decrement the value
+				cyclesCopy[i] = ""       // remove the cycle from the array
+				delete(tablesMap, cycle) // since the cycle is considered solved, we can remove it from the map
 			}
 		}
 	}
-	return tables
+	return tables, problemTableMap
 }
 
-func (tl *Ordering) getSuggestions(cycleBreaking *list.List, cycles []string) []string {
+func getRelevantKeys(relations map[string]map[string]map[string]string, tableName string, refTableName string) []string {
+	tableRelations := relations[refTableName] // get the map of FKs
+	relevantKeys := list.New()                // make a new list
+
+	for col, colRelations := range tableRelations { //loop through the map
+		if colRelations["Table"] == tableName && tableName != refTableName { // see if this key is for referencing the same table and ISN'T the same table
+			relevantKeys.PushBack(colRelations["Column"]) // add the referenced column to the list
+		} else if colRelations["Table"] == tableName { // condition where it is the same table
+			relevantKeys.PushBack(col) // add the column to the list
+		}
+	}
+	// by definition this array should be at minimum, size: 1
+	return utils.ListToStringArray(relevantKeys) // return an array version of the list
+}
+
+func (tl *Ordering) getSuggestions(cycleBreaking *list.List, relMap map[string]map[string]bool) []string {
 	var builder strings.Builder
 	var dropBuilder strings.Builder
 	var foreignKeyBuilder strings.Builder
 	var primaryKeyBuilder strings.Builder
-	inverseRelationships := database.GetInverseRelationships(tl.db)
-	queries := list.New()
-	node := cycleBreaking.Front()
-	pkMap := database.GetTablePKMap(tl.db)
-	cycleTableMap := getFrequency(cycles)
+	var joinedBuilder strings.Builder
+	inverseRelationships := database.GetInverseRelationships(tl.db) // inverse table relationships
+	queries := list.New()                                           // make queries list
+	node := cycleBreaking.Front()                                   // get the start node
+	pkMap := database.GetTablePKMap(tl.db)                          // primary key map
 	for node != nil {
-		refTable := node.Value.(string)
-		pks := pkMap[refTable]
-		tableRelations := inverseRelationships[refTable]
-		colMap := database.GetRawColumnMap(tl.db, refTable)
-		for problemTable := range tableRelations {
-			if _, actualProblem := cycleTableMap[problemTable]; actualProblem { // check to see if that dependency is part of the cycle
-				problemTablePks := pkMap[problemTable]
-				refColMap := database.GetRawColumnMap(tl.db, problemTable)
-				newTablePKs := make([]string, len(pks)+len(problemTablePks)) // array of the primary keys we'll assign at the end
+		problemTable := node.Value.(string)
+		tableRelations := inverseRelationships[problemTable] // map of tables that reference the current table
+		colMap := database.GetRawColumnMap(tl.db, problemTable)
+		for refTable := range tableRelations {
+			if _, actualProblem := relMap[problemTable][refTable]; actualProblem { // check to see if that dependency is part of the cycle
+				problemTableKeys := getRelevantKeys(tl.allRelations, problemTable, refTable)
+				refTablePKs := pkMap[refTable]
+				refColMap := database.GetRawColumnMap(tl.db, refTable)
+				newTablePKs := make([]string, len(problemTableKeys)+len(refTablePKs)) // array of the primary keys we'll assign at the end
 				newTableSlider := 0
 				// first format the string to get rid of the reference column
-				appendDropBuilder(&dropBuilder, refTable, problemTable, tl.allRelations)
-				if inverseRelationships[problemTable][refTable] {
-					appendDropBuilder(&dropBuilder, problemTable, refTable, tl.allRelations)
+				appendDropBuilder(&dropBuilder, problemTable, refTable, tl.allRelations)
+				if inverseRelationships[refTable][problemTable] && problemTable != refTable { // if the problem table references the ref table and ISN'T the same table
+					appendDropBuilder(&dropBuilder, refTable, problemTable, tl.allRelations)
 				}
+				newTableName := fmt.Sprintf("%s_%s", problemTable, refTable)         // create new relationship table name
+				query := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s(", newTableName) // create the first part of the query
+				builder.WriteString(query)
+				appendBuilder(&builder, problemTableKeys, problemTable, colMap, newTablePKs, &newTableSlider)                             // append the primary tables columns
+				appendBuilder(&builder, refTablePKs, refTable, refColMap, newTablePKs, &newTableSlider)                                   // append the second tables columns
+				appendForeignKey(&foreignKeyBuilder, tl.allRelations, problemTable, problemTableKeys, refTable, refTablePKs, newTablePKs) // append the second tables foreign keys
+				appendColumnBuilder(&joinedBuilder, tl.allRelations, newTablePKs, refTable, problemTable, problemTableKeys, refTablePKs)
+				appendPrimaryKeys(&primaryKeyBuilder, newTablePKs)
+				builder.WriteString(foreignKeyBuilder.String())
+				builder.WriteString(fmt.Sprintf("\n\tPRIMARY KEY %s\n)", primaryKeyBuilder.String()))
+				queries.PushBack(builder.String())
+				queries.PushBack(joinedBuilder.String())
 				dropQueries := strings.Split(dropBuilder.String(), "\n")
 				dropQueries = dropQueries[0 : len(dropQueries)-1] // cut off the end because it's always empty string
 				for _, dropQuery := range dropQueries {
 					queries.PushBack(dropQuery)
 				}
-				query := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s_%s(", refTable, problemTable)
-				builder.WriteString(query)
-				if refTable == problemTable { // self reference in the table
-					for _, pk := range pks {
-						newPK := fmt.Sprintf("%s_primary_%s", refTable, pk)
-						queryString := getColumnQuery(pk, newPK, colMap)
-						builder.WriteString(queryString)
-						newTablePKs[newTableSlider] = newPK // assign the new pk to the array
-						newTableSlider++                    // increment the slider
-					}
-					appendForeignKey(&foreignKeyBuilder, refTable, newTablePKs[0:len(pks)], pks)
-					for _, pk := range pks {
-						newPK := fmt.Sprintf("%s_related_%s", refTable, pk)
-						queryString := getColumnQuery(pk, newPK, colMap)
-						builder.WriteString(queryString)
-						newTablePKs[newTableSlider] = newPK // assign the new pk to the array
-						newTableSlider++                    // increment slider
-					}
-					appendForeignKey(&foreignKeyBuilder, refTable, newTablePKs[len(pks):], pks)
 
-				} else {
-					appendBuilder(&builder, pks, refTable, colMap, newTablePKs, &newTableSlider)                    // append the primary tables columns
-					appendForeignKey(&foreignKeyBuilder, refTable, newTablePKs[:len(pks)], pks)                     // append the foreign keys
-					appendBuilder(&builder, problemTablePks, problemTable, refColMap, newTablePKs, &newTableSlider) // append the second tables columns
-					appendForeignKey(&foreignKeyBuilder, problemTable, newTablePKs[len(pks):], problemTablePks)     // append the second tables foreign keys
-				}
-				appendPrimaryKeys(&primaryKeyBuilder, newTablePKs)
-				builder.WriteString(foreignKeyBuilder.String())
-				builder.WriteString(fmt.Sprintf("\n\tPRIMARY KEY %s\n)", primaryKeyBuilder.String()))
-				queries.PushBack(builder.String())
+				// reset the string builders
 				builder.Reset()
 				dropBuilder.Reset()
 				foreignKeyBuilder.Reset()
 				primaryKeyBuilder.Reset()
+				joinedBuilder.Reset()
 			}
 
 		}
-		node = node.Next()
+		node = node.Next() // move to the next node
 	}
 	return utils.ListToStringArray(queries) // convert to a string array
 }
@@ -367,7 +382,7 @@ func getColumnQuery(pk string, newPK string, colMap map[string]*sql.ColumnType) 
 func appendBuilder(builder *strings.Builder, pks []string, table string, colMap map[string]*sql.ColumnType, newTablePKs []string, slider *int) {
 	// appends the new column name and the datatype
 	for _, pk := range pks {
-		newPK := fmt.Sprintf("%s_%s_ref", table, pk)
+		newPK := fmt.Sprintf("%s_%s", table, pk)
 		queryString := getColumnQuery(pk, newPK, colMap)
 		builder.WriteString(queryString)
 		newTablePKs[*slider] = newPK // assign the new pk to the array
@@ -379,36 +394,98 @@ func appendDropBuilder(builder *strings.Builder, refTable string, problemTable s
 	relations := allRelations[problemTable]
 	for column, relation := range relations {
 		if relation["Table"] == refTable { // check to see if the fk matches
-			builder.WriteString(fmt.Sprintf(fmt.Sprintf("ALTER TABLE %s DROP COLUMN %s;\n", problemTable, column)))
+			builder.WriteString(fmt.Sprintf("ALTER TABLE %s DROP COLUMN %s;\n", problemTable, column))
 		}
 	}
 }
-func appendForeignKey(foreignKeyBuilder *strings.Builder, table string, pks []string, refTablePks []string) {
-	// builds a foreign key constraint
-	var keyBuilder strings.Builder
-	var referenceBuilder strings.Builder
 
-	for i, pk := range pks {
-		if keyBuilder.String() == "" {
-			keyBuilder.WriteString(pk)
-			referenceBuilder.WriteString(refTablePks[i])
-		} else {
-			keyBuilder.WriteString(fmt.Sprintf(", %s", pk))
-			referenceBuilder.WriteString(fmt.Sprintf(", %s", refTablePks[i]))
+func appendColumnBuilder(builder *strings.Builder, relations map[string]map[string]map[string]string, newTablePks []string, refTable string, problemTable string, problemTableKeys []string, refTablePKs []string) {
+	// builds the join query that moves existing data over to the new translation table
+	var conditionBuilder strings.Builder  // builder for our join condition
+	var selectBuilder strings.Builder     // builder for our select statement
+	tableRelations := relations[refTable] // map of table relationships
+	newTableName := fmt.Sprintf("%s_%s", problemTable, refTable)
+	builder.WriteString(fmt.Sprintf("INSERT INTO %s(%s)\n", newTableName, strings.Join(newTablePks, ", ")))
+	if problemTable != refTable {
+		for _, key := range problemTableKeys {
+			if selectBuilder.String() == "" {
+				selectBuilder.WriteString(fmt.Sprintf("%s.%s", problemTable, key))
+			} else {
+				selectBuilder.WriteString(fmt.Sprintf(", %s.%s", problemTable, key))
+			}
 		}
+
+		for _, key := range refTablePKs {
+			selectBuilder.WriteString(fmt.Sprintf(", %s.%s", refTable, key))
+		}
+		for column, relation := range tableRelations {
+			if relation["Table"] == problemTable {
+				if conditionBuilder.String() == "" { // check to see if it's the first condition
+					conditionBuilder.WriteString(fmt.Sprintf("%s.%s = %s.%s", refTable, column, problemTable, relation["Column"]))
+				} else {
+					conditionBuilder.WriteString(fmt.Sprintf(" AND %s.%s = %s.%s", refTable, column, problemTable, relation["Column"]))
+				}
+			}
+		}
+		// form the SELECT query for INNER-JOIN
+		builder.WriteString(fmt.Sprintf("SELECT %s\n", selectBuilder.String()))
+		builder.WriteString(fmt.Sprintf("FROM %s\n", refTable))
+		builder.WriteString(fmt.Sprintf("INNER JOIN %s\n", problemTable))
+		builder.WriteString(fmt.Sprintf("ON %s;", conditionBuilder.String()))
+	} else {
+		// since it's the same table we can just take from T1 table
+		for _, key := range append(problemTableKeys, refTablePKs...) {
+			if selectBuilder.String() == "" {
+				selectBuilder.WriteString(fmt.Sprintf("T1.%s", key))
+			} else {
+				selectBuilder.WriteString(fmt.Sprintf(", T1.%s", key))
+			}
+		}
+		for column, relation := range tableRelations {
+			if relation["Table"] == problemTable {
+				if conditionBuilder.String() == "" { // check to see if it's the first condition
+					conditionBuilder.WriteString(fmt.Sprintf("T1.%s = T2.%s", column, relation["Column"]))
+				} else {
+					conditionBuilder.WriteString(fmt.Sprintf(" AND T1.%s = T2.%s", column, relation["Column"]))
+				}
+			}
+		}
+		// form the SELECT query for SELF-JOIN
+		builder.WriteString(fmt.Sprintf("SELECT %s\n", selectBuilder.String()))
+		builder.WriteString(fmt.Sprintf("FROM %s AS T1, %s AS T2\n", refTable, problemTable))
+		builder.WriteString(fmt.Sprintf("WHERE %s;", conditionBuilder.String()))
 	}
-	foreignKeyBuilder.WriteString(fmt.Sprintf("\n\tFOREIGN KEY (%s) REFERENCES %s(%s),", keyBuilder.String(), table, referenceBuilder.String()))
+
+}
+
+func appendForeignKey(foreignKeyBuilder *strings.Builder, relationships map[string]map[string]map[string]string, problemTable string, problemTableKeys []string, refTable string, refTablePks []string, newTablePks []string) {
+	// builds a foreign key constraint
+	var refBuilder strings.Builder
+	allKeys := strings.Join(newTablePks[0:len(problemTableKeys)], ", ") // all the problem keys as a string
+	if problemTable == refTable {                                       // check if it's a self reference
+		for _, key := range problemTableKeys { // loop through keys to create the reference
+			col := relationships[problemTable][key]["Column"] // the column that the key is referencing
+			// format the referenced keys
+			if refBuilder.String() == "" {
+				refBuilder.WriteString(col)
+			} else {
+				refBuilder.WriteString(fmt.Sprintf(", %s", col))
+			}
+		}
+	} else {
+		// if it isn't a self reference then just join the keys
+		refBuilder.WriteString(strings.Join(problemTableKeys, ", ")) // append to ref builder
+	}
+	// format foreign key for the problem table
+	foreignKeyBuilder.WriteString(fmt.Sprintf("\n\tFOREIGN KEY (%s) REFERENCES %s(%s),", allKeys, problemTable, refBuilder.String()))
+	allKeys = strings.Join(newTablePks[len(problemTableKeys):], ", ") // format the referenced tables primary keys as a string
+	refPks := strings.Join(refTablePks, ", ")                         // string version of the referenced primary keys
+	// format foreign key for ref table
+	foreignKeyBuilder.WriteString(fmt.Sprintf("\n\tFOREIGN KEY (%s) REFERENCES %s(%s),", allKeys, refTable, refPks))
 }
 
 func appendPrimaryKeys(primaryKeyBuilder *strings.Builder, pks []string) {
 	// builds the primary key constraint
-	primaryKeyBuilder.WriteString("(")
-	for _, key := range pks {
-		if primaryKeyBuilder.String() == "(" {
-			primaryKeyBuilder.WriteString(key)
-		} else {
-			primaryKeyBuilder.WriteString(fmt.Sprintf(", %s", key))
-		}
-	}
-	primaryKeyBuilder.WriteString(")")
+	allKeys := strings.Join(pks, ", ")                          // convert array to string and add it to builder
+	primaryKeyBuilder.WriteString(fmt.Sprintf("(%s)", allKeys)) // format string and add it to builder
 }
