@@ -124,26 +124,36 @@ func main() {
 
 sample output:
 ```
-Query 1: ALTER TABLE e DROP COLUMN bref;
-Query 2: ALTER TABLE e DROP COLUMN bref2;
-Query 3: CREATE TABLE IF NOT EXISTS b_e(
-         b_bkey_ref INT4,
-         b_bkey2_ref INT4,
-         e_ekey_ref INT4,
-        FOREIGN KEY (b_bkey_ref, b_bkey2_ref) REFERENCES b(bkey, bkey2),
-        FOREIGN KEY (e_ekey_ref) REFERENCES e(ekey),
-        PRIMARY KEY (b_bkey_ref, b_bkey2_ref, e_ekey_ref)
+Query 1: CREATE TABLE IF NOT EXISTS b_a(
+         b_bkey INT4,
+         b_bkey2 INT4,
+         a_akey INT4,
+        FOREIGN KEY (b_bkey, b_bkey2) REFERENCES b(bkey, bkey2),
+        FOREIGN KEY (a_akey) REFERENCES a(akey),
+        PRIMARY KEY (b_bkey, b_bkey2, a_akey)
 )
+Query 2: INSERT INTO b_a(b_bkey, b_bkey2, a_akey)
+SELECT b.bkey, b.bkey2, a.akey
+FROM a
+INNER JOIN b
+ON a.bref = b.bkey AND a.bref2 = b.bkey2;
+Query 3: ALTER TABLE a DROP COLUMN bref2;
 Query 4: ALTER TABLE a DROP COLUMN bref;
-Query 5: ALTER TABLE a DROP COLUMN bref2;
-Query 6: CREATE TABLE IF NOT EXISTS b_a(
-         b_bkey_ref INT4,
-         b_bkey2_ref INT4,
-         a_akey_ref INT4,
-        FOREIGN KEY (b_bkey_ref, b_bkey2_ref) REFERENCES b(bkey, bkey2),
-        FOREIGN KEY (a_akey_ref) REFERENCES a(akey),
-        PRIMARY KEY (b_bkey_ref, b_bkey2_ref, a_akey_ref)
+Query 5: CREATE TABLE IF NOT EXISTS b_e(
+         b_bkey INT4,
+         b_bkey2 INT4,
+         e_ekey INT4,
+        FOREIGN KEY (b_bkey, b_bkey2) REFERENCES b(bkey, bkey2),
+        FOREIGN KEY (e_ekey) REFERENCES e(ekey),
+        PRIMARY KEY (b_bkey, b_bkey2, e_ekey)
 )
+Query 6: INSERT INTO b_e(b_bkey, b_bkey2, e_ekey)
+SELECT b.bkey, b.bkey2, e.ekey
+FROM e
+INNER JOIN b
+ON e.bref = b.bkey AND e.bref2 = b.bkey2;
+Query 7: ALTER TABLE e DROP COLUMN bref;
+Query 8: ALTER TABLE e DROP COLUMN bref2;
 ```
 
 ### Generate entries for a table [[schema used]](./db/real_migrations/000001_shop_example.up.sql)
@@ -161,7 +171,6 @@ import (
 )
 
 func main() {
-	os.Setenv("DATABASE_URL", "postgres://postgres:localDB12@localhost:5432/testgres?sslmode=disable")
 	db, err := sql.Open("postgres", os.Getenv("DATABASE_URL")) // open the database connection
 	if err != nil {
 		log.Fatal(err)

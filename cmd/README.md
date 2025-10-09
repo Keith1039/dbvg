@@ -1,8 +1,14 @@
+*Note*: In all the examples, for the connection string I use an environmental variable, ${POSTGRES_URL}. That is
+because connections strings tend to be very long, and it would make the commands look less concise.
+You can represent the connection string any way you like so long as it is a valid sql connection string.
+
 # Common Uses
 
 ## Validate your database Schema using CLI
 
-`dbvg validate schema --database ${POSTGRES_URL}`
+``` shell
+dbvg validate schema --database "${POSTGRES_URL}"
+```
 
 Sample output:
 ```
@@ -11,7 +17,9 @@ Cycle Detected!: b --> d --> e --> b
 ```
 
 ## Resolve cycles using CLI [[schema used]](../db/migrations/case8/000001_create_compound_table.up.sql)
-`dbvg validate schema --database ${POSTGRES_URL} --run`
+``` shell
+dbvg validate schema --database "${POSTGRES_URL}" --run
+```
 
 Sample output:
 ```
@@ -41,15 +49,21 @@ Queries ran successfully
 ```
 
 ## Generate a template
-`dbvg template create --database ${POSTGRES_URL} --dir "templates/" --table "purchases" --name "purchase_template.json"`
+``` shell
+dbvg template create --database "${POSTGRES_URL}" --dir "templates/" --table "purchases" --name "purchase_template.json"
+```
 
 ## Update an existing template
-`dbvg template update --database ${POSTGRES_URL} --template ./templates/purchase_template.json  --table "purchases"`
+``` shell
+dbvg template update --database "${POSTGRES_URL}" --template ./templates/purchase_template.json  --table "purchases"
+```
 
 For more regarding templates, please see [this](generate/README.md)
 
 ## Generate a table entry [[schema used]](../db/real_migrations/000001_shop_example.up.sql)
-`dbvg generate entry --database ${POSTGRES_URL} --amount 1 --default --table "purchases" -v`
+``` shell
+dbvg generate entry --database "${POSTGRES_URL}" --amount 1 --default --table "purchases" -v
+```
 
 sample output:
 ```
@@ -62,17 +76,15 @@ Finished INSERT query execution!
 ```
 
 ### Generate INSERT and DELETE queries (with specified output file name)
-`dbvg generate queries --database ${POSTGRES_URL} --amount 1 --default --table "purchases" --name "purchase_queries"`
+``` shell
+dbvg generate queries --database "${POSTGRES_URL}" --amount 1 --default --table "purchases" --name "purchase_queries"
+```
 
 # CLI Usage Details
 
 The CLI has 3 subcommand palettes. These are `generate`, `template` and `validate`. `generate` focuses on
 generating table entries. `Template` focuses on generating and updating JSON template files. 
 Finally, `validate` focuses on cycle detection, suggestion and resolution.
-
-*Note*: In all the examples, for the connection string I use an environmental variable, ${POSTGRES_URL}. That is
-because connections strings tend to be very long, and it would make the commands look less concise.
-You can represent the connection string any way you like so long as it is a valid sql connection string.
 
 ## Subcommand Palette: generate
 This subcommand palette focuses on generating data. This data generation is either generating table entries
@@ -85,8 +97,8 @@ The user chooses if the table entries are generated from the default configurati
 or from a specified template file.
 
 examples:
-        dbvg generate entry --database ${POSTGRES_URL} --default --table "purchases" --verbose
-        dbvg generate entry --database ${POSTGRES_URL} --template "./templates/purchase_template.json" --table "purchases" --amount 10 -v --clean-up
+        dbvg generate entry --database "${POSTGRES_URL}" --default --table "purchases" --verbose
+        dbvg generate entry --database "${POSTGRES_URL}" --template "./templates/purchase_template.json" --table "purchases" --amount 10 -v --clean-up
 
 Usage:
   dbvg generate entry [flags]
@@ -142,8 +154,8 @@ Command used to generate a template JSON file in a specific folder for a group o
 The group of tables are the given table and all the tables it depends on.
 
 examples:
-        dbvg template create --database ${POSTGRES_URL} --dir "templates/"  --table "purchases"
-        dbvg template create --database ${POSTGRES_URL} --dir "./templates/"  --table "purchases" --name "purchase_template.json"
+        dbvg template create --database "${POSTGRES_URL}" --dir "templates/"  --table "purchases"
+        dbvg template create --database "${POSTGRES_URL}" --dir "./templates/"  --table "purchases" --name "purchase_template.json"
 
 Usage:
   dbvg template create [flags]
@@ -164,7 +176,7 @@ Command that updates an existing template. The command verifies for file corrupt
 the current template with the new one. This command also maps entries from the old template over to the new template, saving previous settings.
 
 example:
-        dbvg template update --database ${POSTGRES_URL} --template ./templates/purchase_template.json  --table "shop"
+        dbvg template update --database "${POSTGRES_URL}" --template ./templates/purchase_template.json  --table "shop"
 
 Usage:
   dbvg template update [flags]
@@ -189,8 +201,8 @@ These cycles can immediately be resolved by running a set of queries or
 these suggestions to the user.
 
 examples:
-        dbvg validate schema --database ${POSTGRES_URL} --run
-        dbvg validate schema --database ${POSTGRES_URL} --suggestions
+        dbvg validate schema --database "${POSTGRES_URL}" --run
+        dbvg validate schema --database "${POSTGRES_URL}" --suggestions
 
 Usage:
   dbvg validate schema [flags]

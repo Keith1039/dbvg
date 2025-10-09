@@ -10,6 +10,7 @@ import (
 	database "github.com/Keith1039/dbvg/db"
 	"github.com/Keith1039/dbvg/utils"
 	"log"
+	"maps"
 	"strings"
 )
 
@@ -32,21 +33,18 @@ type Ordering struct {
 // Init takes in a database connection and sets all private variables in the Ordering struct
 func (tl *Ordering) Init(db *sql.DB) {
 	tl.db = db
-	tl.allTables = database.GetTableMap(tl.db)
-	tl.allRelations = database.GetRelationships(tl.db)
-	tl.stack = list.New()
+	tl.allTables = database.GetTableMap(tl.db)         // get the table map
+	tl.allRelations = database.GetRelationships(tl.db) // get the table relations
+	tl.stack = list.New()                              // initiate the list
 }
 
 // GetCycles uses DFS to detect cycles, all detected cycles are added to a linked list and returned
 func (tl *Ordering) GetCycles() []string {
 	// check if there is a cycle in the entire database schema
-	cycles := list.New()
-	visited := make(map[string]bool)
-	for tname := range tl.allTables {
-		visited[tname] = false
-	}
+	cycles := list.New()                // init the list
+	visited := maps.Clone(tl.allTables) // map that keeps track of the tables we've visited (shallow copy of all tables map)
 	topologicalNodes := getTopologicalNodes(tl.allTables, tl.allRelations)
-	for tableName := range visited {
+	for tableName := range visited { // loop through the map of all tables
 		newCycles, localVisited := tl.findCycles(tableName, topologicalNodes) // find the cycles and the visited tables
 		cycles.PushBackList(newCycles)                                        // append the new list to the current one
 		for local := range localVisited {
@@ -166,81 +164,6 @@ func (tl *Ordering) GetOrder(tableName string) ([]string, error) {
 	return utils.ListToStringArray(topologicalOrdering), nil
 }
 
-func cleanCyclicPath(cString string) string {
-	allTables := strings.Split(cString, ",")
-	cyleTable := allTables[len(allTables)-1] // get the last table
-	flag := false
-	i := 0
-	for i < len(allTables) && !flag {
-		flag = allTables[i] == cyleTable // check to see if we found the table
-		if !flag {                       // if we didn't find it, increment i
-			i++
-		}
-	}
-	// the first string is also the last so we cut the last string off to not have duplicates in string
-	return strings.Join(allTables[i:], " --> ")
-}
-func getTablesMap(cycles []string) map[string]map[string]bool {
-	m := make(map[string]map[string]bool)
-
-	for _, cycle := range cycles {
-		l := make(map[string]bool)
-		cycleArr := strings.Split(cycle, " --> ") // get the array of strings
-		for i := 0; i < len(cycleArr)-1; i++ {    // we skip the last since it's a duplicate of the first
-			table := cycleArr[i]
-			l[table] = true // add the table to the map
-		}
-		m[cycle] = l // set the array
-	}
-	return m
-}
-
-func getFrequency(cycles []string) map[string]int {
-	m := make(map[string]int)
-	for _, cycle := range cycles {
-		if cycle != "" {
-			cycleArr := strings.Split(cycle, " --> ")
-			cycleArr = cycleArr[:len(cycleArr)-1]
-			for _, table := range cycleArr {
-				_, exists := m[table]
-				// unnecessary but it makes more sense this way
-				if !exists {
-					m[table] = 1
-				} else {
-					m[table] = m[table] + 1
-				}
-			}
-		}
-	}
-	return m
-}
-func getMostMentioned(fmap map[string]int) string {
-	var k string
-	var v int
-	// loop over the map
-	for key, value := range fmap {
-		if value > v { // check if the value of the current key is greater than current
-			k = key   // set the new key
-			v = value // set the new value
-		}
-	}
-	return k
-}
-
-func constructProblemTableMap(problemTable string, tableMap map[string]map[string]bool) map[string]bool {
-	relevantTablesMap := make(map[string]bool) // tables entry
-	for _, tables := range tableMap {          // go through each map for the cycles
-		if _, ok := tables[problemTable]; ok { // if problem table is in the cycle
-			for table := range tables { // loop through the keys (table)
-				if _, alreadyThere := relevantTablesMap[table]; !alreadyThere { // check if the table already has an entry
-					relevantTablesMap[table] = true // add the entry
-				}
-			}
-		}
-	}
-	return relevantTablesMap // return the problem table map
-}
-
 func (tl *Ordering) getCycleBreakingOrder(cycles []string) (*list.List, map[string]map[string]bool) {
 	tables := list.New()
 	problemTableMap := make(map[string]map[string]bool) // map of all problem tables and the relevant tables
@@ -263,21 +186,6 @@ func (tl *Ordering) getCycleBreakingOrder(cycles []string) (*list.List, map[stri
 		}
 	}
 	return tables, problemTableMap
-}
-
-func getRelevantKeys(relations map[string]map[string]map[string]string, tableName string, refTableName string) []string {
-	tableRelations := relations[refTableName] // get the map of FKs
-	relevantKeys := list.New()                // make a new list
-
-	for col, colRelations := range tableRelations { //loop through the map
-		if colRelations["Table"] == tableName && tableName != refTableName { // see if this key is for referencing the same table and ISN'T the same table
-			relevantKeys.PushBack(colRelations["Column"]) // add the referenced column to the list
-		} else if colRelations["Table"] == tableName { // condition where it is the same table
-			relevantKeys.PushBack(col) // add the column to the list
-		}
-	}
-	// by definition this array should be at minimum, size: 1
-	return utils.ListToStringArray(relevantKeys) // return an array version of the list
 }
 
 func (tl *Ordering) getSuggestions(cycleBreaking *list.List, relMap map[string]map[string]bool) []string {
@@ -336,156 +244,4 @@ func (tl *Ordering) getSuggestions(cycleBreaking *list.List, relMap map[string]m
 		node = node.Next() // move to the next node
 	}
 	return utils.ListToStringArray(queries) // convert to a string array
-}
-
-func getColumnQuery(pk string, newPK string, colMap map[string]*sql.ColumnType) string {
-	var queryString string
-	precision, scale, ok := colMap[pk].DecimalSize() // check to see if it's a variable float type
-	databaseType := colMap[pk].DatabaseTypeName()
-	// pretty unnecessary but oh well
-	if databaseType == "FLOAT4" || databaseType == "FLOAT8" {
-		switch databaseType {
-		case "FLOAT4":
-			queryString = fmt.Sprintf("\n\t %s %s,", newPK, "REAL")
-		case "FLOAT8":
-			queryString = fmt.Sprintf("\n\t %s %s,", newPK, "DOUBLE PRECISION")
-		}
-	} else {
-		if ok {
-			// NUMERIC types default is (65535, 65531) so we avoid that
-			if precision != 65535 && scale != 65531 {
-				queryString = fmt.Sprintf("\n\t %s %s(%d, %d),", newPK, databaseType, precision, scale) // add the precision to the new query
-			} else {
-				queryString = fmt.Sprintf("\n\t %s %s,", newPK, databaseType) // solely for NUMERIC
-			}
-		} else {
-			length, isVarchar := colMap[pk].Length() // get the size of the column
-			if isVarchar && databaseType != "TEXT" { // text is excluded from this
-				if databaseType == "VARCHAR" && length != -5 { // exclude default varchar
-					queryString = fmt.Sprintf("\n\t %s %s(%d),", newPK, databaseType, length)
-				} else if databaseType == "BPCHAR" {
-					if length != -5 && length != 1 { // exclude default BPCHAR and CHAR
-						queryString = fmt.Sprintf("\n\t %s %s(%d),", newPK, databaseType, length)
-					} else if length == 1 {
-						queryString = fmt.Sprintf("\n\t %s %s,", newPK, "CHAR")
-					} else {
-						queryString = fmt.Sprintf("\n\t %s %s,", newPK, databaseType)
-					}
-				}
-			} else {
-				queryString = fmt.Sprintf("\n\t %s %s,", newPK, databaseType) // in case all other conditions fail
-			}
-		}
-	}
-	return queryString
-}
-func appendBuilder(builder *strings.Builder, pks []string, table string, colMap map[string]*sql.ColumnType, newTablePKs []string, slider *int) {
-	// appends the new column name and the datatype
-	for _, pk := range pks {
-		newPK := fmt.Sprintf("%s_%s", table, pk)
-		queryString := getColumnQuery(pk, newPK, colMap)
-		builder.WriteString(queryString)
-		newTablePKs[*slider] = newPK // assign the new pk to the array
-		*slider++                    // increment slider
-	}
-}
-
-func appendDropBuilder(builder *strings.Builder, refTable string, problemTable string, allRelations map[string]map[string]map[string]string) {
-	relations := allRelations[problemTable]
-	for column, relation := range relations {
-		if relation["Table"] == refTable { // check to see if the fk matches
-			builder.WriteString(fmt.Sprintf("ALTER TABLE %s DROP COLUMN %s;\n", problemTable, column))
-		}
-	}
-}
-
-func appendColumnBuilder(builder *strings.Builder, relations map[string]map[string]map[string]string, newTablePks []string, refTable string, problemTable string, problemTableKeys []string, refTablePKs []string) {
-	// builds the join query that moves existing data over to the new translation table
-	var conditionBuilder strings.Builder  // builder for our join condition
-	var selectBuilder strings.Builder     // builder for our select statement
-	tableRelations := relations[refTable] // map of table relationships
-	newTableName := fmt.Sprintf("%s_%s", problemTable, refTable)
-	builder.WriteString(fmt.Sprintf("INSERT INTO %s(%s)\n", newTableName, strings.Join(newTablePks, ", ")))
-	if problemTable != refTable {
-		for _, key := range problemTableKeys {
-			if selectBuilder.String() == "" {
-				selectBuilder.WriteString(fmt.Sprintf("%s.%s", problemTable, key))
-			} else {
-				selectBuilder.WriteString(fmt.Sprintf(", %s.%s", problemTable, key))
-			}
-		}
-
-		for _, key := range refTablePKs {
-			selectBuilder.WriteString(fmt.Sprintf(", %s.%s", refTable, key))
-		}
-		for column, relation := range tableRelations {
-			if relation["Table"] == problemTable {
-				if conditionBuilder.String() == "" { // check to see if it's the first condition
-					conditionBuilder.WriteString(fmt.Sprintf("%s.%s = %s.%s", refTable, column, problemTable, relation["Column"]))
-				} else {
-					conditionBuilder.WriteString(fmt.Sprintf(" AND %s.%s = %s.%s", refTable, column, problemTable, relation["Column"]))
-				}
-			}
-		}
-		// form the SELECT query for INNER-JOIN
-		builder.WriteString(fmt.Sprintf("SELECT %s\n", selectBuilder.String()))
-		builder.WriteString(fmt.Sprintf("FROM %s\n", refTable))
-		builder.WriteString(fmt.Sprintf("INNER JOIN %s\n", problemTable))
-		builder.WriteString(fmt.Sprintf("ON %s;", conditionBuilder.String()))
-	} else {
-		// since it's the same table we can just take from T1 table
-		for _, key := range append(problemTableKeys, refTablePKs...) {
-			if selectBuilder.String() == "" {
-				selectBuilder.WriteString(fmt.Sprintf("T1.%s", key))
-			} else {
-				selectBuilder.WriteString(fmt.Sprintf(", T1.%s", key))
-			}
-		}
-		for column, relation := range tableRelations {
-			if relation["Table"] == problemTable {
-				if conditionBuilder.String() == "" { // check to see if it's the first condition
-					conditionBuilder.WriteString(fmt.Sprintf("T1.%s = T2.%s", column, relation["Column"]))
-				} else {
-					conditionBuilder.WriteString(fmt.Sprintf(" AND T1.%s = T2.%s", column, relation["Column"]))
-				}
-			}
-		}
-		// form the SELECT query for SELF-JOIN
-		builder.WriteString(fmt.Sprintf("SELECT %s\n", selectBuilder.String()))
-		builder.WriteString(fmt.Sprintf("FROM %s AS T1, %s AS T2\n", refTable, problemTable))
-		builder.WriteString(fmt.Sprintf("WHERE %s;", conditionBuilder.String()))
-	}
-
-}
-
-func appendForeignKey(foreignKeyBuilder *strings.Builder, relationships map[string]map[string]map[string]string, problemTable string, problemTableKeys []string, refTable string, refTablePks []string, newTablePks []string) {
-	// builds a foreign key constraint
-	var refBuilder strings.Builder
-	allKeys := strings.Join(newTablePks[0:len(problemTableKeys)], ", ") // all the problem keys as a string
-	if problemTable == refTable {                                       // check if it's a self reference
-		for _, key := range problemTableKeys { // loop through keys to create the reference
-			col := relationships[problemTable][key]["Column"] // the column that the key is referencing
-			// format the referenced keys
-			if refBuilder.String() == "" {
-				refBuilder.WriteString(col)
-			} else {
-				refBuilder.WriteString(fmt.Sprintf(", %s", col))
-			}
-		}
-	} else {
-		// if it isn't a self reference then just join the keys
-		refBuilder.WriteString(strings.Join(problemTableKeys, ", ")) // append to ref builder
-	}
-	// format foreign key for the problem table
-	foreignKeyBuilder.WriteString(fmt.Sprintf("\n\tFOREIGN KEY (%s) REFERENCES %s(%s),", allKeys, problemTable, refBuilder.String()))
-	allKeys = strings.Join(newTablePks[len(problemTableKeys):], ", ") // format the referenced tables primary keys as a string
-	refPks := strings.Join(refTablePks, ", ")                         // string version of the referenced primary keys
-	// format foreign key for ref table
-	foreignKeyBuilder.WriteString(fmt.Sprintf("\n\tFOREIGN KEY (%s) REFERENCES %s(%s),", allKeys, refTable, refPks))
-}
-
-func appendPrimaryKeys(primaryKeyBuilder *strings.Builder, pks []string) {
-	// builds the primary key constraint
-	allKeys := strings.Join(pks, ", ")                          // convert array to string and add it to builder
-	primaryKeyBuilder.WriteString(fmt.Sprintf("(%s)", allKeys)) // format string and add it to builder
 }
