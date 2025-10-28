@@ -25,6 +25,7 @@ Suggestions can also be given regarding the detected cycles.`,
 
 func addSubCommands() {
 	ValidateCmd.AddCommand(schemaCmd)
+	ValidateCmd.AddCommand(tableCmd)
 }
 
 func init() {

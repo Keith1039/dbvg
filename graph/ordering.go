@@ -38,7 +38,7 @@ func (tl *Ordering) Init(db *sql.DB) {
 	tl.stack = list.New()                              // initiate the list
 }
 
-// GetCycles uses DFS to detect cycles, all detected cycles are added to a linked list and returned
+// GetCycles uses DFS to detect cycles in the database schema, all detected cycles are added to a linked list and returned as an array
 func (tl *Ordering) GetCycles() []string {
 	// check if there is a cycle in the entire database schema
 	cycles := list.New()                // init the list
@@ -52,6 +52,24 @@ func (tl *Ordering) GetCycles() []string {
 		}
 	}
 	return utils.ListToStringArray(cycles) // return all cycles found
+}
+
+// GetCyclesForTable uses DFS to search for any cycles stemming from our root node (i.e. the table we want to verify)
+func (tl *Ordering) GetCyclesForTable(tableName string) ([]string, error) {
+	var relevantCycles []string
+	tableName = utils.TrimAndLowerString(tableName) // make the name case-insensitive
+	_, ok := tl.allTables[tableName]
+	// check if the table even exists before we run the search
+	if !ok {
+		return nil, MissingTableError{tableName: tableName} // return missing table error
+	}
+	// could be a bit faster if I tampered with findCycles so that it only cares if the cycle involves our root node but why bother, it's fast enough as is
+	cycles, _ := tl.findCycles(tableName, getTopologicalNodes(tl.allTables, tl.allRelations)) // use dfs starting from the root node (i.e. the table we want to verify)
+	// check if we have any cycles
+	if cycles.Len() > 0 {
+		relevantCycles = getRelevantCycles(tableName, cycles) // trim off any cycles that don't include our target table
+	}
+	return relevantCycles, nil // return the relevant cycles
 }
 
 // GetSuggestionQueries returns a list of queries necessary to remove found cycles in the database schema

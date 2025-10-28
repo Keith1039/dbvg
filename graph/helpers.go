@@ -3,6 +3,7 @@ package graph
 import (
 	"container/list"
 	"github.com/Keith1039/dbvg/utils"
+	"slices"
 	"strings"
 )
 
@@ -95,4 +96,19 @@ func getRelevantKeys(relations map[string]map[string]map[string]string, tableNam
 	}
 	// by definition this array should be at minimum, size: 1
 	return utils.ListToStringArray(relevantKeys) // return an array version of the list
+}
+
+func getRelevantCycles(tableName string, cycles *list.List) []string {
+	node := cycles.Front() // starting node
+	// loop until the end of the linked list
+	for node != nil {
+		tables := strings.Split(node.Value.(string), " --> ") // split the string
+		nextNode := node.Next()                               // temp node for the next node
+		// check if the array DOESN'T have the table name
+		if !slices.Contains(tables, tableName) {
+			cycles.Remove(node) // remove the node
+		}
+		node = nextNode // move to the next node
+	}
+	return utils.ListToStringArray(cycles) // return the cycles
 }
