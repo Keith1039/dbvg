@@ -58,6 +58,51 @@ the finer aspects of your project.
 
 ## Basic Usage (As a library)
 
+### Verify if a specific table in the database is part of a cycle [[schema used]](./db/migrations/case9/000001_omni_test_case.up.sql)
+```go
+package main
+
+import (
+	"database/sql"
+	"fmt"
+	"github.com/Keith1039/dbvg/graph"
+	"log"
+	"os"
+	"strings"
+)
+
+func main() {
+	var cycles []string
+	db, err := sql.Open("postgres", os.Getenv("DATABASE_URL")) // open the database connection
+	// check error
+	if err != nil {
+		log.Fatal(err)
+	}
+	// the name of the table we check for, the function is case-insensitive so "B", "b" " b" etc are the same input
+	tableName := "B"
+	ord := graph.NewOrdering(db)                   // get a new ordering struct
+	cycles, err = ord.GetCyclesForTable(tableName) // get the actual cycles
+	if err != nil {
+		log.Fatal(err) // print error if it happens
+	}
+	size := len(cycles) // size of the array
+	// format and print the output
+	if size > 0 {
+		fmt.Printf("The table '%s' is involved in %d cycles: \n%s", tableName, size, strings.Join(cycles, "\n"))
+	} else {
+		fmt.Printf("The table '%s' is not involved in any cycles.", tableName)
+	}
+	defer db.Close() // close database connection
+}
+```
+sample output:
+```
+The table 'B' is involved in 3 cycles: 
+b --> b
+b --> c --> a --> b
+b --> d --> e --> b
+```
+
 ### Verify if your database schema has cyclical relationships [[schema used]](./db/migrations/case8/000001_create_compound_table.up.sql)
 
 ``` go

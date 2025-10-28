@@ -192,7 +192,7 @@ Global Flags:
 
 ## Subcommand Palette: validate
 This subcommand palette focuses on schema validation. Specifically, detecting and resolving cyclic relationships between tables.
-This palette has one command, `schema`. 
+This palette has two commands, `schema` and `table`. 
 
 ### schema
 ```
@@ -214,6 +214,28 @@ Flags:
 
 Global Flags:
       --database string   url to connect to the database with
+```
+
+### table
+
+```
+Command used to check if the given table is involved in any cycles. The command uses
+DFS for cycle detection and will ignore any cycles that does not involve the given table. 
+This command will return a formatted string with the result of the process.
+
+examples:
+    dbvg validate table --name "Customers"
+
+Usage:
+  dbvg validate table [flags]
+
+Flags:
+  -h, --help          help for table
+  -n, --name string   name of the table in database
+
+Global Flags:
+      --database string   url to connect to the database with
+
 ```
 
 
