@@ -3,9 +3,12 @@ package utils
 import (
 	"container/list"
 	"database/sql"
+	"fmt"
 	database "github.com/Keith1039/dbvg/db"
 	"github.com/jimsmart/schema"
 	"log"
+	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -52,4 +55,32 @@ func makeTemplate(db *sql.DB, tName string, relations map[string]map[string]map[
 // TrimAndLowerString trims space and lowers the given string
 func TrimAndLowerString(s string) string {
 	return strings.ToLower(strings.TrimSpace(s))
+}
+
+func WriteQueriesToFile(path string, queries []string) {
+	dir, fileName := filepath.Split(path) // split the dir path and the file name
+	if dir != "" {                        // check if the dir path is empty string
+		if _, err := os.Stat(dir); os.IsNotExist(err) { // check if directory exists
+			err = os.MkdirAll(dir, os.ModePerm) // make all directories and subdirectories
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
+	}
+	file, err := os.Create(fileName) // create the file name
+	defer file.Close()               // close the file
+	if err != nil {                  // error check
+		log.Fatal(err)
+	}
+	writeToFile(file, queries) // write the queries to the file
+}
+
+func writeToFile(file *os.File, queries []string) {
+	// writes all the queries to the file
+	for _, query := range queries {
+		_, err := fmt.Fprintln(file, query)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
 }
