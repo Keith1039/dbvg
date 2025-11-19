@@ -79,9 +79,25 @@ func (tl *Ordering) GetSuggestionQueries() []string {
 	return tl.getSuggestions(cycleBreaking, relMap) // get and return the suggestions in array format
 }
 
+// GetSuggestionQueriesForCycles returns a list of queries necessary to remove a subset of cycles in the database schema
+func (tl *Ordering) GetSuggestionQueriesForCycles(cycles []string) []string {
+	cycleBreaking, relMap := tl.getCycleBreakingOrder(cycles)
+	return tl.getSuggestions(cycleBreaking, relMap) // get and return the suggestions in array format
+}
+
 // GetAndResolveCycles immediately runs the suggestion queries instead of returning them unlike GetSuggestionQueries
 func (tl *Ordering) GetAndResolveCycles() {
 	cycles := tl.GetCycles() // get your cycles
+	cycleBreaking, relMap := tl.getCycleBreakingOrder(cycles)
+	suggestions := tl.getSuggestions(cycleBreaking, relMap) // get your suggestions
+	err := database.RunQueries(tl.db, suggestions)          // run the suggestions
+	if err != nil {
+		log.Fatal(err) // panic if it fails
+	}
+}
+
+// ResolveGivenCycles gets suggestion queries for the given cycles and runs them similar to GetAndResolveCycles
+func (tl *Ordering) ResolveGivenCycles(cycles []string) {
 	cycleBreaking, relMap := tl.getCycleBreakingOrder(cycles)
 	suggestions := tl.getSuggestions(cycleBreaking, relMap) // get your suggestions
 	err := database.RunQueries(tl.db, suggestions)          // run the suggestions
@@ -241,7 +257,7 @@ func (tl *Ordering) getSuggestions(cycleBreaking *list.List, relMap map[string]m
 				appendColumnBuilder(&joinedBuilder, tl.allRelations, newTablePKs, refTable, problemTable, problemTableKeys, refTablePKs)
 				appendPrimaryKeys(&primaryKeyBuilder, newTablePKs)
 				builder.WriteString(foreignKeyBuilder.String())
-				builder.WriteString(fmt.Sprintf("\n\tPRIMARY KEY %s\n)", primaryKeyBuilder.String()))
+				builder.WriteString(fmt.Sprintf("\n\tPRIMARY KEY %s\n);", primaryKeyBuilder.String()))
 				queries.PushBack(builder.String())
 				queries.PushBack(joinedBuilder.String())
 				dropQueries := strings.Split(dropBuilder.String(), "\n")

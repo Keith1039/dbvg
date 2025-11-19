@@ -17,7 +17,13 @@ var tableCmd = &cobra.Command{
 	Short: "Command used to check if the given table is involved in any cycles",
 	Long: `Command used to check if the given table is involved in any cycles. The command uses
 DFS for cycle detection and will ignore any cycles that does not involve the given table. 
-This command will return a formatted string with the result of the process.`,
+This command will return a formatted string with the result of the process.
+
+examples:
+	dbvg validate table --database ${POSTGRES_URL} --name "users" --run -v
+	dbvg validate table --database ${POSTGRES_URL} --name "users" --suggestions -v
+	dbvg validate table --database ${POSTGRES_URL} --name "users" -s -o "script.sql"
+`,
 	Run: func(cmd *cobra.Command, args []string) {
 		var cycles []string
 		db, err := database.InitDB(ConnString) // starts up the database connection
@@ -35,15 +41,21 @@ This command will return a formatted string with the result of the process.`,
 		// check if there are cycles and print the following
 		size := len(cycles)
 		if size > 0 {
-			fmt.Printf("The table '%s' is involved in %d cycles: \n%s", tableName, size, strings.Join(cycles, "\n"))
+			if verbose { // only print out the individual cycles if verbose is true
+				fmt.Printf("The table '%s' is involved in %d cycles: \n%s", tableName, size, strings.Join(cycles, "\n"))
+			} else {
+				fmt.Printf("The table '%s' is involved in %d cycles", tableName, size)
+			}
 		} else {
 			fmt.Printf("The table '%s' is not involved in any cycles.", tableName)
 		}
+		handleCmdFlags(db, ord, cycles) // handles the other flags
 	},
 }
 
 func init() {
 	// the name of the table being validated
+	addFlags(tableCmd) // add the basic flags and their logic
 	tableCmd.Flags().StringVarP(&tableName, "name", "n", "", "name of the table in database")
 	err := tableCmd.MarkFlagRequired("name") // make name required
 	// error check
