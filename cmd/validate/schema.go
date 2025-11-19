@@ -8,11 +8,6 @@ import (
 	"log"
 )
 
-var (
-	run         bool
-	suggestions bool
-)
-
 // schemaCmd represents the schema command
 var schemaCmd = &cobra.Command{
 	Use:   "schema",
@@ -23,56 +18,33 @@ these suggestions to the user.
 
 examples:
 	dbvg validate schema --database ${POSTGRES_URL} --run
-	dbvg validate schema --database ${POSTGRES_URL} --suggestions
+	dbvg validate schema --database ${POSTGRES_URL} --suggestions -v
+	dbvg validate schema --database ${POSTGRES_URL} -s -o "script.sql"
 `,
 	Run: func(cmd *cobra.Command, args []string) {
 		db, err := database.InitDB(ConnString)
 		defer database.CloseDB(db)
-
 		if err != nil {
 			log.Fatal(err)
 		}
-		ordering := graph.NewOrdering(db)
-		cycles := ordering.GetCycles()
+		ord := graph.NewOrdering(db)
+		cycles := ord.GetCycles()
 		if len(cycles) > 0 {
-			for _, cycle := range cycles {
-				fmt.Println(fmt.Sprintf("Cycle Detected!: %s", cycle))
+			if verbose { // only print each individual cycle if verbose is specified
+				for _, cycle := range cycles {
+					fmt.Println(fmt.Sprintf("Cycle Detected!: %s", cycle))
+				}
 			}
+			fmt.Println(fmt.Sprintf("%d cycles detected", len(cycles)))
 		} else {
 			fmt.Println("No cycles detected!")
 		}
-		if suggestions {
-			suggestions := ordering.GetSuggestionQueries()
-			if len(suggestions) > 0 {
-				for i, query := range suggestions {
-					fmt.Println(fmt.Sprintf("Query %d: %s", i+1, query))
-				}
-			} else {
-				fmt.Println("No suggestions to be made")
-			}
-		} else if run {
-			suggestions := ordering.GetSuggestionQueries()
-			if len(suggestions) > 0 {
-				for i, query := range suggestions {
-					fmt.Println(fmt.Sprintf("Query %d: %s", i+1, query))
-				}
-				err := database.RunQueries(db, suggestions)
-				if err != nil {
-					log.Fatal(err)
-				}
-				fmt.Println("Queries ran successfully")
-			} else {
-				fmt.Println("No suggestions to be made")
-			}
-		}
-
+		handleCmdFlags(db, ord, cycles) // handles the flag logic
 	},
 }
 
 func init() {
-	schemaCmd.Flags().BoolVarP(&run, "run", "r", false, "run suggestions queries")
-	schemaCmd.Flags().BoolVarP(&suggestions, "suggestions", "s", false, "show suggestion queries")
-	schemaCmd.MarkFlagsMutuallyExclusive("suggestions", "run")
+	addFlags(schemaCmd) // add the flags and their basic logic
 
 	// Here you will define your flags and configuration settings.
 
