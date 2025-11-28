@@ -4,6 +4,7 @@ import (
 	"fmt"
 	database "github.com/Keith1039/dbvg/db"
 	"github.com/Keith1039/dbvg/graph"
+	"github.com/Keith1039/dbvg/utils"
 	"github.com/spf13/cobra"
 	"log"
 )
@@ -11,6 +12,8 @@ import (
 var (
 	run         bool
 	suggestions bool
+	verbose     bool
+	output      string
 )
 
 // schemaCmd represents the schema command
@@ -23,7 +26,7 @@ these suggestions to the user.
 
 examples:
 	dbvg validate schema --database ${POSTGRES_URL} --run
-	dbvg validate schema --database ${POSTGRES_URL} --suggestions
+	dbvg validate schema --database ${POSTGRES_URL} --suggestions -v
 `,
 	Run: func(cmd *cobra.Command, args []string) {
 		db, err := database.InitDB(ConnString)
@@ -35,35 +38,43 @@ examples:
 		ordering := graph.NewOrdering(db)
 		cycles := ordering.GetCycles()
 		if len(cycles) > 0 {
-			for _, cycle := range cycles {
-				fmt.Println(fmt.Sprintf("Cycle Detected!: %s", cycle))
+			if verbose { // only print each individual cycle if verbose is specified
+				for _, cycle := range cycles {
+					fmt.Println(fmt.Sprintf("Cycle Detected!: %s", cycle))
+				}
 			}
+			fmt.Println(fmt.Sprintf("%d cycles detected", len(cycles)))
 		} else {
 			fmt.Println("No cycles detected!")
 		}
+		suggestionQueries := ordering.GetSuggestionQueries()
+		if len(suggestionQueries) == 0 { // print that there's nothing to do
+			fmt.Println("No suggestions to be made")
+		}
 		if suggestions {
-			suggestions := ordering.GetSuggestionQueries()
-			if len(suggestions) > 0 {
-				for i, query := range suggestions {
-					fmt.Println(fmt.Sprintf("Query %d: %s", i+1, query))
-				}
-			} else {
-				fmt.Println("No suggestions to be made")
-			}
-		} else if run {
-			suggestions := ordering.GetSuggestionQueries()
-			if len(suggestions) > 0 {
-				for i, query := range suggestions {
-					fmt.Println(fmt.Sprintf("Query %d: %s", i+1, query))
-				}
-				err := database.RunQueries(db, suggestions)
+			if output != "" { // write queries to file if there is one specified
+				err = utils.WriteQueriesToFile(output, suggestionQueries)
 				if err != nil {
 					log.Fatal(err)
 				}
-				fmt.Println("Queries ran successfully")
 			} else {
-				fmt.Println("No suggestions to be made")
+				for i, query := range suggestionQueries { // print out each query
+					fmt.Println(fmt.Sprintf("Query %d: %s", i+1, query))
+				}
 			}
+		} else if run {
+			if verbose { // only print each query if verbose is specified
+				err = database.RunQueriesVerbose(db, suggestionQueries)
+				if err != nil {
+					log.Fatal(err)
+				}
+			} else { // run silently
+				err := database.RunQueries(db, suggestionQueries)
+				if err != nil {
+					log.Fatal(err)
+				}
+			}
+			fmt.Println("Queries ran successfully")
 		}
 
 	},
@@ -72,7 +83,10 @@ examples:
 func init() {
 	schemaCmd.Flags().BoolVarP(&run, "run", "r", false, "run suggestions queries")
 	schemaCmd.Flags().BoolVarP(&suggestions, "suggestions", "s", false, "show suggestion queries")
-	schemaCmd.MarkFlagsMutuallyExclusive("suggestions", "run")
+	schemaCmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "verbose output")
+	schemaCmd.Flags().StringVarP(&output, "output", "o", "", "output to specified file")
+	schemaCmd.MarkFlagsMutuallyExclusive("suggestions", "run") // either you want the suggestions or you run them
+	schemaCmd.MarkFlagsMutuallyExclusive("run", "output")      // if you're running the queries there's no need to output them
 
 	// Here you will define your flags and configuration settings.
 

@@ -241,7 +241,7 @@ func (tl *Ordering) getSuggestions(cycleBreaking *list.List, relMap map[string]m
 				appendColumnBuilder(&joinedBuilder, tl.allRelations, newTablePKs, refTable, problemTable, problemTableKeys, refTablePKs)
 				appendPrimaryKeys(&primaryKeyBuilder, newTablePKs)
 				builder.WriteString(foreignKeyBuilder.String())
-				builder.WriteString(fmt.Sprintf("\n\tPRIMARY KEY %s\n)", primaryKeyBuilder.String()))
+				builder.WriteString(fmt.Sprintf("\n\tPRIMARY KEY %s\n);", primaryKeyBuilder.String()))
 				queries.PushBack(builder.String())
 				queries.PushBack(joinedBuilder.String())
 				dropQueries := strings.Split(dropBuilder.String(), "\n")
