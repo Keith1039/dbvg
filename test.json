@@ -1,0 +1,35 @@
+{
+  "table_name": {
+    "change_type": "NONE | CREATE | UPDATE | DELETE",
+    "columns": {
+      "column_name": {
+        "action": "ADD",
+        "fk_relations": {
+          "table_name": "table1",
+          "column_name": "column"
+        }
+      },
+      "column_name2": {
+        "action": "MODIFY",
+        "fk_relations": {
+          "table_name": "table1",
+          "column_name": "column"
+        }
+      },
+      "column_name3": {
+        "action": "DELETE",
+        "fk_relations": {
+          "table_name": "table1",
+          "column_name": "column"
+        }
+      },
+      "column_name4": {
+        "action": "NONE",
+        "fk_relations": {
+          "table_name": "table1",
+          "column_name": "column"
+        }
+      }
+    }
+  }
+}
