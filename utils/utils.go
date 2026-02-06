@@ -10,6 +10,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 )
 
@@ -58,17 +59,51 @@ func TrimAndLowerString(s string) string {
 	return strings.ToLower(strings.TrimSpace(s))
 }
 
-func WriteQueriesToFile(path string, queries []string) error {
-	// by default this will overwrite existing files
+// TrimAndUpperString trims space and makes each character upper case for the given string
+func TrimAndUpperString(s string) string {
+	return strings.ToUpper(strings.TrimSpace(s))
+}
+
+// IsNumeric takes in a string and attempts
+func IsNumeric(s string) bool {
+	s = strings.TrimSpace(s)  // trim the space for the string
+	_, err := strconv.Atoi(s) // try to convert to string
+	if err != nil {
+		return false
+	}
+	_, err = strconv.ParseFloat(s, 64) // try to convert to float (pretty sure this is unnecessary)
+	if err != nil {
+		return false
+
+	}
+	return true
+}
+
+// CleanFilePath ensures that the file path is a proper file path before returning an OS specific path using `filepath.clean()`
+// along with any errors that indicate problems with the given path
+func CleanFilePath(path string) (string, error) {
 	testPath := strings.TrimSpace(path)
 	if testPath == "" {
-		return errors.New("path is empty")
+		return "", errors.New("path is empty")
 	} else if filepath.Dir(testPath) == filepath.Clean(testPath) { // the two strings shouldn't be equal if there's a filepath specified
-		return errors.New("no file name specified")
+		return "", errors.New("no file name specified")
 	}
-	path = filepath.Clean(testPath)       // clean the path
-	dir, fileName := filepath.Split(path) // split the dir path and the file name
-	if fileName == "" {                   // check to see if there is a valid file name
+	path = filepath.Clean(testPath) // clean the path
+	return path, nil
+}
+
+// WriteQueriesToFile takes in a file path and an array of strings. If the file indicated by path
+// exist this function will overwrite it with the data in the string array. If the file doesn't exist,
+// this function will create it before inputting the string array data. Each index of the string array
+// is a new line for the file.
+func WriteQueriesToFile(path string, queries []string) error {
+	// by default this will overwrite existing files
+	cleanPath, err := CleanFilePath(path) // make sure the path is clean
+	if err != nil {
+		return err
+	}
+	dir, fileName := filepath.Split(cleanPath) // split the dir path and the file name
+	if fileName == "" {                        // check to see if there is a valid file name
 		return errors.New("file name not specified") // error out
 	}
 	if dir != "" { // check if the dir path is empty string
@@ -96,7 +131,7 @@ func writeToFile(file *os.File, queries []string) error {
 	for i, query := range queries {
 		var err error
 		if i == len(queries)-1 { // last index
-			_, err = file.WriteString(query) // write to file with line separator
+			_, err = file.WriteString(query) // write to file without line separator
 		} else {
 			_, err = file.WriteString(fmt.Sprintf("%s\n", query)) // write to file
 		}

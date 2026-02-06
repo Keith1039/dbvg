@@ -81,6 +81,16 @@ func GetTableMap(db *sql.DB) map[string]int {
 	return allNames
 }
 
+// GetAllColumnData returns a map of all tables and with their respective columns mapped to their "translated" string type
+func GetAllColumnData(db *sql.DB) map[string]map[string]string {
+	m := make(map[string]map[string]string)
+	tableMap := GetTableMap(db)
+	for table := range tableMap {
+		m[table] = GetColumnMap(db, table)
+	}
+	return m
+}
+
 // GetColumnMap returns a map of column names mapped to their "translated" string type
 func GetColumnMap(db *sql.DB, tableName string) map[string]string {
 	m := make(map[string]string)                        // make initial map
