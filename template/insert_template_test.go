@@ -6,6 +6,7 @@ import (
 	"errors"
 	database "github.com/Keith1039/dbvg/db"
 	"github.com/Keith1039/dbvg/graph"
+	"github.com/Keith1039/dbvg/strategy"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
@@ -98,7 +99,7 @@ func TestGenericErrors(t *testing.T) {
 	var missingTableError graph.MissingTableError
 	var missingColumnError graph.MissingColumnError
 	var schemaerr schemaError
-	var unexpectedTypeError UnexpectedTypeError
+	var unexpectedTypeError strategy.UnexpectedTypeError
 	// check for missing table error
 	sampleTemplate = map[string]map[string]map[string]any{
 		"table": {
@@ -213,7 +214,7 @@ func TestOverrideCode(t *testing.T) {
 }
 
 func TestOptionalCodes(t *testing.T) {
-	var unsupportedErr unsupportedTypeError
+	var unsupportedErr strategy.UnexpectedTypeError
 	tempDir := t.TempDir()
 	tempFile, err := os.CreateTemp(tempDir, "")
 	if err != nil {
@@ -231,7 +232,7 @@ func TestOptionalCodes(t *testing.T) {
 		"template": {
 			"int": {
 				"TYPE":  "INT",
-				"CoDe":  "SEQ",
+				"CoDe":  "SERIAL",
 				"value": nil,
 			},
 		},
@@ -276,7 +277,7 @@ func TestOptionalCodes(t *testing.T) {
 	}
 	err = insertTemplate.TemplateFrom(tableData, tempFile.Name())
 	if !errors.As(err, &unsupportedErr) {
-		t.Fatalf("expected error of type unsupportedTypeError, received %v", err)
+		t.Fatalf("expected error of type UnexpectedTypeError, received %v", err)
 	}
 }
 

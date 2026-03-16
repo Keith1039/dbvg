@@ -53,6 +53,19 @@ var typeMap = map[string]string{
 	"TIMESTAMPTZ": "DATE",
 }
 
+var supportedTypes = map[string]bool{
+	"INT":     true,
+	"FLOAT":   true,
+	"UUID":    true,
+	"VARCHAR": true,
+	"BOOL":    true,
+	"DATE":    true,
+}
+
+func IsSupportedType(typeName string) bool {
+	return supportedTypes[typeName]
+}
+
 // InitDB takes in a connection string and returns a database connection alongside any errors that occur
 func InitDB(connString string) (*sql.DB, error) {
 	db, err := sql.Open("postgres", connString)
