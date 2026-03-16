@@ -17,20 +17,6 @@ func (err schemaError) Error() string {
 	return fmt.Sprintf("expected schema:\n\t%s\n, received:\n\t%s", string(data), string(data2))
 }
 
-// UnexpectedTypeError is an error given when the given type doesn't match an expected type
-type UnexpectedTypeError struct {
-	expectedType string
-	actualType   string
-}
-
-func (err UnexpectedTypeError) Error() string {
-	return fmt.Sprintf("expected type %s but received type %s", err.expectedType, err.actualType)
-}
-
-func NewUnexpectedTypeError(expectedType, actualType string) error {
-	return UnexpectedTypeError{expectedType: expectedType, actualType: actualType}
-}
-
 // PreprocessError is an error given when a value is of type []any but couldn't be processed into []int, []float64 or []string
 type PreprocessError struct {
 	val any

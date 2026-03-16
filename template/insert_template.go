@@ -1,9 +1,8 @@
 package template
 
 import (
-	"errors"
-	"fmt"
 	"github.com/Keith1039/dbvg/graph"
+	"github.com/Keith1039/dbvg/strategy"
 	"github.com/Keith1039/dbvg/utils"
 )
 
@@ -68,43 +67,14 @@ func checkExpectedType(expectedType string, receivedType string) error {
 	// behavior should change with config, if lax, this should give a warning and coerce the received type to expected and log this transformation
 	// if strict, return a genuine error
 	if expectedType != receivedType {
-		return UnexpectedTypeError{expectedType: expectedType, actualType: receivedType}
+		return strategy.UnexpectedTypeError{ExpectedType: expectedType, ActualType: receivedType}
 	}
 	return nil
 }
 
-// handles checking types for optional codes
-func handleOptionalCode(colType string, code string, val any) error {
-	// currently only have 1 optional type so colType is a little useless
-	switch colType {
-	case "INT":
-		return handleIntOptional(colType, code, val)
-	default:
-		return errors.New(fmt.Sprintf("column type %s isn't recognized", colType)) // can't trigger
-	}
-}
-
-// handles checking types for required codes
-func handleRequiredCode(colType string, code string, val any) error {
-	switch colType {
-	case "INT":
-		return handleIntRequired(colType, code, val)
-	case "FLOAT":
-		return handleFloatRequired(colType, code, val)
-	case "BOOL":
-		return handleBoolRequired(colType, code, val)
-	case "VARCHAR":
-		return handleVarcharRequired(colType, code, val)
-	case "DATE":
-		return handleDateRequired(colType, code, val)
-	default:
-		return errors.New(fmt.Sprintf("column type %s is not recognized", colType)) // can't trigger
-	}
-
-}
-
 // check if the codes for the column is correct
 func checkCodes(columnInfo map[string]any) error {
+	var s strategy.Strategy
 	colType := utils.TrimAndUpperString(columnInfo["type"].(string)) // get the type as string
 	code := utils.TrimAndUpperString(columnInfo["code"].(string))    // get the code as string
 	val := columnInfo["value"]                                       // get the value
@@ -112,14 +82,24 @@ func checkCodes(columnInfo map[string]any) error {
 	if err != nil {
 		return err
 	}
-	// check if the code is an override code (they don't need any further processing)
-	if _, ok := overrideCodes[colType][code]; ok || code == "NULL" {
-		return nil
-	} else if _, ok = optionalCodes[colType][code]; ok { // check if it's an optional code
-		return handleOptionalCode(colType, code, val)
-	} else if _, ok = requiredCodeMap[colType][code]; ok {
-		return handleRequiredCode(colType, code, val)
+	s, err = strategy.GetStrategy(colType, code)
+	if err != nil {
+		return err
 	}
-	// one of the above should be true for a valid input
-	return unsupportedCodeError{code: code, columnType: colType}
+
+	if _, ok := s.(strategy.ValueStrategy); ok {
+		valStrategy := s.(strategy.ValueStrategy)
+		valStrategy.SetValue(val)
+		err = valStrategy.CheckCriteria()
+		if err != nil {
+			return err
+		}
+		return nil
+	} else {
+		err = s.CheckCriteria()
+		if err != nil {
+			return err
+		}
+		return nil
+	}
 }

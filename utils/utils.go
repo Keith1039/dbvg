@@ -6,12 +6,13 @@ import (
 	"errors"
 	"fmt"
 	database "github.com/Keith1039/dbvg/db"
+	"github.com/golang-module/carbon"
 	"github.com/jimsmart/schema"
 	"log"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
+	"time"
 )
 
 // ListToStringArray takes in a linked list and returns it as a string array
@@ -64,21 +65,6 @@ func TrimAndUpperString(s string) string {
 	return strings.ToUpper(strings.TrimSpace(s))
 }
 
-// IsNumeric takes in a string and attempts
-func IsNumeric(s string) bool {
-	s = strings.TrimSpace(s)  // trim the space for the string
-	_, err := strconv.Atoi(s) // try to convert to string
-	if err != nil {
-		return false
-	}
-	_, err = strconv.ParseFloat(s, 64) // try to convert to float (pretty sure this is unnecessary)
-	if err != nil {
-		return false
-
-	}
-	return true
-}
-
 // CleanFilePath ensures that the file path is a proper file path before returning an OS specific path using `filepath.clean()`
 // along with any errors that indicate problems with the given path
 func CleanFilePath(path string) (string, error) {
@@ -107,7 +93,7 @@ func WriteQueriesToFile(path string, queries []string) error {
 		return errors.New("file name not specified") // error out
 	}
 	if dir != "" { // check if the dir path is empty string
-		if _, err := os.Stat(dir); os.IsNotExist(err) { // check if directory exists
+		if _, err = os.Stat(dir); os.IsNotExist(err) { // check if directory exists
 			err = os.MkdirAll(dir, os.ModePerm) // make all directories and subdirectories
 			if err != nil {
 				return err // log error and exit
@@ -118,7 +104,12 @@ func WriteQueriesToFile(path string, queries []string) error {
 	if err != nil {                                      // error check
 		return err
 	}
-	defer file.Close()                // close the file
+	defer func(file *os.File) {
+		err = file.Close()
+		if err != nil {
+			log.Fatal(err)
+		}
+	}(file) // close the file
 	return writeToFile(file, queries) // write the queries to the file
 }
 
@@ -144,4 +135,21 @@ func writeToFile(file *os.File, queries []string) error {
 		return err
 	}
 	return nil
+}
+
+// GetStringType is a function take takes in a value of any type and returns the string name of the type of value given
+func GetStringType(val any) string {
+	return fmt.Sprintf("%T", val)
+}
+
+// GetTimeFromString takes in a string and attempts to parse it using carbon.
+// if no errors occurs, it returns the time.Time version of the parsed string
+// otherwise it returns an empty time.Time struct along with the error that occurred
+func GetTimeFromString(dateString string) (time.Time, error) {
+	dateString = strings.TrimSpace(dateString)
+	c := carbon.Parse(dateString)
+	if c.Error != nil {
+		return time.Time{}, c.Error
+	}
+	return c.ToStdTime(), nil
 }

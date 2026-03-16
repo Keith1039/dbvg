@@ -2,6 +2,7 @@ package utils
 
 import (
 	"fmt"
+	"github.com/golang-module/carbon"
 	"os"
 	"path/filepath"
 	"slices"
@@ -61,5 +62,19 @@ func TestWriteQueriesToFile(t *testing.T) {
 	err = WriteQueriesToFile(path5, []string{})
 	if err == nil { // empty string should have returned an error
 		t.Fatalf("empty string should have caused an error to be returned")
+	}
+}
+
+func TestGetTimeFromString(t *testing.T) {
+	invalidString := "asd-20021-12"
+	nowTime := carbon.Now()
+	validString := nowTime.String()
+	_, err := GetTimeFromString(invalidString)
+	if err == nil {
+		t.Fatal("error should have been returned, string was an invalid time")
+	}
+	_, err = GetTimeFromString(validString)
+	if err != nil {
+		t.Fatal(err)
 	}
 }

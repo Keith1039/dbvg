@@ -9,6 +9,11 @@ import (
 // it returns an error of type PreprocessError
 func preprocess(val *any, columnType string) error {
 	switch (*val).(type) {
+	case float64:
+		if columnType == "INT" {
+			// TODO: should give warning if rounding changes value
+			*val = int((*val).(float64)) // convert to int
+		}
 	case []interface{}:
 		// check if this is string
 		if (columnType == "VARCHAR" || columnType == "DATE") && checkForTypeHomogeny(*val, "string") { // check if it's a string arr
