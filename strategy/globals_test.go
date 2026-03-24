@@ -1,33 +1,84 @@
-package strategy
+package strategy_test
 
 import (
 	"errors"
+	"fmt"
+	"github.com/Keith1039/dbvg/strategy"
 	"testing"
 )
 
+type factories interface {
+	func() strategy.Strategy | func() strategy.ValueStrategy
+}
+
+func attemptDeletionForMap[T factories](m map[string]map[string]T) error {
+	var err error
+	for columnType, values := range m {
+		for code, _ := range values {
+			err = strategy.DeleteStrategy(columnType, code)
+			if err == nil {
+				return errors.New(fmt.Sprintf("sucessfully deleated a default, columnType: '%s', code: '%s'", columnType, code))
+			}
+		}
+	}
+	return nil
+}
+func TestDeleteStrategy(t *testing.T) {
+	// test to see if defaults are up to date
+	override := strategy.GetOverrideCodeMap()
+	t.Logf("Beginning deletions on override code map: %v", override)
+	err := attemptDeletionForMap(override)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log("All deletions on override code map failed as expected")
+
+	optional := strategy.GetOptionalCodeMap()
+	t.Logf("Beginning tests on optional code map: %v", optional)
+	err = attemptDeletionForMap(optional)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log("All deletions on optional code map failed as expected")
+
+	required := strategy.GetRequiredCodeMap()
+	t.Logf("Beginning tests on required code map: %v", required)
+	err = attemptDeletionForMap(required)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log("All deletions on required code map failed as expected")
+
+	// check if no op holds
+	err = strategy.DeleteStrategy("giberrish", "blah")
+	if err != nil {
+		t.Fatal("if the strategy cannot be found, it's a no opp and nil should be returned")
+	}
+}
+
 func TestGetStrategy(t *testing.T) {
-	s, err := GetStrategy("", "")
+	s, err := strategy.GetStrategy("", "")
 	if err == nil {
 		t.Fatalf("expected error for unsupported column type")
 	}
-	s, err = GetStrategy("int", "asddfaafaffd")
-	if !errors.As(err, &UnsupportedCodeError{}) {
+	s, err = strategy.GetStrategy("int", "asddfaafaffd")
+	if !errors.As(err, &strategy.UnsupportedCodeError{}) {
 		t.Fatalf("expected 'UnsupportedCodeError' but received %v", err)
 	}
-	s, err = GetStrategy("          int        ", " random       ")
+	s, err = strategy.GetStrategy("          int        ", " random       ")
 	if err != nil {
 		t.Fatalf("expected no error but received %v", err)
 	}
-	s, err = GetStrategy("int", "null")
+	s, err = strategy.GetStrategy("int", "null")
 	if err != nil {
 		t.Fatalf("expected no error but received %v", err)
 	}
-	genericStrat := s.(*OverrideStrategy).Strategy
-	s, err = GetStrategy("uuid", "null")
+	genericStrat := s.(*strategy.OverrideStrategy).Strategy
+	s, err = strategy.GetStrategy("uuid", "null")
 	if err != nil {
 		t.Fatalf("expected no error but received %v", err)
 	}
-	uuidSpecificStrat := s.(*OverrideStrategy).Strategy
+	uuidSpecificStrat := s.(*strategy.OverrideStrategy).Strategy
 	val1, _ := genericStrat()
 	val2, _ := uuidSpecificStrat()
 	if val1 == val2 {
@@ -35,126 +86,141 @@ func TestGetStrategy(t *testing.T) {
 	}
 }
 
-func testWorkingStrategy() Strategy {
-	return &OverrideStrategy{}
+func testWorkingStrategy() strategy.Strategy {
+	return &strategy.OverrideStrategy{}
 }
 
-func testInvalidStrategy() Strategy {
-	return &OptionalStrategy{}
+func testInvalidStrategy() strategy.Strategy {
+	return &strategy.OptionalStrategy{}
 }
 func TestAddOverrideStrategy(t *testing.T) {
-	err := AddNewOverrideStrategy("something", "new", nil)
+	err := strategy.AddNewOverrideStrategy("something", "new", nil)
 	if err == nil {
 		t.Fatalf("expected error for unsupported column type")
 	}
-	err = AddNewOverrideStrategy("int", "new", nil)
-	if !errors.As(err, &RequiredParameterNilError{}) {
+	err = strategy.AddNewOverrideStrategy("int", "new", nil)
+	if !errors.As(err, &strategy.RequiredParameterNilError{}) {
 		t.Fatalf("expected error for required parameter nil, received %v", err)
 	}
-	err = AddNewOverrideStrategy("int", "new", testInvalidStrategy)
-	if !errors.As(err, &ValueStrategyImplementedError{}) {
+	err = strategy.AddNewOverrideStrategy("int", "new", testInvalidStrategy)
+	if !errors.As(err, &strategy.ValueStrategyImplementedError{}) {
 		t.Fatalf("expected error for ValueStrategyImplementedError, received %v", err)
 	}
-	err = AddNewOverrideStrategy("int", "null", testWorkingStrategy)
-	if !errors.As(err, &ExistingStrategyError{}) {
+	err = strategy.AddNewOverrideStrategy("int", "null", testWorkingStrategy)
+	if !errors.As(err, &strategy.ExistingStrategyError{}) {
 		t.Fatalf("expected error for ExistingStrategyError, received %v", err)
 	}
-	err = AddNewOverrideStrategy("uuid", "null", testWorkingStrategy)
-	if !errors.As(err, &ExistingStrategyError{}) {
+	err = strategy.AddNewOverrideStrategy("uuid", "null", testWorkingStrategy)
+	if !errors.As(err, &strategy.ExistingStrategyError{}) {
 		t.Fatalf("expected error for ExistingStrategyError, received %v", err)
 	}
-	err = AddNewOverrideStrategy("bool", "random", testWorkingStrategy)
-	if !errors.As(err, &ExistingStrategyError{}) {
+	err = strategy.AddNewOverrideStrategy("bool", "random", testWorkingStrategy)
+	if !errors.As(err, &strategy.ExistingStrategyError{}) {
 		t.Fatalf("expected error for ExistingStrategyError, received %v", err)
 	}
-	err = AddNewOverrideStrategy("int", "new", testWorkingStrategy)
+	err = strategy.AddNewOverrideStrategy("int", "new", testWorkingStrategy)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, ok := overrideCodeMap["INT"]["NEW"]; !ok {
-		t.Fatal("new code failed to be added")
+	_, err = strategy.GetStrategy("int", "new")
+	if err != nil {
+		t.Fatalf("new code failed to be added with error [%v]", err)
 	}
-	delete(overrideCodeMap["INT"], "NEW")
+	err = strategy.DeleteStrategy("int", "new")
+	if err != nil {
+		t.Fatalf("delete strategy failed to be removed with error [%v]", err)
+	}
 }
 
-func workingValueStrategy() ValueStrategy {
-	return &OptionalStrategy{}
+func workingValueStrategy() strategy.ValueStrategy {
+	return &strategy.OptionalStrategy{}
 }
 func TestAddNewOptionalStrategy(t *testing.T) {
-	err := AddNewOptionalStrategy("something", "new", nil)
+	err := strategy.AddNewOptionalStrategy("something", "new", nil)
 	if err == nil {
 		t.Fatalf("expected error for unsupported column type")
 	}
-	err = AddNewOptionalStrategy("int", "new", nil)
-	if !errors.As(err, &RequiredParameterNilError{}) {
+	err = strategy.AddNewOptionalStrategy("int", "new", nil)
+	if !errors.As(err, &strategy.RequiredParameterNilError{}) {
 		t.Fatalf("expected error for required parameter nil, received %v", err)
 	}
-	err = AddNewOptionalStrategy("int", "null", workingValueStrategy)
-	if !errors.As(err, &ExistingStrategyError{}) {
+	err = strategy.AddNewOptionalStrategy("int", "null", workingValueStrategy)
+	if !errors.As(err, &strategy.ExistingStrategyError{}) {
 		t.Fatalf("expected error for ExistingStrategyError, received %v", err)
 	}
-	err = AddNewOptionalStrategy("uuid", "null", workingValueStrategy)
-	if !errors.As(err, &ExistingStrategyError{}) {
+	err = strategy.AddNewOptionalStrategy("uuid", "null", workingValueStrategy)
+	if !errors.As(err, &strategy.ExistingStrategyError{}) {
 		t.Fatalf("expected error for ExistingStrategyError, received %v", err)
 	}
-	err = AddNewOptionalStrategy("int", "serial", workingValueStrategy)
-	if !errors.As(err, &ExistingStrategyError{}) {
+	err = strategy.AddNewOptionalStrategy("int", "serial", workingValueStrategy)
+	if !errors.As(err, &strategy.ExistingStrategyError{}) {
 		t.Fatalf("expected error for ExistingStrategyError, received %v", err)
 	}
-	err = AddNewOptionalStrategy("int", "something new", workingValueStrategy)
+	err = strategy.AddNewOptionalStrategy("int", "something new", workingValueStrategy)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, ok := optionalCodeMap["INT"]["SOMETHING NEW"]; !ok {
-		t.Fatal("new code failed to be added")
+
+	_, err = strategy.GetStrategy("int", "something new")
+	if err != nil {
+		t.Fatalf("new code failed to be added with error [%v]", err)
 	}
-	delete(optionalCodeMap["INT"], "SOMETHING NEW")
+	err = strategy.DeleteStrategy("int", "something new")
+	if err != nil {
+		t.Fatalf("delete strategy failed to be removed with error [%v]", err)
+	}
 }
 
-func workingRequiredValueStrategy() ValueStrategy {
-	return &RequiredStrategy{}
+func workingRequiredValueStrategy() strategy.ValueStrategy {
+	return &strategy.RequiredStrategy{}
 }
 func TestAddNewRequiredStrategy(t *testing.T) {
-	err := AddNewRequiredStrategy("something", "new", nil)
+	err := strategy.AddNewRequiredStrategy("something", "new", nil)
 	if err == nil {
 		t.Fatalf("expected error for unsupported column type")
 	}
-	err = AddNewRequiredStrategy("int", "new", nil)
-	if !errors.As(err, &RequiredParameterNilError{}) {
+	err = strategy.AddNewRequiredStrategy("int", "new", nil)
+	if !errors.As(err, &strategy.RequiredParameterNilError{}) {
 		t.Fatalf("expected error for required parameter nil, received %v", err)
 	}
-	err = AddNewRequiredStrategy("int", "null", workingRequiredValueStrategy)
-	if !errors.As(err, &ExistingStrategyError{}) {
+	err = strategy.AddNewRequiredStrategy("int", "null", workingRequiredValueStrategy)
+	if !errors.As(err, &strategy.ExistingStrategyError{}) {
 		t.Fatalf("expected error for ExistingStrategyError, received %v", err)
 	}
-	err = AddNewRequiredStrategy("uuid", "null", workingRequiredValueStrategy)
-	if !errors.As(err, &ExistingStrategyError{}) {
+	err = strategy.AddNewRequiredStrategy("uuid", "null", workingRequiredValueStrategy)
+	if !errors.As(err, &strategy.ExistingStrategyError{}) {
 		t.Fatalf("expected error for ExistingStrategyError, received %v", err)
 	}
-	err = AddNewRequiredStrategy("int", "random", workingRequiredValueStrategy)
-	if !errors.As(err, &ExistingStrategyError{}) {
+	err = strategy.AddNewRequiredStrategy("int", "random", workingRequiredValueStrategy)
+	if !errors.As(err, &strategy.ExistingStrategyError{}) {
 		t.Fatalf("expected error for ExistingStrategyError, received %v", err)
 	}
-	err = AddNewRequiredStrategy("varchar", "new", workingRequiredValueStrategy)
+	err = strategy.AddNewRequiredStrategy("varchar", "new", workingRequiredValueStrategy)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, ok := requiredCodeMap["VARCHAR"]["NEW"]; !ok {
-		t.Fatal("new code failed to be added")
+	_, err = strategy.GetStrategy("varchar", "new")
+	if err != nil {
+		t.Fatalf("new code failed to be added with error [%v]", err)
 	}
-	defer func() {
-		delete(requiredCodeMap["VARCHAR"], "NEW")
-	}()
+	err = strategy.DeleteStrategy("varchar", "new")
+	if err != nil {
+		t.Fatalf("delete strategy failed to be removed with error [%v]", err)
+	}
+
 }
 
 func TestDuplicateStrategyInDifferentMap(t *testing.T) {
-	err := AddNewOptionalStrategy("Bool", "TEST", workingValueStrategy)
+	err := strategy.AddNewOptionalStrategy("Bool", "TEST", workingValueStrategy)
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = AddNewRequiredStrategy("Bool", "TEST", workingRequiredValueStrategy)
-	if !errors.As(err, &ExistingStrategyError{}) {
+	err = strategy.AddNewRequiredStrategy("Bool", "TEST", workingRequiredValueStrategy)
+	if !errors.As(err, &strategy.ExistingStrategyError{}) {
 		t.Fatalf("expected error for ExistingStrategyError, received %v", err)
 	}
-	delete(optionalCodeMap["BOOL"], "TEST")
+	err = strategy.DeleteStrategy("bool", "TEST")
+	if err != nil {
+		t.Fatalf("delete strategy failed to be removed with error [%v]", err)
+	}
 }

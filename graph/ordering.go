@@ -6,6 +6,7 @@ package graph
 import (
 	"container/list"
 	"database/sql"
+	"errors"
 	"fmt"
 	database "github.com/Keith1039/dbvg/db"
 	"github.com/Keith1039/dbvg/utils"
@@ -15,11 +16,14 @@ import (
 )
 
 // NewOrdering returns the address of a properly initiated Ordering struct
-func NewOrdering(db *sql.DB) *Ordering {
+func NewOrdering(db *sql.DB) (*Ordering, error) {
 	// get a new ordering
 	ord := Ordering{}
-	ord.Init(db)
-	return &ord
+	err := ord.Init(db)
+	if err != nil {
+		return nil, err
+	}
+	return &ord, nil
 }
 
 // Ordering is a struct that contains the information necessary to detect and remove cycles
@@ -31,11 +35,15 @@ type Ordering struct {
 }
 
 // Init takes in a database connection and sets all private variables in the Ordering struct
-func (tl *Ordering) Init(db *sql.DB) {
+func (tl *Ordering) Init(db *sql.DB) error {
+	if db == nil {
+		return errors.New("cannot initiate a new 'Ordering' with a nil db connection")
+	}
 	tl.db = db
 	tl.allTables = database.GetTableMap(tl.db)         // get the table map
 	tl.allRelations = database.GetRelationships(tl.db) // get the table relations
 	tl.stack = list.New()                              // initiate the list
+	return nil
 }
 
 // GetCycles uses DFS to detect cycles in the database schema, all detected cycles are added to a linked list and returned as an array
@@ -90,7 +98,7 @@ func (tl *Ordering) GetAndResolveCycles() {
 	cycles := tl.GetCycles() // get your cycles
 	cycleBreaking, relMap := tl.getCycleBreakingOrder(cycles)
 	suggestions := tl.getSuggestions(cycleBreaking, relMap) // get your suggestions
-	err := database.RunQueries(tl.db, suggestions)          // run the suggestions
+	err := database.RunUnsafeQueries(tl.db, suggestions)    // run the suggestions
 	if err != nil {
 		log.Fatal(err) // panic if it fails
 	}
@@ -100,7 +108,7 @@ func (tl *Ordering) GetAndResolveCycles() {
 func (tl *Ordering) ResolveGivenCycles(cycles []string) {
 	cycleBreaking, relMap := tl.getCycleBreakingOrder(cycles)
 	suggestions := tl.getSuggestions(cycleBreaking, relMap) // get your suggestions
-	err := database.RunQueries(tl.db, suggestions)          // run the suggestions
+	err := database.RunUnsafeQueries(tl.db, suggestions)    // run the suggestions
 	if err != nil {
 		log.Fatal(err) // panic if it fails
 	}

@@ -31,11 +31,14 @@ examples:
 	Run: func(cmd *cobra.Command, args []string) {
 		var filename string
 		db, err := database.InitDB(ConnString) // starts up the database connection
-		defer database.CloseDB(db)             // closes the database connection
 		if err != nil {
 			log.Fatal(err)
 		}
-		ordering := graph.NewOrdering(db)
+		defer database.CloseDB(db) // closes the database connection
+		ordering, err := graph.NewOrdering(db)
+		if err != nil {
+			log.Fatal(err)
+		}
 		table = utils.TrimAndLowerString(table)
 		tableOrder, err := ordering.GetOrder(table)
 		if err != nil {

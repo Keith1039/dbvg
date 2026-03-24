@@ -80,7 +80,10 @@ func main() {
 	}
 	// the name of the table we check for, the function is case-insensitive so "B", "b" " b" etc are the same input
 	tableName := "B"
-	ord := graph.NewOrdering(db)                   // get a new ordering struct
+	ord, err := graph.NewOrdering(db)                   // get a new ordering struct
+    if err != nil {
+        log.Fatal(err)
+    }
 	cycles, err = ord.GetCyclesForTable(tableName) // get the actual cycles
 	if err != nil {
 		log.Fatal(err) // print error if it happens
@@ -122,7 +125,10 @@ func main() {
 		log.Fatal(err)
 	}
 
-	ord := graph.NewOrdering(db) // get a new ordering struct
+	ord, err := graph.NewOrdering(db) // get a new ordering struct
+	if err != nil {
+	    log.Fatal(err)
+	}
 	cycles := ord.GetCycles()    // get a linked list of cycles
 	// loop through and print cycles
 	for _, cycle := range cycles {
@@ -156,7 +162,10 @@ func main() {
 		log.Fatal(err)
 	}
 
-	ord := graph.NewOrdering(db)                      // get a new ordering struct
+	ord, err := graph.NewOrdering(db) // get a new ordering struct
+	if err != nil {
+	    log.Fatal(err)
+	}
 	suggestions := ord.GetSuggestionQueries()         // get an array of the queries to be run on the database
 	err = database.RunQueriesVerbose(db, suggestions) // runs the queries while printing them
 	if err != nil {
@@ -227,12 +236,12 @@ func main() {
 	}
 	insertQueries, deleteQueries := writer.GenerateEntries(1) // functional equivalent to calling writer.GenerateEntry()
 
-	err = database.RunQueriesVerbose(db, insertQueries) // run the insert queries while printing them out
+	err = database.RunUnsafeQueriesVerbose(db, insertQueries) // run the insert queries while printing them out
 	if err != nil {
 		log.Fatal(err)
 	}
 	fmt.Println(".................................................") // print a divider
-	err = database.RunQueriesVerbose(db, deleteQueries)              // run the delete queries to delete the inserted values
+	err = database.RunUnsafeQueriesVerbose(db, deleteQueries)              // run the delete queries to delete the inserted values
 	if err != nil {
 		log.Fatal(err)
 	}

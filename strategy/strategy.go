@@ -12,7 +12,7 @@ type ValueStrategy interface {
 
 // defaultStrategy is an embedded struct meant to be used by the main types
 type defaultStrategy struct {
-	value    any
+	Value    any
 	Strategy func(val any) (any, error)
 	Criteria func(val any) error
 }
@@ -21,18 +21,18 @@ func (s *defaultStrategy) ExecuteStrategy() (any, error) {
 	if s.Strategy == nil {
 		return nil, UnspecifiedStrategyError{}
 	}
-	return s.Strategy(s.value)
+	return s.Strategy(s.Value)
 }
 
 func (s *defaultStrategy) CheckCriteria() error {
 	if s.Criteria == nil {
 		return UnspecifiedCriteriaError{}
 	}
-	return s.Criteria(s.value)
+	return s.Criteria(s.Value)
 }
 
 func (s *defaultStrategy) SetValue(val any) {
-	s.value = val
+	s.Value = val
 }
 
 type CustomStrategy struct {

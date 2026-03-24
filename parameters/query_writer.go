@@ -74,9 +74,11 @@ type QueryWriter struct {
 
 // Init initializes the QueryWriter and returns any errors that occur upon initialization
 func (qw *QueryWriter) Init() error {
-	var err error
 	qw.tableName = utils.TrimAndLowerString(qw.tableName)
-	ordering := graph.NewOrdering(qw.db) // get a new ordering
+	ordering, err := graph.NewOrdering(qw.db) // get a new ordering
+	if err != nil {
+		return err
+	}
 	qw.allRelations = db.GetRelationships(qw.db)
 	qw.setFKMap()
 	qw.TableOrder, err = ordering.GetOrder(qw.tableName) // get the topological ordering of tables
@@ -92,7 +94,7 @@ func (qw *QueryWriter) Init() error {
 // ChangeTableToWriteFor takes in a new table name and re-inits the QueryWriter. It returns any errors that happen upon re-initialization
 func (qw *QueryWriter) ChangeTableToWriteFor(tableName string) error {
 	// change the table name of the writer and return any errors
-	qw.tableName = utils.TrimAndLowerString(tableName)
+	qw.tableName = tableName // no need to normalize, Init accounts for that
 	return qw.Init()
 }
 

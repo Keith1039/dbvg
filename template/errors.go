@@ -5,13 +5,13 @@ import (
 	"fmt"
 )
 
-// schemaError is an error given when the given schema doesn't match the expected schema
-type schemaError struct {
+// SchemaError is an error given when the given schema doesn't match the expected schema
+type SchemaError struct {
 	expectedSchema map[string]string
 	actualSchema   map[string]string
 }
 
-func (err schemaError) Error() string {
+func (err SchemaError) Error() string {
 	data, _ := json.MarshalIndent(err.expectedSchema, "", " ") // assuming schema data isn't nil
 	data2, _ := json.MarshalIndent(err.actualSchema, "", " ")
 	return fmt.Sprintf("expected schema:\n\t%s\n, received:\n\t%s", string(data), string(data2))

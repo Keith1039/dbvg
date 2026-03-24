@@ -23,11 +23,14 @@ examples:
 `,
 	Run: func(cmd *cobra.Command, args []string) {
 		db, err := database.InitDB(ConnString)
-		defer database.CloseDB(db)
 		if err != nil {
 			log.Fatal(err)
 		}
-		ord := graph.NewOrdering(db)
+		defer database.CloseDB(db)
+		ord, err := graph.NewOrdering(db)
+		if err != nil {
+			log.Fatal(err)
+		}
 		cycles := ord.GetCycles()
 		if len(cycles) > 0 {
 			if verbose { // only print each individual cycle if verbose is specified

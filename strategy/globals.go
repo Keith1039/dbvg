@@ -4,10 +4,51 @@ import (
 	"fmt"
 	database "github.com/Keith1039/dbvg/db"
 	"github.com/Keith1039/dbvg/utils"
+	"maps"
 )
 
 type factories interface {
 	func() Strategy | func() ValueStrategy
+}
+
+var defaults = map[string]map[string]bool{
+	"DATE": {
+		"NOW":    true,
+		"RANDOM": true,
+		"STATIC": true,
+	},
+	"UUID": {"UUID": true},
+	"BOOL": {
+		"RANDOM": true,
+		"STATIC": true,
+	},
+	"VARCHAR": {
+		"EMAIL":     true,
+		"FIRSTNAME": true,
+		"LASTNAME":  true,
+		"FULLNAME":  true,
+		"PHONE":     true,
+		"COUNTRY":   true,
+		"ADDRESS":   true,
+		"ZIPCODE":   true,
+		"CITY":      true,
+		"STATIC":    true,
+		"REGEX":     true,
+	},
+	"INT": {
+		"SERIAL": true,
+		"RANDOM": true,
+		"STATIC": true,
+	},
+	"FLOAT": {
+		"RANDOM": true,
+		"STATIC": true,
+	},
+}
+
+func makeCopyAndReturn[T factories](m map[string]map[string]T) map[string]map[string]T {
+	dupe := maps.Clone(m)
+	return dupe
 }
 
 var overrideCodeMap = map[string]map[string]func() Strategy{
@@ -27,8 +68,18 @@ var overrideCodeMap = map[string]map[string]func() Strategy{
 	},
 }
 
+// GetOverrideCodeMap returns a copy of the internal map for codes of the OverrideStrategy type
+func GetOverrideCodeMap() map[string]map[string]func() Strategy {
+	return makeCopyAndReturn(overrideCodeMap)
+}
+
 var optionalCodeMap = map[string]map[string]func() ValueStrategy{
 	"INT": {"SERIAL": NewSerialStrategy},
+}
+
+// GetOptionalCodeMap returns a copy of the internal map for codes of the OptionalStrategy type
+func GetOptionalCodeMap() map[string]map[string]func() ValueStrategy {
+	return makeCopyAndReturn(optionalCodeMap)
 }
 
 var requiredCodeMap = map[string]map[string]func() ValueStrategy{
@@ -51,6 +102,55 @@ var requiredCodeMap = map[string]map[string]func() ValueStrategy{
 		"STATIC": NewStaticVarcharStrategy,
 		"REGEX":  NewRegexStrategy,
 	},
+}
+
+// GetRequiredCodeMap returns a copy of the internal map for codes of the RequiredStrategy type
+func GetRequiredCodeMap() map[string]map[string]func() ValueStrategy {
+	return makeCopyAndReturn(requiredCodeMap)
+}
+
+func deleteFromMap[T factories](m map[string]map[string]T, columnType, codeName string) {
+	// we delete the code from the nested map
+	delete(m[columnType], codeName)
+	// we check if that code was the last
+	if len(m[columnType]) == 0 {
+		delete(m, columnType) // if it was, clean up the empty map
+	}
+}
+
+// DeleteStrategy deletes a given strategy from the internal maps and returns any errors.
+// This function cannot affect the default codes, i.e. the codes hardcoded into the library and will return an error if this is attempted.
+// If the code columnType and codename already don't exist in a map, this is considered a no-op
+func DeleteStrategy(columnType, codeName string) error {
+	columnType = utils.TrimAndUpperString(columnType)
+	codeName = utils.TrimAndUpperString(codeName)
+	if codeName == "NULL" { // null is predefined for everyone
+		return nil
+	}
+	s, _ := GetStrategy(columnType, codeName) // we don't care if there's an error, we care that we got a strategy
+	if s != nil {
+		if _, ok := defaults[columnType][codeName]; ok {
+			return DeleteDefaultError{columnType: columnType, code: codeName}
+		} else {
+			// literally has to be one of these, if not it would return nil
+			_, ok = overrideCodeMap[columnType][codeName]
+			if ok {
+				deleteFromMap(overrideCodeMap, columnType, codeName)
+				return nil
+			}
+			_, ok = optionalCodeMap[columnType][codeName]
+			if ok {
+				deleteFromMap(optionalCodeMap, columnType, codeName)
+				return nil
+			}
+			_, ok = requiredCodeMap[columnType][codeName]
+			if ok {
+				deleteFromMap(requiredCodeMap, columnType, codeName)
+				return nil
+			}
+		}
+	}
+	return nil
 }
 
 // GetStrategy returns a strategy from the internal maps based on the columnType and codeName given.
