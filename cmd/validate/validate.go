@@ -78,12 +78,12 @@ func handleCmdFlags(db *sql.DB, ordering *graph.Ordering, cycles []string) {
 			}
 		} else if run {
 			if verbose { // only print each query if verbose is specified
-				err = database.RunQueriesVerbose(db, suggestionQueries)
+				err = database.RunUnsafeQueriesVerbose(db, suggestionQueries)
 				if err != nil {
 					log.Fatal(err)
 				}
 			} else { // run silently
-				err = database.RunQueries(db, suggestionQueries)
+				err = database.RunUnsafeQueries(db, suggestionQueries)
 				if err != nil {
 					log.Fatal(err)
 				}

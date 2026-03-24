@@ -20,14 +20,14 @@ type RequiredStrategy struct {
 // Before the strategy is run, the program checks the validity using CheckCriteria.
 // If an error occurs at any point, the program logs the failure and exits using log.Fatal
 func (s *RequiredStrategy) ExecuteStrategy() (any, error) {
-	if s.value == nil {
+	if s.Value == nil {
 		return nil, RequiredValueNilError{}
 	}
 	return s.defaultStrategy.ExecuteStrategy()
 }
 
 func (s *RequiredStrategy) CheckCriteria() error {
-	if s.value == nil {
+	if s.Value == nil {
 		return RequiredValueNilError{}
 	}
 	return s.defaultStrategy.CheckCriteria()

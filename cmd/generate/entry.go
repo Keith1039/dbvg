@@ -61,9 +61,9 @@ examples:
 
 		fmt.Println("Beginning INSERT query execution...")
 		if verbose {
-			err = database.RunQueriesVerbose(db, insertQueries)
+			err = database.RunUnsafeQueriesVerbose(db, insertQueries)
 		} else {
-			err = database.RunQueries(db, insertQueries)
+			err = database.RunUnsafeQueries(db, insertQueries)
 		}
 		if err != nil {
 			log.Fatal(err)
@@ -75,9 +75,9 @@ examples:
 			br.ReadString('\n') // error doesn't matter
 			fmt.Println("Beginning DELETE query execution...")
 			if verbose {
-				err = database.RunQueriesVerbose(db, deleteQueries)
+				err = database.RunUnsafeQueriesVerbose(db, deleteQueries)
 			} else {
-				err = database.RunQueries(db, deleteQueries)
+				err = database.RunUnsafeQueries(db, deleteQueries)
 			}
 			if err != nil {
 				log.Fatal(err)

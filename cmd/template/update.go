@@ -32,17 +32,19 @@ example:
 		// check to see if file exists
 		if _, err := os.Stat(template); !os.IsNotExist(err) {
 			db, err := database.InitDB(ConnString) // start up the database
-			defer database.CloseDB(db)             // close the database connection
-
 			if err != nil {
 				log.Fatal(err)
 			}
+			defer database.CloseDB(db) // close the database connection
 
 			oldTemplate, err := verifyTemplate(template) // verify that the old template is a valid template and return information
 			if err != nil {
 				log.Fatal(err)
 			}
-			ord := graph.NewOrdering(db)            // get a new ordering
+			ord, err := graph.NewOrdering(db) // get a new ordering
+			if err != nil {
+				log.Fatal(err)
+			}
 			table = utils.TrimAndLowerString(table) // clean the table value
 			tableOrder, err := ord.GetOrder(table)  // get the order of the tables
 			if err != nil {

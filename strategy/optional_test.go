@@ -1,31 +1,36 @@
-package strategy
+package strategy_test
 
 import (
 	"errors"
 	"fmt"
+	"github.com/Keith1039/dbvg/strategy"
 	"github.com/Keith1039/dbvg/utils"
 	"testing"
 )
+
+func wrapError(columnType string, code string, err error) error {
+	return fmt.Errorf("for column type '%s' and code '%s': [%w]", columnType, code, err)
+}
 
 func intSerialTestRunner() *testRunner {
 	t := testRunner{
 		isOptional:     true,
 		testValues:     []any{"", 20},
-		expectedErrors: []error{UnexpectedTypeError{}},
+		expectedErrors: []error{strategy.UnexpectedTypeError{}},
 	}
 	t.evalCriteria = func(val any) error {
 		val, ok := val.(int)
 		if !ok {
-			return UnexpectedTypeError{ExpectedType: "int", ActualType: fmt.Sprintf("%T", val)}
+			return strategy.UnexpectedTypeError{ExpectedType: "int", ActualType: fmt.Sprintf("%T", val)}
 		}
-		s, ok := t.strategy.(*SerialOptionalStrategy)
+		s, ok := t.strategy.(*strategy.SerialOptionalStrategy)
 		if !ok {
-			return errors.New("not serial")
+			return errors.New("strategy received could not be cast to `SerialOptionStrategy`")
 		}
-		if val == 20 && s.value.(int) == 21 {
+		if val == 20 && s.Value == 21 {
 			return nil
 		} else {
-			return errors.New("not serial2")
+			return errors.New("expected execution value to be 20 and internal 'Value' paramater to be 21")
 		}
 	}
 	return &t
@@ -37,7 +42,7 @@ var optionalRunnerMap = map[string]map[string]*testRunner{
 
 type testRunner struct {
 	t              *testing.T
-	strategy       ValueStrategy
+	strategy       strategy.ValueStrategy
 	isOptional     bool
 	testValues     []any               // testValues[0...n-2] = invalid values, testValues[n-1] is valid value
 	expectedErrors []error             // an array of the errors we expect to run into
@@ -71,7 +76,7 @@ func (r *testRunner) Run() error {
 			r.t.Logf("testing invalid value %v", val)
 			expectedErr := r.expectedErrors[i]
 			if err == nil || !(utils.GetStringType(err) == utils.GetStringType(expectedErr)) {
-				return UnexpectedTypeError{ExpectedType: utils.GetStringType(expectedErr), ActualType: utils.GetStringType(err)}
+				return strategy.UnexpectedTypeError{ExpectedType: utils.GetStringType(expectedErr), ActualType: utils.GetStringType(err)}
 			}
 		}
 	}
@@ -101,11 +106,11 @@ func TestOptionalStrategies(t *testing.T) {
 		for code, runner := range codeMap {
 			runner.t = t
 			t.Logf("testing code '%s'...", code)
-			s, err := GetStrategy(colType, code)
+			s, err := strategy.GetStrategy(colType, code)
 			if err != nil {
 				t.Fatal(err)
 			}
-			sVal, ok := s.(ValueStrategy)
+			sVal, ok := s.(strategy.ValueStrategy)
 			if !ok {
 				t.Fatal("failed to assert value strategy")
 			}
@@ -122,11 +127,11 @@ func TestOptionalStrategies(t *testing.T) {
 }
 
 func TestEnforceNonDuplicates(t *testing.T) {
-	s, err := GetStrategy("int", "serial")
+	s, err := strategy.GetStrategy("int", "serial")
 	if err != nil {
 		t.Fatal(err)
 	}
-	s2, err := GetStrategy("int", "serial")
+	s2, err := strategy.GetStrategy("int", "serial")
 	if err != nil {
 		t.Fatal(err)
 	}

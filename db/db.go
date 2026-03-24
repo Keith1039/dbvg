@@ -4,6 +4,7 @@
 package db
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"github.com/jimsmart/schema"
@@ -72,7 +73,7 @@ func InitDB(connString string) (*sql.DB, error) {
 	return db, err
 }
 
-// CloseDB takes in a database connection and calls the Close() fun and logs any errors
+// CloseDB takes in a database connection and calls the Close() function and logs any errors
 func CloseDB(db *sql.DB) {
 	err := db.Close()
 	if err != nil {
@@ -205,29 +206,47 @@ func GetInverseRelationships(db *sql.DB) map[string]map[string]bool {
 	return relations
 }
 
-// RunQueries runs a given list of queries and returns any errors the moment they happen
-func RunQueries(db *sql.DB, queries []string) error {
-	var err error
+// RunUnsafeQueries runs a given list of queries and returns any errors the moment they happen.
+// the queries are run in a db transaction so a ny error will trigger a rollback
+// this method is unsafe as it simply pipes the queries into db.Exec making it vulnerable to SQL injection
+func RunUnsafeQueries(db *sql.DB, queries []string) error {
+	tx, err := db.BeginTx(context.Background(), nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback() // we don't really care if rollback has an error
 	for _, query := range queries {
-		_, err = db.Exec(query)
+		_, err = tx.Exec(query)
 		if err != nil {
 			return err
 		}
 	}
-	return err
+	err = tx.Commit() // commit if there are no errors
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
-// RunQueriesVerbose runs a given list of queries but prints them out before executing them
-func RunQueriesVerbose(db *sql.DB, queries []string) error {
-	var err error
-
+// RunUnsafeQueriesVerbose runs a given list of queries but prints them out before executing them
+// the queries are run in a db transaction so a ny error will trigger a rollback
+// this method is unsafe as it simply pipes the queries into db.Exec making it vulnerable to SQL injection
+func RunUnsafeQueriesVerbose(db *sql.DB, queries []string) error {
+	tx, err := db.BeginTx(context.Background(), nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback() // we don't really care if rollback has an error
 	for i, query := range queries {
-
 		fmt.Println(fmt.Sprintf("Query %d: %s", i+1, query))
-		_, err = db.Exec(query)
+		_, err = tx.Exec(query)
 		if err != nil {
 			return err
 		}
+	}
+	err = tx.Commit() // commit if there are no errors
+	if err != nil {
+		return err
 	}
 	return err
 }

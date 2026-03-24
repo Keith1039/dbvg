@@ -1,8 +1,9 @@
-package graph
+package graph_test
 
 import (
 	"database/sql"
 	"errors"
+	"github.com/Keith1039/dbvg/graph"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
@@ -74,8 +75,11 @@ func TestOrdering_FindOrderCase1(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	ordering := Ordering{}
-	ordering.Init(db)
+	ordering := graph.Ordering{}
+	err = ordering.Init(db)
+	if err != nil {
+		t.Fatal(err)
+	}
 	order, err := ordering.GetOrder("a")
 	if err != nil {
 		t.Fatal(err)
@@ -97,7 +101,6 @@ func TestOrdering_FindOrderCase1(t *testing.T) {
 
 func TestOrdering_FindOrderCase2(t *testing.T) {
 	// case where there's a cyclic dependency
-	var cyclicError CyclicError
 	defer drop()
 	caseName := "case2"
 	err := buildUp(caseName)
@@ -105,10 +108,13 @@ func TestOrdering_FindOrderCase2(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	ordering := Ordering{}
-	ordering.Init(db)
+	ordering := graph.Ordering{}
+	err = ordering.Init(db)
+	if err != nil {
+		t.Fatal(err)
+	}
 	_, err = ordering.GetOrder("team_members")
-	properError := errors.As(err, &cyclicError)
+	properError := errors.As(err, &graph.CyclicError{})
 	if !properError || err == nil {
 		t.Errorf("Cyclic error not detected between tables teams and students")
 	}
@@ -123,8 +129,11 @@ func TestOrdering_FindOrderCase3(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	ordering := Ordering{}
-	ordering.Init(db)
+	ordering := graph.Ordering{}
+	err = ordering.Init(db)
+	if err != nil {
+		t.Fatal(err)
+	}
 	order, err := ordering.GetOrder("users")
 	if err != nil {
 		t.Errorf("Unexpected Error: %s", err.Error())
@@ -140,8 +149,11 @@ func TestOrdering_FindOrderCase4(t *testing.T) {
 	if err != nil {
 		t.Fatal("Error should have been given")
 	}
-	ordering := Ordering{}
-	ordering.Init(db)
+	ordering := graph.Ordering{}
+	err = ordering.Init(db)
+	if err != nil {
+		t.Fatal(err)
+	}
 	order, err := ordering.GetOrder("team_members")
 	if err == nil {
 		t.Fatal("Missing table error should have occurred")

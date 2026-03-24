@@ -103,14 +103,14 @@ func checkAgainstSchema(typeMap map[string]string, schema map[string]string) err
 		if typeMap == nil {
 			err = errors.New("type map is nil")
 		} else {
-			err = schemaError{expectedSchema: schema, actualSchema: typeMap}
+			err = SchemaError{expectedSchema: schema, actualSchema: typeMap}
 		}
 		return err
 	} else {
 		for key, val := range typeMap {
 			// check the schema values but make an exception for any
 			if val != schema[key] && schema[key] != "any" {
-				return schemaError{expectedSchema: schema, actualSchema: typeMap}
+				return SchemaError{expectedSchema: schema, actualSchema: typeMap}
 			}
 		}
 	}

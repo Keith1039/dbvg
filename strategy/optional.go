@@ -14,17 +14,17 @@ type SerialOptionalStrategy struct {
 }
 
 func (s *SerialOptionalStrategy) ExecuteStrategy() (any, error) {
-	cur := s.value.(int)
-	s.value = s.value.(int) + 1
+	cur := s.Value.(int)
+	s.Value = s.Value.(int) + 1
 	return cur, nil
 }
 
 func (s *SerialOptionalStrategy) SetValue(val any) {
 	// assume criteria works
 	if val == nil {
-		s.value = 0
+		s.Value = 0
 	} else {
-		s.value = val
+		s.Value = val
 	}
 }
 

@@ -1,4 +1,4 @@
-package template
+package template_test
 
 import (
 	"database/sql"
@@ -7,6 +7,7 @@ import (
 	database "github.com/Keith1039/dbvg/db"
 	"github.com/Keith1039/dbvg/graph"
 	"github.com/Keith1039/dbvg/strategy"
+	"github.com/Keith1039/dbvg/template"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
@@ -20,7 +21,7 @@ var db *sql.DB
 
 var sampleTemplate map[string]map[string]map[string]any
 
-var insertTemplate = &InsertTemplate{}
+var insertTemplate = &template.InsertTemplate{}
 
 var tableData map[string]map[string]string
 
@@ -98,7 +99,7 @@ func writeMapToJSONFile(filePath string, data map[string]map[string]map[string]a
 func TestGenericErrors(t *testing.T) {
 	var missingTableError graph.MissingTableError
 	var missingColumnError graph.MissingColumnError
-	var schemaerr schemaError
+	var schemaerr template.SchemaError
 	var unexpectedTypeError strategy.UnexpectedTypeError
 	// check for missing table error
 	sampleTemplate = map[string]map[string]map[string]any{

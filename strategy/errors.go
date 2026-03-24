@@ -50,14 +50,15 @@ func (e RequiredParameterNilError) Error() string {
 	return fmt.Sprintf("required parameter '%s' cannot be nil", e.Name)
 }
 
-type expectedValueError struct {
-	expectedValue any
-	actualValue   any
+type DeleteDefaultError struct {
+	columnType string
+	code       string
 }
 
-func (e expectedValueError) Error() string {
-	return fmt.Sprintf("expected value '%v' but got '%v'", e.expectedValue, e.actualValue)
+func (e DeleteDefaultError) Error() string {
+	return fmt.Sprintf("cannot delete the following strategy for column type: '%s' and code: '%s' as it is a default code", e.columnType, e.code)
 }
+
 func wrapError(columnType string, code string, err error) error {
 	return fmt.Errorf("for column type '%s' and code '%s': [%w]", columnType, code, err)
 }

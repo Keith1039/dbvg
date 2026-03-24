@@ -27,12 +27,16 @@ examples:
 	Run: func(cmd *cobra.Command, args []string) {
 		var cycles []string
 		db, err := database.InitDB(ConnString) // starts up the database connection
-		defer database.CloseDB(db)             // closes the database connection
 		// error check
 		if err != nil {
 			log.Fatal(err)
 		}
-		ord := graph.NewOrdering(db)                   // get the ordering struct
+		defer database.CloseDB(db)        // closes the database connection
+		ord, err := graph.NewOrdering(db) // get the ordering struct
+		// error check
+		if err != nil {
+			log.Fatal(err)
+		}
 		cycles, err = ord.GetCyclesForTable(tableName) // get the relevant cycles
 		// error check
 		if err != nil {
