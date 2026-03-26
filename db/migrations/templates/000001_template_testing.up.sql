@@ -3,6 +3,10 @@ CREATE TABLE IF NOT EXISTS TEMPLATE(
     int INT,
     float FLOAT,
     bool BOOLEAN,
-    string VARCHAR,
+    varchar VARCHAR,
     date DATE
+);
+
+CREATE TABLE IF NOT EXISTS IRRELIVANT(
+    key SERIAL PRIMARY KEY
 )

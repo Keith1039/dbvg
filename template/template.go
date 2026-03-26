@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/Keith1039/dbvg/strategy"
 	"github.com/Keith1039/dbvg/utils"
 	"os"
 )
@@ -139,4 +140,14 @@ func normalizeType(columnInfo map[string]any) {
 }
 func wrapError(tableName string, columnName string, err error) error {
 	return fmt.Errorf("for column '%s' in table '%s': [%w]", columnName, tableName, err)
+}
+
+// checks if the expected type string matches the received type
+func checkExpectedType(expectedType string, receivedType string) error {
+	// behavior should change with config, if lax, this should give a warning and coerce the received type to expected and log this transformation
+	// if strict, return a genuine error
+	if expectedType != receivedType {
+		return strategy.UnexpectedTypeError{ExpectedType: expectedType, ActualType: receivedType}
+	}
+	return nil
 }

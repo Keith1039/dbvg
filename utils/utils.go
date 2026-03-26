@@ -15,18 +15,29 @@ import (
 	"time"
 )
 
-// ListToStringArray takes in a linked list and returns it as a string array
-func ListToStringArray(l *list.List) []string {
-	// converts a linkedlist into a string array
-	arr := make([]string, l.Len())
+// generic function for turning a linked list to an array
+func listToArray[T any](l *list.List) []T {
+	// converts a linkedlist into an array
+	arr := make([]T, l.Len())
 	node := l.Front()
 	slider := 0
 	for node != nil {
-		arr[slider] = node.Value.(string) // set array val
-		slider++                          // increment slider
-		node = node.Next()                // move to the next node
+		arr[slider] = node.Value.(T) // set array val
+		slider++                     // increment slider
+		node = node.Next()           // move to the next node
 	}
 	return arr // return the array
+}
+
+// ListToStringArray takes in a linked list and returns it as a string array assuming each element in the linked list is a string
+func ListToStringArray(l *list.List) []string {
+	// converts a linkedlist into a string array
+	return listToArray[string](l)
+}
+
+// ListToAnyArray takes in a linked list and returns it as an any array
+func ListToAnyArray(l *list.List) []any {
+	return listToArray[any](l)
 }
 
 // MakeTemplates takes in a database connection and an array of tables and formats it into a map suitable for JSON

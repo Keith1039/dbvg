@@ -8,6 +8,7 @@ import (
 	"github.com/Keith1039/dbvg/graph"
 	"github.com/Keith1039/dbvg/strategy"
 	"github.com/Keith1039/dbvg/template"
+	"github.com/Keith1039/dbvg/utils"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
@@ -21,9 +22,9 @@ var db *sql.DB
 
 var sampleTemplate map[string]map[string]map[string]any
 
-var insertTemplate = &template.InsertTemplate{}
-
 var tableData map[string]map[string]string
+
+var requiredTables []string
 
 const path = "file://../db/migrations/"
 
@@ -62,6 +63,11 @@ func init() {
 		log.Fatal(err)
 	}
 	tableData = database.GetAllColumnData(db) // set table data
+	ord, err := graph.NewOrdering(db)
+	if err != nil {
+		log.Fatal(err)
+	}
+	requiredTables, err = ord.GetOrder("template")
 }
 
 func buildUp(caseName string) error {
@@ -125,7 +131,7 @@ func TestGenericErrors(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = insertTemplate.TemplateFrom(tableData, tempFile.Name()) // see if we can make a template
+	_, err = template.NewInsertTemplateWithMap(tableData, requiredTables, tempFile.Name()) // see if we can make a template
 	if !errors.As(err, &missingTableError) {
 		t.Fatalf("expected MissingTableError, received %v", err)
 	}
@@ -138,7 +144,7 @@ func TestGenericErrors(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = insertTemplate.TemplateFrom(tableData, tempFile.Name()) // run TemplateFrom again
+	_, err = template.NewInsertTemplateWithMap(tableData, requiredTables, tempFile.Name()) // run TemplateFrom again
 	if !errors.As(err, &missingColumnError) {
 		t.Fatalf("expected MissingColumnError, received %v", err)
 	}
@@ -151,7 +157,7 @@ func TestGenericErrors(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = insertTemplate.TemplateFrom(tableData, tempFile.Name()) // run template from
+	_, err = template.NewInsertTemplateWithMap(tableData, requiredTables, tempFile.Name()) // run template from
 	if !errors.As(err, &schemaerr) {
 		t.Fatalf("expected schemaError, received %v", err)
 	}
@@ -163,9 +169,58 @@ func TestGenericErrors(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = insertTemplate.TemplateFrom(tableData, tempFile.Name())
+	_, err = template.NewInsertTemplateWithMap(tableData, requiredTables, tempFile.Name())
 	if !errors.As(err, &unexpectedTypeError) {
 		t.Fatalf("expected unexpectedTypeError, received %v", err)
+	}
+}
+
+func TestTemplateWithRequiredTables(t *testing.T) {
+	sampleTemplate = map[string]map[string]map[string]any{
+		"template": {
+			"int": {
+				"TYPE":  "INT",
+				"CoDe":  "RANDOM",
+				"Value": []int{5, 20},
+			},
+		},
+		"irrelivant": {
+			"key": {
+				"TYPE":  "INT",
+				"CoDe":  "SERIAL",
+				"Value": nil,
+			},
+		},
+	}
+	tempDir := t.TempDir()
+	tempFile, err := os.CreateTemp(tempDir, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func(tempFile *os.File) {
+		err = tempFile.Close()
+		if err != nil {
+			log.Fatal(err)
+		}
+	}(tempFile)
+	err = writeMapToJSONFile(tempFile.Name(), sampleTemplate) // overwrite file
+	if err != nil {
+		t.Fatal(err)
+	}
+	// check if missing required table
+	_, err = template.NewInsertTemplateWithMap(tableData, []string{"template", "some table"}, tempFile.Name())
+	if !errors.As(err, &template.MissingRequiredTableError{}) {
+		t.Fatalf("expected MissingRequiredTableError, received %v", err)
+	}
+
+	tmpl, err := template.NewInsertTemplateWithMap(tableData, requiredTables, tempFile.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	p := tmpl.GetStrategyCodePair("irrelivant", "key")
+	if !p.IsEmpty() {
+		t.Fatal("table 'irrelivant' is supposed to be ignored as it has no relation to table 'template'")
 	}
 
 }
@@ -199,7 +254,7 @@ func TestOverrideCode(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = insertTemplate.TemplateFrom(tableData, tempFile.Name()) // shouldn't be an error
+	_, err = template.NewInsertTemplateWithMap(tableData, requiredTables, tempFile.Name()) // shouldn't be an error
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -208,7 +263,7 @@ func TestOverrideCode(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = insertTemplate.TemplateFrom(tableData, tempFile.Name())
+	_, err = template.NewInsertTemplateWithMap(tableData, requiredTables, tempFile.Name())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -242,7 +297,7 @@ func TestOptionalCodes(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = insertTemplate.TemplateFrom(tableData, tempFile.Name())
+	_, err = template.NewInsertTemplateWithMap(tableData, requiredTables, tempFile.Name())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -254,7 +309,7 @@ func TestOptionalCodes(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = insertTemplate.TemplateFrom(tableData, tempFile.Name())
+	_, err = template.NewInsertTemplateWithMap(tableData, requiredTables, tempFile.Name())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -265,7 +320,7 @@ func TestOptionalCodes(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = insertTemplate.TemplateFrom(tableData, tempFile.Name())
+	_, err = template.NewInsertTemplateWithMap(tableData, requiredTables, tempFile.Name())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -276,13 +331,14 @@ func TestOptionalCodes(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = insertTemplate.TemplateFrom(tableData, tempFile.Name())
+	_, err = template.NewInsertTemplateWithMap(tableData, requiredTables, tempFile.Name())
 	if !errors.As(err, &unsupportedErr) {
 		t.Fatalf("expected error of type UnexpectedTypeError, received %v", err)
 	}
 }
 
-func TestRequiredCodes(t *testing.T) {
+func TestInsertTemplate_GetStrategy(t *testing.T) {
+	var tmpl *template.InsertTemplate
 	tempDir := t.TempDir()
 	tempFile, err := os.CreateTemp(tempDir, "")
 	if err != nil {
@@ -294,4 +350,79 @@ func TestRequiredCodes(t *testing.T) {
 			log.Fatal(err)
 		}
 	}(tempFile)
+
+	// valid case because default applies (nil value implies use default)
+	sampleTemplate = map[string]map[string]map[string]any{
+		"template": {
+			"int": {
+				"TYPE":  "INT",
+				"CoDe":  "SERIAL",
+				"value": nil,
+			},
+		},
+	}
+	err = writeMapToJSONFile(tempFile.Name(), sampleTemplate) // write data to file
+	if err != nil {
+		t.Fatal(err)
+	}
+	tmpl, err = template.NewInsertTemplateWithMap(tableData, requiredTables, tempFile.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := tmpl.GetStrategyCodePair("template", "int")
+	if s.IsEmpty() {
+		t.Fatal("expected StrategyCodePair to not be empty")
+	}
+
+	s = tmpl.GetStrategyCodePair("templAte   ", "int   ")
+	if s.IsEmpty() {
+		t.Fatal("expected StrategyCodePair to exist due to sanitizing strings")
+	}
+
+	s = tmpl.GetStrategyCodePair("xdff", "int")
+	if !s.IsEmpty() {
+		t.Fatal("expected StrategyCodePair to be empty")
+	}
+
+}
+
+func TestInsertTemplateDefaults(t *testing.T) {
+	tempDir := t.TempDir()
+	tempFile, err := os.CreateTemp(tempDir, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func(tempFile *os.File) {
+		err = tempFile.Close()
+		if err != nil {
+			log.Fatal(err)
+		}
+	}(tempFile)
+	sampleTemplate = map[string]map[string]map[string]any{
+		"template": {
+			"date": {
+				"TYPE":  "DATE",
+				"CoDe":  "NOW",
+				"value": nil,
+			},
+		},
+	}
+	supportedTypes := []string{"INT", "FLOAT", "UUID", "DATE", "BOOL", "VARCHAR"}
+	for _, supportedType := range supportedTypes {
+		sampleTemplate["template"] = map[string]map[string]any{
+			utils.TrimAndLowerString(supportedType): {
+				"type":  supportedType,
+				"code":  "",
+				"value": nil,
+			},
+		}
+		err = writeMapToJSONFile(tempFile.Name(), sampleTemplate) // write data to file
+		if err != nil {
+			t.Fatal(err)
+		}
+		_, err = template.NewInsertTemplateWithMap(tableData, requiredTables, tempFile.Name())
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
 }

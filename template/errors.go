@@ -3,6 +3,7 @@ package template
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 )
 
 // SchemaError is an error given when the given schema doesn't match the expected schema
@@ -24,4 +25,22 @@ type PreprocessError struct {
 
 func (err PreprocessError) Error() string {
 	return fmt.Sprintf("could not preprocess value '%v' into []int, []float64 or []string", err.val)
+}
+
+// UndefinedDefaultError is an error given when a supported type does not have a default code associated with it
+type UndefinedDefaultError struct {
+	columnType string
+}
+
+func (err UndefinedDefaultError) Error() string {
+	return fmt.Sprintf("undefined default for column type: '%s'", err.columnType)
+}
+
+type MissingRequiredTableError struct {
+	tableName string
+	jsonKeys  []string
+}
+
+func (err MissingRequiredTableError) Error() string {
+	return fmt.Sprintf("missing required table '%s' in template keys [%s]", err.tableName, strings.Join(err.jsonKeys, ", "))
 }
