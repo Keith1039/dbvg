@@ -29,43 +29,43 @@ example:
 	dbvg template update --database ${POSTGRES_URL} --template ./templates/purchase_template.json  --table "shop"
 `,
 	Run: func(cmd *cobra.Command, args []string) {
-		// check to see if file exists
-		if _, err := os.Stat(template); !os.IsNotExist(err) {
-			db, err := database.InitDB(ConnString) // start up the database
-			if err != nil {
-				log.Fatal(err)
-			}
-			defer database.CloseDB(db) // close the database connection
-
-			oldTemplate, err := verifyTemplate(template) // verify that the old template is a valid template and return information
-			if err != nil {
-				log.Fatal(err)
-			}
-			ord, err := graph.NewOrdering(db) // get a new ordering
-			if err != nil {
-				log.Fatal(err)
-			}
-			table = utils.TrimAndLowerString(table) // clean the table value
-			tableOrder, err := ord.GetOrder(table)  // get the order of the tables
-			if err != nil {
-				log.Fatal(err)
-			}
-
-			newTemplate := utils.MakeTemplates(db, tableOrder)          // get a new blank template
-			updateTemplate(oldTemplate, newTemplate)                    // template the new template with the info in the old template
-			jsonBytes, err := json.MarshalIndent(newTemplate, "", "  ") // marshall the map
-			if err != nil {
-				log.Fatal(err)
-			}
-
-			err = os.WriteFile(template, jsonBytes, os.ModePerm)
-			if err != nil {
-				log.Fatal(err)
-			}
-
-		} else {
-			log.Fatal("incorrect path to template. Please verify that the file exists")
+		db, err := database.InitDB(ConnString) // start up the database
+		if err != nil {
+			log.Fatal(err)
 		}
+		defer database.CloseDB(db) // close the database connection
+
+		// check to see if file exists
+		oldTemplate, err := utils.RetrieveInsertTemplateJSON(template) // verify that the old template is a valid template and return information
+		if err != nil {
+			log.Fatal(err)
+		}
+		err = verifyTemplate(oldTemplate) // shallow verification
+		if err != nil {
+			log.Fatal(err)
+		}
+		ord, err := graph.NewOrdering(db) // get a new ordering
+		if err != nil {
+			log.Fatal(err)
+		}
+		table = utils.TrimAndLowerString(table) // clean the table value
+		tableOrder, err := ord.GetOrder(table)  // get the order of the tables
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		newTemplate := utils.MakeTemplates(db, tableOrder)          // get a new blank template
+		updateTemplate(oldTemplate, newTemplate)                    // template the new template with the info in the old template
+		jsonBytes, err := json.MarshalIndent(newTemplate, "", "  ") // marshall the map
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		err = os.WriteFile(template, jsonBytes, os.ModePerm)
+		if err != nil {
+			log.Fatal(err)
+		}
+
 	},
 }
 
@@ -91,45 +91,34 @@ func init() {
 	// updateCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
 
-func verifyTemplate(templatePath string) (map[string]map[string]map[string]string, error) {
-	m := make(map[string]map[string]map[string]string)
-	bytes, err := os.ReadFile(templatePath) // read the bytes
-	if err != nil {
-		return nil, err
-	}
-
-	err = json.Unmarshal(bytes, &m) // unmarshal the JSON
-	if err != nil {
-		return nil, err
-	}
-
+func verifyTemplate(m map[string]map[string]map[string]any) error {
 	// check the keys (doesn't verify the tables or columns yet)
 	for _, columns := range m {
 		for _, columnFields := range columns {
-			_, ok := columnFields["Code"]
+			_, ok := columnFields["code"]
 			if !ok {
-				return nil, errors.New("corrupted template file detected")
+				return errors.New("corrupted template file detected")
 			}
-			_, ok = columnFields["Type"]
+			_, ok = columnFields["type"]
 			if !ok {
-				return nil, errors.New("corrupted template file detected")
+				return errors.New("corrupted template file detected")
 			}
-			_, ok = columnFields["Value"]
+			_, ok = columnFields["value"]
 			if !ok {
-				return nil, errors.New("corrupted template file detected")
+				return errors.New("corrupted template file detected")
 			}
 		}
 	}
-	return m, nil
+	return nil
 }
 
-func updateTemplate(oldTemplate map[string]map[string]map[string]string, newTemplate map[string]map[string]map[string]string) {
-	for table, columns := range newTemplate {
+func updateTemplate(oldTemplate map[string]map[string]map[string]any, newTemplate map[string]map[string]map[string]any) {
+	for tableName, columns := range newTemplate {
 		for columnName := range columns {
-			_, ok := oldTemplate[table][columnName]
+			_, ok := oldTemplate[tableName][columnName]
 			if ok {
-				newTemplate[table][columnName]["Code"] = oldTemplate[table][columnName]["Code"]   // set the code to the existing code
-				newTemplate[table][columnName]["Value"] = oldTemplate[table][columnName]["Value"] // set the value to the existing value
+				newTemplate[tableName][columnName]["code"] = oldTemplate[tableName][columnName]["code"]   // set the code to the existing code
+				newTemplate[tableName][columnName]["value"] = oldTemplate[tableName][columnName]["value"] // set the value to the existing value
 			}
 		}
 	}

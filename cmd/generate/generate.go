@@ -31,7 +31,6 @@ INSERT and DELETE queries using the queries command
 
 func addSubCommands() {
 	GenerateCmd.AddCommand(entryCmd)
-	GenerateCmd.AddCommand(queriesCmd)
 }
 
 func init() {
