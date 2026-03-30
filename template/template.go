@@ -4,87 +4,14 @@
 package template
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/Keith1039/dbvg/strategy"
 	"github.com/Keith1039/dbvg/utils"
-	"os"
 )
-
-// NOTE: This section of code will eventually be moved to parsers or something that parsers use
-// NULL isn't included since it's by default always supported
-var overrideCodes = map[string]map[string]bool{
-	"DATE": {"NOW": true},
-	"UUID": {"UUID": true},
-	"BOOL": {"RANDOM": true},
-	"VARCHAR": {
-		"EMAIL":     true,
-		"FIRSTNAME": true,
-		"LASTNAME":  true,
-		"FULLNAME":  true,
-		"PHONE":     true,
-		"COUNTRY":   true,
-		"ADDRESS":   true,
-		"ZIPCODE":   true,
-		"CITY":      true,
-	},
-}
-
-// codes that don't need a value but can still be given one
-var optionalCodes = map[string]map[string]bool{
-	"INT": {"SEQ": true},
-}
-
-// codes that use a value (if none is given default is configured in parser
-var requiredCodeMap = map[string]map[string]bool{
-	"BOOL": {
-		"STATIC": true,
-	},
-	"DATE": {
-		"RANDOM": true,
-		"STATIC": true,
-	},
-	"INT": {
-		"RANDOM": true,
-		"STATIC": true,
-	},
-	"FLOAT": {
-		"RANDOM": true,
-		"STATIC": true,
-	},
-	"VARCHAR": {
-		"STATIC": true,
-		"REGEX":  true,
-	},
-}
-
-// section end
 
 type Template interface {
 	TemplateFrom(string) error // parses a template file and validates it's contents, it then fills the struct
-}
-
-// validate and unmarshal the JSON
-func retrieveJSON(path string) (map[string]map[string]map[string]any, error) {
-	var bytes []byte
-	data := make(map[string]map[string]map[string]any) // data container
-	cleanFilePath, err := utils.CleanFilePath(path)    // clean the file path and check for errors
-	if err != nil {                                    // error check
-		return nil, err
-	}
-	if _, err = os.Stat(cleanFilePath); os.IsNotExist(err) { // check if file exists
-		return nil, err
-	}
-	bytes, err = os.ReadFile(cleanFilePath) // read the bytes from the file
-	if err != nil {                         // error check
-		return nil, err
-	}
-	err = json.Unmarshal(bytes, &data) // unmarshall bytes into container
-	if err != nil {                    // error check
-		return nil, err
-	}
-	return data, nil // return the data for validation
 }
 
 // map the key to a value

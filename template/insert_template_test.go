@@ -131,7 +131,7 @@ func TestGenericErrors(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = template.NewInsertTemplateWithMap(tableData, requiredTables, tempFile.Name()) // see if we can make a template
+	_, err = template.NewInsertTemplate(tableData, requiredTables, tempFile.Name()) // see if we can make a template
 	if !errors.As(err, &missingTableError) {
 		t.Fatalf("expected MissingTableError, received %v", err)
 	}
@@ -144,7 +144,7 @@ func TestGenericErrors(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, err = template.NewInsertTemplateWithMap(tableData, requiredTables, tempFile.Name()) // run TemplateFrom again
+	_, err = template.NewInsertTemplate(tableData, requiredTables, tempFile.Name()) // run TemplateFrom again
 	if !errors.As(err, &missingColumnError) {
 		t.Fatalf("expected MissingColumnError, received %v", err)
 	}
@@ -157,7 +157,7 @@ func TestGenericErrors(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, err = template.NewInsertTemplateWithMap(tableData, requiredTables, tempFile.Name()) // run template from
+	_, err = template.NewInsertTemplate(tableData, requiredTables, tempFile.Name()) // run template from
 	if !errors.As(err, &schemaerr) {
 		t.Fatalf("expected schemaError, received %v", err)
 	}
@@ -169,7 +169,7 @@ func TestGenericErrors(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, err = template.NewInsertTemplateWithMap(tableData, requiredTables, tempFile.Name())
+	_, err = template.NewInsertTemplate(tableData, requiredTables, tempFile.Name())
 	if !errors.As(err, &unexpectedTypeError) {
 		t.Fatalf("expected unexpectedTypeError, received %v", err)
 	}
@@ -208,12 +208,12 @@ func TestTemplateWithRequiredTables(t *testing.T) {
 		t.Fatal(err)
 	}
 	// check if missing required table
-	_, err = template.NewInsertTemplateWithMap(tableData, []string{"template", "some table"}, tempFile.Name())
+	_, err = template.NewInsertTemplate(tableData, []string{"template", "some table"}, tempFile.Name())
 	if !errors.As(err, &template.MissingRequiredTableError{}) {
 		t.Fatalf("expected MissingRequiredTableError, received %v", err)
 	}
 
-	tmpl, err := template.NewInsertTemplateWithMap(tableData, requiredTables, tempFile.Name())
+	tmpl, err := template.NewInsertTemplate(tableData, requiredTables, tempFile.Name())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -254,7 +254,7 @@ func TestOverrideCode(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = template.NewInsertTemplateWithMap(tableData, requiredTables, tempFile.Name()) // shouldn't be an error
+	_, err = template.NewInsertTemplate(tableData, requiredTables, tempFile.Name()) // shouldn't be an error
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -263,7 +263,7 @@ func TestOverrideCode(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = template.NewInsertTemplateWithMap(tableData, requiredTables, tempFile.Name())
+	_, err = template.NewInsertTemplate(tableData, requiredTables, tempFile.Name())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -297,7 +297,7 @@ func TestOptionalCodes(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = template.NewInsertTemplateWithMap(tableData, requiredTables, tempFile.Name())
+	_, err = template.NewInsertTemplate(tableData, requiredTables, tempFile.Name())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -309,7 +309,7 @@ func TestOptionalCodes(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = template.NewInsertTemplateWithMap(tableData, requiredTables, tempFile.Name())
+	_, err = template.NewInsertTemplate(tableData, requiredTables, tempFile.Name())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -320,7 +320,7 @@ func TestOptionalCodes(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = template.NewInsertTemplateWithMap(tableData, requiredTables, tempFile.Name())
+	_, err = template.NewInsertTemplate(tableData, requiredTables, tempFile.Name())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -331,7 +331,7 @@ func TestOptionalCodes(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = template.NewInsertTemplateWithMap(tableData, requiredTables, tempFile.Name())
+	_, err = template.NewInsertTemplate(tableData, requiredTables, tempFile.Name())
 	if !errors.As(err, &unsupportedErr) {
 		t.Fatalf("expected error of type UnexpectedTypeError, received %v", err)
 	}
@@ -365,7 +365,7 @@ func TestInsertTemplate_GetStrategy(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	tmpl, err = template.NewInsertTemplateWithMap(tableData, requiredTables, tempFile.Name())
+	tmpl, err = template.NewInsertTemplate(tableData, requiredTables, tempFile.Name())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -420,7 +420,7 @@ func TestInsertTemplateDefaults(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		_, err = template.NewInsertTemplateWithMap(tableData, requiredTables, tempFile.Name())
+		_, err = template.NewInsertTemplate(tableData, requiredTables, tempFile.Name())
 		if err != nil {
 			t.Fatal(err)
 		}

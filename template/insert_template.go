@@ -1,6 +1,8 @@
 package template
 
 import (
+	"database/sql"
+	database "github.com/Keith1039/dbvg/db"
 	"github.com/Keith1039/dbvg/graph"
 	"github.com/Keith1039/dbvg/strategy"
 	"github.com/Keith1039/dbvg/utils"
@@ -25,10 +27,21 @@ func makeInsertTemplate(tableData map[string]map[string]string, requiredTables [
 	return t, nil
 }
 
-// NewInsertTemplateWithMap creates a InsertTable struct using a static map, this is to prevent multiple duplicate
+// NewInsertTemplate creates a InsertTemplate struct using a static map, this is to prevent multiple duplicate
 // database queries. Process is identical to NewInsertTemplateWithDB
-func NewInsertTemplateWithMap(tableData map[string]map[string]string, requiredTables []string, path string) (*InsertTemplate, error) {
+func NewInsertTemplate(tableData map[string]map[string]string, requiredTables []string, path string) (*InsertTemplate, error) {
 	return makeInsertTemplate(tableData, requiredTables, path)
+}
+
+func NewDefaultInsertTemplate(db *sql.DB, requiredTables []string) (*InsertTemplate, error) {
+	defaultTemplateData := utils.MakeTemplates(db, requiredTables)
+	tableData := database.GetAllColumnData(db)
+	t := &InsertTemplate{}
+	err := t.defaultTemplateFrom(tableData, requiredTables, defaultTemplateData)
+	if err != nil {
+		return nil, err
+	}
+	return t, nil
 }
 
 // StrategyCodePair is a struct only meant to facilitate the transfer of information between packages
@@ -49,11 +62,21 @@ type InsertTemplate struct {
 
 // fills the struct with data
 func (t *InsertTemplate) templateFrom(tableData map[string]map[string]string, requiredTables []string, path string) error {
-	data, err := retrieveJSON(path) // run some validation and retrieve JSON data
-	if err != nil {                 // error check
+	data, err := utils.RetrieveInsertTemplateJSON(path) // run some validation and retrieve JSON data
+	if err != nil {                                     // error check
 		return err
 	}
 	err = t.validateTemplate(data, tableData, insertSchema, requiredTables) // validate the data given to see if it matches schema
+	// add an extra step for checking if the value has a type that is supported by the code
+	if err != nil { // error check
+		return err
+	}
+	return nil
+}
+
+func (t *InsertTemplate) defaultTemplateFrom(tableData map[string]map[string]string, requiredTables []string, templateData map[string]map[string]map[string]any) error {
+	t.strategyMap = make(map[string]map[string]StrategyCodePair)                     // initialize map
+	err := t.validateTemplate(templateData, tableData, insertSchema, requiredTables) // validate the data given to see if it matches schema
 	// add an extra step for checking if the value has a type that is supported by the code
 	if err != nil { // error check
 		return err
@@ -82,7 +105,7 @@ func (t *InsertTemplate) validateTemplate(jsonData map[string]map[string]map[str
 		// condition to ignore irrelevant tables (i.e. any table that isn't required)
 		if _, ok := requiredTableMap[tableName]; ok {
 			for colName, columnInfo := range columns {
-				if _, ok := tableData[tableName][colName]; !ok { // check if the column exists in that schema
+				if _, ok = tableData[tableName][colName]; !ok { // check if the column exists in that schema
 					return graph.NewMissingColumnError(tableName, colName)
 				}
 				normalizeKeys(columnInfo)                  // trims and lowers each key while maintaining the key value pairs
@@ -113,6 +136,7 @@ func (t *InsertTemplate) checkCodesAndSetStrategy(tableName, columnName string, 
 	code := utils.TrimAndUpperString(columnInfo["code"].(string))    // get the code as string
 	val := columnInfo["value"]                                       // get the value
 	if code == "" && val == nil {
+		code = defaultCode[colType] // set code
 		sFunc, ok := defaults[colType]
 		if !ok {
 			return UndefinedDefaultError{columnType: colType}

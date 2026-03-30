@@ -3,6 +3,7 @@ package utils
 import (
 	"container/list"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	database "github.com/Keith1039/dbvg/db"
@@ -41,8 +42,8 @@ func ListToAnyArray(l *list.List) []any {
 }
 
 // MakeTemplates takes in a database connection and an array of tables and formats it into a map suitable for JSON
-func MakeTemplates(db *sql.DB, tableOrder []string) map[string]map[string]map[string]string {
-	m := make(map[string]map[string]map[string]string)
+func MakeTemplates(db *sql.DB, tableOrder []string) map[string]map[string]map[string]any {
+	m := make(map[string]map[string]map[string]any)
 	relations := database.GetRelationships(db) // get relationships
 	for _, tName := range tableOrder {
 		m[tName] = makeTemplate(db, tName, relations)
@@ -50,8 +51,8 @@ func MakeTemplates(db *sql.DB, tableOrder []string) map[string]map[string]map[st
 	return m
 }
 
-func makeTemplate(db *sql.DB, tName string, relations map[string]map[string]map[string]string) map[string]map[string]string {
-	m := make(map[string]map[string]string)
+func makeTemplate(db *sql.DB, tName string, relations map[string]map[string]map[string]string) map[string]map[string]any {
+	m := make(map[string]map[string]any)
 	cols, err := schema.ColumnTypes(db, "", tName)
 	colMap := database.GetColumnMap(db, tName)
 	if err != nil {
@@ -60,7 +61,7 @@ func makeTemplate(db *sql.DB, tName string, relations map[string]map[string]map[
 	for _, col := range cols {
 		_, ok := relations[tName][col.Name()] // check if the column is a fk
 		if !ok {
-			m[col.Name()] = map[string]string{"Type": colMap[col.Name()], "Code": "", "Value": ""}
+			m[col.Name()] = map[string]any{"type": colMap[col.Name()], "code": "", "value": nil}
 		}
 	}
 	return m
@@ -163,4 +164,25 @@ func GetTimeFromString(dateString string) (time.Time, error) {
 		return time.Time{}, c.Error
 	}
 	return c.ToStdTime(), nil
+}
+
+func RetrieveInsertTemplateJSON(path string) (map[string]map[string]map[string]any, error) {
+	var bytes []byte
+	data := make(map[string]map[string]map[string]any) // data container
+	cleanFilePath, err := CleanFilePath(path)          // clean the file path and check for errors
+	if err != nil {                                    // error check
+		return nil, err
+	}
+	if _, err = os.Stat(cleanFilePath); os.IsNotExist(err) { // check if file exists
+		return nil, err
+	}
+	bytes, err = os.ReadFile(cleanFilePath) // read the bytes from the file
+	if err != nil {                         // error check
+		return nil, err
+	}
+	err = json.Unmarshal(bytes, &data) // unmarshall bytes into container
+	if err != nil {                    // error check
+		return nil, err
+	}
+	return data, nil // return the data for validation
 }

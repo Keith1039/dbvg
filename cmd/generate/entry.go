@@ -32,11 +32,11 @@ examples:
 
 		var writer *parameters.QueryWriter
 		db, err := database.InitDB(ConnString) // starts up database connection
-		defer database.CloseDB(db)             // closes the database connection
-
 		if err != nil {
 			log.Fatal(err)
 		}
+		defer database.CloseDB(db) // closes the database connection
+
 		tMap := database.GetTableMap(db)
 		table = utils.TrimAndLowerString(table)
 		_, ok := tMap[table]
@@ -57,13 +57,12 @@ examples:
 				log.Fatal(err)
 			}
 		}
-		insertQueries, deleteQueries := writer.GenerateEntries(amount)
+		insertBatch, deleteBatch := writer.GenerateEntries(amount)
 
 		fmt.Println("Beginning INSERT query execution...")
-		if verbose {
-			err = database.RunUnsafeQueriesVerbose(db, insertQueries)
-		} else {
-			err = database.RunUnsafeQueries(db, insertQueries)
+		err = insertBatch.Exec(db, verbose)
+		if err != nil {
+			log.Fatal(err)
 		}
 		if err != nil {
 			log.Fatal(err)
@@ -74,10 +73,9 @@ examples:
 			fmt.Print("Press Enter to begin clean up: ")
 			br.ReadString('\n') // error doesn't matter
 			fmt.Println("Beginning DELETE query execution...")
-			if verbose {
-				err = database.RunUnsafeQueriesVerbose(db, deleteQueries)
-			} else {
-				err = database.RunUnsafeQueries(db, deleteQueries)
+			err = deleteBatch.Exec(db, verbose)
+			if err != nil {
+				log.Fatal(err)
 			}
 			if err != nil {
 				log.Fatal(err)
