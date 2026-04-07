@@ -20,27 +20,14 @@ func (q *queryBatch) init() {
 }
 
 func (q *queryBatch) executeBatch(ctx context.Context, db *sql.DB, verbose bool) error {
-	i := 1
 	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer tx.Rollback() // don't care about error
-	node := q.queryList.Front()
-	paramNode := q.paramsList.Front()
-	for node != nil {
-		query := node.Value.(string)
-		params := paramNode.Value.([]any)
-		if verbose {
-			fmt.Println(fmt.Sprintf("executing query %d: '%s' with parameters: %v", i, query, arrayAsString(params)))
-		}
-		_, err = tx.ExecContext(ctx, query, params...)
-		if err != nil {
-			return err
-		}
-		i++
-		node = node.Next()
-		paramNode = paramNode.Next()
+	err = q.executeBatchAsTransaction(ctx, tx, verbose)
+	if err != nil {
+		return err
 	}
 	err = tx.Commit()
 	if err != nil {
@@ -84,6 +71,10 @@ func (q *queryBatch) ExecTransact(tx *sql.Tx, verbose bool) error {
 
 func (q *queryBatch) ExecTransactContext(ctx context.Context, tx *sql.Tx, verbose bool) error {
 	return q.executeBatchAsTransaction(ctx, tx, verbose)
+}
+
+func (q *queryBatch) Size() int {
+	return q.queryList.Len()
 }
 
 type InsertBatch struct {

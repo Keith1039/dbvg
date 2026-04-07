@@ -6,6 +6,7 @@ import (
 	"errors"
 	database "github.com/Keith1039/dbvg/db"
 	"github.com/Keith1039/dbvg/graph"
+	"github.com/Keith1039/dbvg/parameters"
 	"github.com/Keith1039/dbvg/strategy"
 	"github.com/Keith1039/dbvg/template"
 	"github.com/Keith1039/dbvg/utils"
@@ -27,6 +28,8 @@ var tableData map[string]map[string]string
 var requiredTables []string
 
 const path = "file://../db/migrations/"
+
+const realMigrationPath = "file://../db/real_migrations/"
 
 func drop() {
 	// drop the database
@@ -87,6 +90,23 @@ func buildUp(caseName string) error {
 	return nil
 }
 
+func buildUpRealCase() error {
+	// migrate the schema up
+	driver, err := postgres.WithInstance(db, &postgres.Config{})
+	m, err2 := migrate.NewWithDatabaseInstance(
+		realMigrationPath,
+		"postgres", driver)
+	if m != nil {
+		err = m.Up()
+		if err != nil {
+			return err
+		}
+	} else {
+		return err2
+	}
+	return nil
+}
+
 // to get the desired behavior, we need to take the sample template, shove it into a temporary file
 func writeMapToJSONFile(filePath string, data map[string]map[string]map[string]any) error {
 	jsonData, err := json.MarshalIndent(data, "", " ")
@@ -103,10 +123,6 @@ func writeMapToJSONFile(filePath string, data map[string]map[string]map[string]a
 // this code is to check if certain cases produce the correct errors (missing table etc)
 // this also indirectly tests if the keys are case-insensitive
 func TestGenericErrors(t *testing.T) {
-	var missingTableError graph.MissingTableError
-	var missingColumnError graph.MissingColumnError
-	var schemaerr template.SchemaError
-	var unexpectedTypeError strategy.UnexpectedTypeError
 	// check for missing table error
 	sampleTemplate = map[string]map[string]map[string]any{
 		"table": {
@@ -132,7 +148,7 @@ func TestGenericErrors(t *testing.T) {
 		t.Fatal(err)
 	}
 	_, err = template.NewInsertTemplate(tableData, requiredTables, tempFile.Name()) // see if we can make a template
-	if !errors.As(err, &missingTableError) {
+	if !errors.As(err, &graph.MissingTableError{}) {
 		t.Fatalf("expected MissingTableError, received %v", err)
 	}
 
@@ -145,7 +161,7 @@ func TestGenericErrors(t *testing.T) {
 	}
 
 	_, err = template.NewInsertTemplate(tableData, requiredTables, tempFile.Name()) // run TemplateFrom again
-	if !errors.As(err, &missingColumnError) {
+	if !errors.As(err, &graph.MissingColumnError{}) {
 		t.Fatalf("expected MissingColumnError, received %v", err)
 	}
 
@@ -158,7 +174,7 @@ func TestGenericErrors(t *testing.T) {
 	}
 
 	_, err = template.NewInsertTemplate(tableData, requiredTables, tempFile.Name()) // run template from
-	if !errors.As(err, &schemaerr) {
+	if !errors.As(err, &template.SchemaError{}) {
 		t.Fatalf("expected schemaError, received %v", err)
 	}
 
@@ -170,7 +186,7 @@ func TestGenericErrors(t *testing.T) {
 	}
 
 	_, err = template.NewInsertTemplate(tableData, requiredTables, tempFile.Name())
-	if !errors.As(err, &unexpectedTypeError) {
+	if !errors.As(err, &strategy.UnexpectedTypeError{}) {
 		t.Fatalf("expected unexpectedTypeError, received %v", err)
 	}
 }
@@ -425,4 +441,22 @@ func TestInsertTemplateDefaults(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
+}
+
+func BenchmarkGenerateQueries(b *testing.B) {
+	drop()
+	err := buildUpRealCase()
+	if err != nil {
+		b.Fatal(err)
+	}
+	writer, err := parameters.NewQueryWriter(db, "purchases")
+	if err != nil {
+		b.Fatal(err)
+	}
+	b.ResetTimer()
+	for range b.N {
+		insertBatch, deleteBatch := writer.GenerateEntries(5000)
+		b.Logf("\ninsert batch size: %d\ndelete batch size: %d", insertBatch.Size(), deleteBatch.Size())
+	}
+	b.StopTimer()
 }

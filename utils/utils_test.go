@@ -1,6 +1,7 @@
 package utils_test
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/Keith1039/dbvg/utils"
 	"github.com/golang-module/carbon"
@@ -78,4 +79,64 @@ func TestGetTimeFromString(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+}
+
+func TestRetrieveInsertTemplateJSON(t *testing.T) {
+	dir := t.TempDir()
+	f, err := os.CreateTemp(dir, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+	sampleTemplate := map[string]map[string]map[string]any{
+		"table": {
+			"column": {
+				"TYPE": "INT",
+				"CoDe": "RANDOM",
+			},
+		},
+	}
+	err = writeMapToJSONFile(f.Name(), sampleTemplate)
+	if err != nil {
+		t.Fatal(err)
+	}
+	m, err := utils.RetrieveInsertTemplateJSON(f.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
+	for k, v := range m {
+		for k2, v2 := range v {
+			for k3, v3 := range v2 {
+				if v3 != sampleTemplate[k][k2][k3] {
+					t.Fatalf("error, maps %v  and %v are not equal", sampleTemplate, m)
+				}
+			}
+		}
+	}
+	jsonData, err := json.MarshalIndent(map[string]any{"something": true}, "", " ")
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = os.WriteFile(f.Name(), jsonData, os.ModePerm)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	m, err = utils.RetrieveInsertTemplateJSON(f.Name())
+	if err == nil {
+		t.Fatal("error should have been returned, template was invalid")
+	}
+}
+
+// to get the desired behavior, we need to take the sample template, shove it into a temporary file
+func writeMapToJSONFile(filePath string, data map[string]map[string]map[string]any) error {
+	jsonData, err := json.MarshalIndent(data, "", " ")
+	if err != nil {
+		return err
+	}
+	err = os.WriteFile(filePath, jsonData, os.ModePerm)
+	if err != nil {
+		return err
+	}
+	return nil
 }

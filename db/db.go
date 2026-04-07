@@ -183,7 +183,8 @@ func GetRelationships(db *sql.DB) map[string]map[string]map[string]string {
 }
 
 // GetInverseRelationships returns a map relating tables to tables that relate to them. It's the same data as the `GetRelationship()` map
-// but formatted differently
+// but formatted differently. For example, if the format given by GetRelationships is {table1: {FKColumn: {"Table: table2, "Column": "table2_Col"}}}
+// the inverse would be {table2: {table1: true}}
 func GetInverseRelationships(db *sql.DB) map[string]map[string]bool {
 	var tableName, fkColumnName, refTableName, refColumnName string
 	relations := make(map[string]map[string]bool)
