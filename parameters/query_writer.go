@@ -54,15 +54,13 @@ func NewQueryWriterWithTemplate(db *sql.DB, tableName string, filePath string) (
 
 // QueryWriter is the struct responsible for generating data for it's given table
 type QueryWriter struct {
-	db               *sql.DB                                 // the database connection
-	template         *template.InsertTemplate                // the template struct that contains the pairs
-	tableName        string                                  // name of the 'table' it's generating data for
-	tableMap         map[string]*table                       // a map of the 'table names' to their table object
-	allRelations     map[string]map[string]map[string]string // all 'table' relationships expressed as a map
-	fkMap            map[string]map[string]any               // a map of foreign keys
-	TableOrder       []string                                // queue
-	insertQueryQueue *list.List                              // queue
-	deleteQueryQueue *list.List                              // queue
+	db           *sql.DB                                 // the database connection
+	template     *template.InsertTemplate                // the template struct that contains the pairs
+	tableName    string                                  // name of the 'table' it's generating data for
+	tableMap     map[string]*table                       // a map of the 'table names' to their table object
+	allRelations map[string]map[string]map[string]string // all 'table' relationships expressed as a map
+	fkMap        map[string]map[string]any               // a map of foreign keys
+	TableOrder   []string                                // queue
 }
 
 // init initializes the QueryWriter and returns any errors that occur upon initialization
@@ -78,8 +76,6 @@ func (qw *QueryWriter) init() error {
 	if err != nil {
 		return err
 	}
-	qw.insertQueryQueue = list.New()
-	qw.deleteQueryQueue = list.New()
 	return err
 }
 

@@ -166,6 +166,9 @@ func GetTimeFromString(dateString string) (time.Time, error) {
 	return c.ToStdTime(), nil
 }
 
+// RetrieveInsertTemplateJSON takes in a path to a file and retrieves the JSON data for an
+// InsertTemplate. Various checks occur to ensure that the path given works on any operating system
+// so long as it is a valid path.
 func RetrieveInsertTemplateJSON(path string) (map[string]map[string]map[string]any, error) {
 	var bytes []byte
 	data := make(map[string]map[string]map[string]any) // data container
