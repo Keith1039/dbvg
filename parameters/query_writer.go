@@ -4,7 +4,6 @@
 package parameters
 
 import (
-	"container/list"
 	"database/sql"
 	"fmt"
 	database "github.com/Keith1039/dbvg/db"
@@ -98,8 +97,9 @@ func (qw *QueryWriter) setFKMap() {
 func (qw *QueryWriter) GenerateEntries(amount int) (*InsertBatch, *DeleteBatch) {
 	insertBatch := &InsertBatch{}
 	deleteBatch := &DeleteBatch{}
-	insertBatch.init()
-	deleteBatch.init()
+	total := len(qw.tableMap) * amount // expected total
+	insertBatch.init(total)
+	deleteBatch.init(total)
 
 	for i := 0; i < amount; i++ {
 		for _, tableName := range qw.TableOrder {
@@ -116,37 +116,34 @@ func (qw *QueryWriter) GenerateEntry() (*InsertBatch, *DeleteBatch) {
 }
 
 func (qw *QueryWriter) processTable(tableName string, insertBatch *InsertBatch, deleteBatch *DeleteBatch) {
-	//var writer SQLWriter
+	var colVal any
+	var err error
 	t := qw.tableMap[tableName]
-	allColumns := getAllColumnNames(t.Columns)
-	paraString := createParameterString(len(t.Columns))
-	deleteQuery := createDeleteQuery(allColumns, paraString)
-	l := list.New()
+	allColumns, paraString, deleteQuery := getQueryParams(t.Columns)
+	i := 0
+	parameterArr := make([]any, len(allColumns))
 	for _, col := range t.Columns {
 		fkRelation, fk := qw.allRelations[tableName][col.ColumnName]
 		if fk {
-			colVal := qw.fkMap[fkRelation["Table"]][fkRelation["Column"]] // retrieve the stored foreign key value
-			l.PushBack(colVal)
+			colVal = qw.fkMap[fkRelation["Table"]][fkRelation["Column"]] // retrieve the stored foreign key value
 		} else {
-			colVal, err := col.Pair.Strategy.ExecuteStrategy()
+			colVal, err = col.Pair.Strategy.ExecuteStrategy()
 			if err != nil {
 				log.Fatalf("strategy execution for code '%s' failed for column '%s' of table '%s'", col.Pair.Code, col.ColumnName, tableName)
 			}
-			l.PushBack(colVal)
 			_, isFK := qw.fkMap[tableName][col.ColumnName]
 			if isFK {
 				qw.fkMap[tableName][col.ColumnName] = colVal
 			}
 		}
+		parameterArr[i] = colVal
+		i++
 	}
-	parameterArr := utils.ListToAnyArray(l)
 	query := fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s);", t.TableName, strings.Join(allColumns, ", "), strings.Join(paraString, ", "))
-	insertBatch.queryList.PushBack(query)
-	insertBatch.paramsList.PushBack(parameterArr)
+	insertBatch.append(query, parameterArr)
 
 	query = fmt.Sprintf("DELETE FROM %s WHERE %s;", tableName, strings.Join(deleteQuery, " AND "))
-	deleteBatch.queryList.PushFront(query)
-	deleteBatch.paramsList.PushFront(parameterArr)
+	deleteBatch.reverseAppend(query, parameterArr)
 }
 
 func (qw *QueryWriter) setTableMap() {

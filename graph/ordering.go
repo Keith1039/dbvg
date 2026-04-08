@@ -97,8 +97,8 @@ func (tl *Ordering) GetSuggestionQueriesForCycles(cycles []string) []string {
 func (tl *Ordering) GetAndResolveCycles() {
 	cycles := tl.GetCycles() // get your cycles
 	cycleBreaking, relMap := tl.getCycleBreakingOrder(cycles)
-	suggestions := tl.getSuggestions(cycleBreaking, relMap) // get your suggestions
-	err := database.RunUnsafeQueries(tl.db, suggestions)    // run the suggestions
+	suggestions := tl.getSuggestions(cycleBreaking, relMap)     // get your suggestions
+	err := database.RunUnsafeQueries(tl.db, suggestions, false) // run the suggestions
 	if err != nil {
 		log.Fatal(err) // panic if it fails
 	}
@@ -107,8 +107,8 @@ func (tl *Ordering) GetAndResolveCycles() {
 // ResolveGivenCycles gets suggestion queries for the given cycles and runs them similar to GetAndResolveCycles
 func (tl *Ordering) ResolveGivenCycles(cycles []string) {
 	cycleBreaking, relMap := tl.getCycleBreakingOrder(cycles)
-	suggestions := tl.getSuggestions(cycleBreaking, relMap) // get your suggestions
-	err := database.RunUnsafeQueries(tl.db, suggestions)    // run the suggestions
+	suggestions := tl.getSuggestions(cycleBreaking, relMap)     // get your suggestions
+	err := database.RunUnsafeQueries(tl.db, suggestions, false) // run the suggestions
 	if err != nil {
 		log.Fatal(err) // panic if it fails
 	}

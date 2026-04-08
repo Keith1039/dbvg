@@ -1,31 +1,18 @@
 package parameters
 
 import (
-	"container/list"
 	"fmt"
-	"github.com/Keith1039/dbvg/utils"
 )
 
-func getAllColumnNames(columns []*column) []string {
-	l := list.New()
-	for _, col := range columns {
-		l.PushBack(col.ColumnName)
+func getQueryParams(columns []*column) ([]string, []string, []string) {
+	colLen := len(columns)
+	allColumns := make([]string, colLen)
+	paramStrings := make([]string, colLen)
+	deleteQuery := make([]string, colLen)
+	for i, col := range columns {
+		allColumns[i] = col.ColumnName
+		paramStrings[i] = fmt.Sprintf("$%d", i+1)
+		deleteQuery[i] = fmt.Sprintf("%s=%s", allColumns[i], paramStrings[i])
 	}
-	return utils.ListToStringArray(l)
-}
-
-func createParameterString(length int) []string {
-	arr := make([]string, length)
-	for i := 0; i < length; i++ {
-		arr[i] = fmt.Sprintf("$%d", i+1)
-	}
-	return arr
-}
-
-func createDeleteQuery(allColumn, parameterString []string) []string {
-	l := list.New()
-	for i, col := range allColumn {
-		l.PushBack(fmt.Sprintf("%s=%s", col, parameterString[i]))
-	}
-	return utils.ListToStringArray(l)
+	return allColumns, paramStrings, deleteQuery
 }

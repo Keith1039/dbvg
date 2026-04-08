@@ -1,7 +1,6 @@
 package parameters
 
 import (
-	"container/list"
 	"context"
 	"database/sql"
 	"fmt"
@@ -10,13 +9,28 @@ import (
 )
 
 type queryBatch struct {
-	queryList  *list.List
-	paramsList *list.List
+	size       int
+	slider     int
+	queryList  []string
+	paramsList [][]any
 }
 
-func (q *queryBatch) init() {
-	q.queryList = list.New()
-	q.paramsList = list.New()
+func (q *queryBatch) init(size int) {
+	q.queryList = make([]string, size)
+	q.paramsList = make([][]any, size)
+	q.size = size
+}
+
+func (q *queryBatch) append(query string, params []any) {
+	q.queryList[q.slider] = query
+	q.paramsList[q.slider] = params
+	q.slider++
+}
+
+func (q *queryBatch) reverseAppend(query string, params []any) {
+	q.queryList[q.size-q.slider-1] = query
+	q.paramsList[q.size-q.slider-1] = params
+	q.slider++
 }
 
 func (q *queryBatch) executeBatch(ctx context.Context, db *sql.DB, verbose bool) error {
@@ -37,22 +51,15 @@ func (q *queryBatch) executeBatch(ctx context.Context, db *sql.DB, verbose bool)
 }
 
 func (q *queryBatch) executeBatchAsTransaction(ctx context.Context, tx *sql.Tx, verbose bool) error {
-	i := 1
-	node := q.queryList.Front()
-	paramNode := q.paramsList.Front()
-	for node != nil {
-		query := node.Value.(string)
-		params := paramNode.Value.([]any)
+	for i, query := range q.queryList {
+		params := q.paramsList[i]
 		if verbose {
-			fmt.Println(fmt.Sprintf("executing query %d: '%s' with parameters: %v", i, query, arrayAsString(params)))
+			fmt.Println(fmt.Sprintf("executing query %d: '%s' with parameters: %v", i+1, query, arrayAsString(params)))
 		}
 		_, err := tx.ExecContext(ctx, query, params...)
 		if err != nil {
 			return err
 		}
-		i++
-		node = node.Next()
-		paramNode = paramNode.Next()
 	}
 	return nil
 }
@@ -74,7 +81,7 @@ func (q *queryBatch) ExecTransactContext(ctx context.Context, tx *sql.Tx, verbos
 }
 
 func (q *queryBatch) Size() int {
-	return q.queryList.Len()
+	return len(q.queryList)
 }
 
 type InsertBatch struct {
