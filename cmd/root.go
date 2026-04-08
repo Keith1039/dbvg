@@ -1,11 +1,11 @@
 // Package cmd that contains the main executable code for the CLI
 //
-// cmd depends on the `generate` and `validate` packages to have all commands for the CLI
+// cmd depends on the `insert` and `validate` packages to have all commands for the CLI
 package cmd
 
 import (
 	"github.com/Keith1039/dbvg/cmd/format"
-	"github.com/Keith1039/dbvg/cmd/generate"
+	"github.com/Keith1039/dbvg/cmd/insert"
 	"github.com/Keith1039/dbvg/cmd/validate"
 	"os"
 
@@ -18,7 +18,7 @@ var rootCmd = &cobra.Command{
 	Short: "A CLI designed to simplify validating database schemas and generating SQL queries",
 	Long: `dbvg is a CLI designed to simplify validating databases and generating SQL queries.
 The validation provided is getting rid of cycles in database schemas. The CLI also provides
-tools to generate table entries which will maintain dependencies.`,
+tools to insert table entries which will maintain dependencies.`,
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
 	// Run: func(cmd *cobra.Command, args []string) { },
@@ -35,7 +35,7 @@ func Execute() {
 
 func addSubCommandPalettes() {
 	rootCmd.AddCommand(validate.ValidateCmd)
-	rootCmd.AddCommand(generate.GenerateCmd)
+	rootCmd.AddCommand(insert.InsertCmd)
 	rootCmd.AddCommand(format.FormatCmd)
 }
 

@@ -1,4 +1,4 @@
-package generate
+package insert
 
 import (
 	"bufio"
@@ -19,14 +19,14 @@ var (
 // entryCmd represents the entry command
 var entryCmd = &cobra.Command{
 	Use:   "entry",
-	Short: "Command used to generate table entries",
-	Long: `Command that is used to generate table entries in the database.
+	Short: "Command used to insert table entries",
+	Long: `Command that is used to insert table entries in the database.
 The user chooses if the table entries are generated from the default configuration
 or from a specified template file.
 
 examples:
-	dbvg generate entry --database ${POSTGRES_URL} --default --table "purchases" --verbose
-	dbvg generate entry --database ${POSTGRES_URL} --template "./templates/purchase_template.json" --table "purchases" --amount 10 -v --clean-up
+	dbvg insert entry --database ${POSTGRES_URL} --default --table "purchases" --verbose
+	dbvg insert entry --database ${POSTGRES_URL} --template "./templates/purchase_template.json" --table "purchases" --amount 10 -v --clean-up
 `,
 	Run: func(cmd *cobra.Command, args []string) {
 
@@ -57,8 +57,9 @@ examples:
 				log.Fatal(err)
 			}
 		}
+		fmt.Println("Beginning query generation...")
 		insertBatch, deleteBatch := writer.GenerateEntries(amount)
-
+		fmt.Println("Finished generating queries!")
 		fmt.Println("Beginning INSERT query execution...")
 		err = insertBatch.Exec(db, verbose)
 		if err != nil {

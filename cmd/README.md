@@ -58,7 +58,7 @@ dbvg template create --database "${POSTGRES_URL}" --dir "templates/" --table "pu
 dbvg template update --database "${POSTGRES_URL}" --template ./templates/purchase_template.json  --table "purchases"
 ```
 
-For more regarding templates, please see [this](generate/README.md)
+For more regarding templates, please see [this](insert/README.md)
 
 ## Generate a table entry [[schema used]](../db/real_migrations/000001_shop_example.up.sql)
 ``` shell
