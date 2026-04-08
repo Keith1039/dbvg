@@ -93,7 +93,7 @@ func CleanFilePath(path string) (string, error) {
 // WriteQueriesToFile takes in a file path and an array of strings. If the file indicated by path
 // exist this function will overwrite it with the data in the string array. If the file doesn't exist,
 // this function will create it before inputting the string array data. Each index of the string array
-// is a new line for the file.
+// is a new line for the file. If the file does exist it will be overwritten
 func WriteQueriesToFile(path string, queries []string) error {
 	// by default this will overwrite existing files
 	cleanPath, err := CleanFilePath(path) // make sure the path is clean
@@ -147,6 +147,126 @@ func writeToFile(file *os.File, queries []string) error {
 		return err
 	}
 	return nil
+}
+
+// WriteInsertTemplateToFile takes in a file path and the InsertTemplate json data. If the file indicated by path
+// exist this function will overwrite it with the data in the string array. If the file doesn't exist,
+// this function will create it. If the file does exist, it will be overwritten
+func WriteInsertTemplateToFile(path string, data map[string]map[string]map[string]any) error {
+	// by default this will overwrite existing files
+	cleanPath, err := CleanFilePath(path) // make sure the path is clean
+	if err != nil {
+		return err
+	}
+	dir, fileName := filepath.Split(cleanPath) // split the dir path and the file name
+	if fileName == "" {                        // check to see if there is a valid file name
+		return errors.New("file name not specified") // error out
+	}
+	if dir != "" { // check if the dir path is empty string
+		if _, err = os.Stat(dir); os.IsNotExist(err) { // check if directory exists
+			err = os.MkdirAll(dir, os.ModePerm) // make all directories and subdirectories
+			if err != nil {
+				return err // log error and exit
+			}
+		}
+	}
+	jsonData, err := json.MarshalIndent(data, "", " ")
+	if err != nil {
+		return err
+	}
+	err = os.WriteFile(filepath.Join(dir, fileName), jsonData, os.ModePerm)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// UpdateInsertTemplate updates an existing JSON template with the most recent information.
+// This includes adding new tables, removing irrelevant tables and altering types.
+// Shallow verification is done on the given template to ensure that each is valid
+// before overwriting data.
+// Code and value pairs from the old template are still moved into the new template if there
+// is a matching entry
+func UpdateInsertTemplate(path string, newTemplate map[string]map[string]map[string]any) error {
+	data, err := RetrieveInsertTemplateJSON(path)
+	if err != nil {
+		return err
+	}
+	// we normalize for existing template to see if there's useful data
+	for _, columnInfo := range data {
+		for _, values := range columnInfo {
+			normalizeKeys(values)
+		}
+	}
+	// for the normalization as well
+	err = verifyTemplate(newTemplate)
+	if err != nil {
+		return fmt.Errorf("for the inputed template: [%w]", err)
+	}
+	updateTemplate(data, newTemplate)
+	err = WriteInsertTemplateToFile(path, newTemplate)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func normalizeKeys(columnInfo map[string]any) {
+	var normalizedKey string
+	keysToDelete := make(map[string]bool)
+	for key, val := range columnInfo {
+		normalizedKey = TrimAndLowerString(key)
+		if normalizedKey != key {
+			columnInfo[normalizedKey] = val
+			keysToDelete[key] = true
+		}
+	}
+	for key := range keysToDelete {
+		delete(columnInfo, key)
+	}
+}
+
+func verifyTemplate(m map[string]map[string]map[string]any) error {
+	format := "for table '%s' under column '%s' the expected key '%s' is missing"
+	// check the keys (doesn't verify the tables or columns yet)
+	for tableName, columns := range m {
+		for columnName, columnFields := range columns {
+			normalizeKeys(columnFields) // trim and lower the keys
+			_, ok := columnFields["code"]
+			if !ok {
+				return fmt.Errorf(format, tableName, columnName, "code")
+			}
+			_, ok = columnFields["type"]
+			if !ok {
+				return fmt.Errorf(format, tableName, columnName, "type")
+			}
+			_, ok = columnFields["value"]
+			if !ok {
+				return fmt.Errorf(format, tableName, columnName, "value")
+			}
+		}
+	}
+	return nil
+}
+
+func updateTemplate(oldTemplate map[string]map[string]map[string]any, newTemplate map[string]map[string]map[string]any) {
+	var val any
+	for tableName, columns := range newTemplate {
+		for columnName := range columns {
+			_, ok := oldTemplate[tableName][columnName]
+			if ok {
+				if val, ok = oldTemplate[tableName][columnName]["type"]; ok {
+					newTemplate[tableName][columnName]["type"] = val
+				}
+				if val, ok = oldTemplate[tableName][columnName]["code"]; ok {
+					newTemplate[tableName][columnName]["code"] = val
+				}
+				if val, ok = oldTemplate[tableName][columnName]["value"]; ok {
+					newTemplate[tableName][columnName]["value"] = val
+				}
+			}
+		}
+	}
 }
 
 // GetStringType is a function take takes in a value of any type and returns the string name of the type of value given

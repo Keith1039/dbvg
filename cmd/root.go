@@ -4,8 +4,8 @@
 package cmd
 
 import (
+	"github.com/Keith1039/dbvg/cmd/format"
 	"github.com/Keith1039/dbvg/cmd/generate"
-	"github.com/Keith1039/dbvg/cmd/template"
 	"github.com/Keith1039/dbvg/cmd/validate"
 	"os"
 
@@ -36,7 +36,7 @@ func Execute() {
 func addSubCommandPalettes() {
 	rootCmd.AddCommand(validate.ValidateCmd)
 	rootCmd.AddCommand(generate.GenerateCmd)
-	rootCmd.AddCommand(template.TemplateCmd)
+	rootCmd.AddCommand(format.FormatCmd)
 }
 
 func init() {

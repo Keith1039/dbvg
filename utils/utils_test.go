@@ -5,12 +5,23 @@ import (
 	"fmt"
 	"github.com/Keith1039/dbvg/utils"
 	"github.com/golang-module/carbon"
+	"maps"
 	"os"
 	"path/filepath"
+	"reflect"
 	"slices"
 	"strings"
 	"testing"
 )
+
+func getTempDirAndFile(t *testing.T) (*os.File, string) {
+	dir := t.TempDir()
+	f, err := os.CreateTemp(dir, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	return f, dir
+}
 
 func checkFileContents(t *testing.T, path string, expected []string) {
 	path = filepath.Clean(strings.TrimSpace(path)) // utils.WriteQueriesToFile does the same preprocessing, so I'll add some here
@@ -81,12 +92,8 @@ func TestGetTimeFromString(t *testing.T) {
 	}
 }
 
-func TestRetrieveInsertTemplateJSON(t *testing.T) {
-	dir := t.TempDir()
-	f, err := os.CreateTemp(dir, "")
-	if err != nil {
-		t.Fatal(err)
-	}
+func TestWriteAndRetrieveInsertTemplateJSON(t *testing.T) {
+	f, _ := getTempDirAndFile(t)
 	defer f.Close()
 	sampleTemplate := map[string]map[string]map[string]any{
 		"table": {
@@ -96,7 +103,7 @@ func TestRetrieveInsertTemplateJSON(t *testing.T) {
 			},
 		},
 	}
-	err = writeMapToJSONFile(f.Name(), sampleTemplate)
+	err := utils.WriteInsertTemplateToFile(f.Name(), sampleTemplate)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -128,15 +135,59 @@ func TestRetrieveInsertTemplateJSON(t *testing.T) {
 	}
 }
 
-// to get the desired behavior, we need to take the sample template, shove it into a temporary file
-func writeMapToJSONFile(filePath string, data map[string]map[string]map[string]any) error {
-	jsonData, err := json.MarshalIndent(data, "", " ")
-	if err != nil {
-		return err
+func TestUpdateInsertTemplate(t *testing.T) {
+	f, _ := getTempDirAndFile(t)
+	defer f.Close()
+	sampleTemplate := map[string]map[string]map[string]any{
+		"table": {
+			"column": {
+				"TYPE": "INT",
+				"CoDe": "RANDOM",
+			},
+		},
 	}
-	err = os.WriteFile(filePath, jsonData, os.ModePerm)
+	err := utils.WriteInsertTemplateToFile(f.Name(), sampleTemplate)
 	if err != nil {
-		return err
+		t.Fatal(err)
 	}
-	return nil
+	err = utils.UpdateInsertTemplate(f.Name(), sampleTemplate)
+	if err == nil {
+		t.Fatal("value key missing, error should have occurred")
+	}
+	sampleTemplate["table"]["column"]["vaLue"] = any(5)
+	err = utils.UpdateInsertTemplate(f.Name(), sampleTemplate)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sampleClone := maps.Clone(sampleTemplate)
+	sampleTemplate["something"] = map[string]map[string]any{
+		"column2": {
+			"TYPE":  "VARCHAR",
+			"CoDe":  "STATIC",
+			"value": any("XD"),
+		},
+	}
+	err = utils.UpdateInsertTemplate(f.Name(), sampleTemplate)
+	if err != nil {
+		t.Fatal(err)
+	}
+	retrievedTemplate, err := utils.RetrieveInsertTemplateJSON(f.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(retrievedTemplate, sampleTemplate) {
+		t.Fatalf("retrieved template '%v'\ninputed template '%v'", retrievedTemplate, sampleTemplate)
+	}
+	// check to see if irrelevant data is left out
+	err = utils.UpdateInsertTemplate(f.Name(), sampleClone)
+	if err != nil {
+		t.Fatal(err)
+	}
+	retrievedTemplate, err = utils.RetrieveInsertTemplateJSON(f.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(retrievedTemplate, sampleClone) {
+		t.Fatalf("retrieved template '%v'\ninputed template '%v'", retrievedTemplate, sampleClone)
+	}
 }

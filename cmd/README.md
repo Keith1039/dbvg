@@ -146,7 +146,7 @@ Global Flags:
 ## Subcommand Palette: template
 This subcommand palette focuses on generating and updating template files. These templates are formatted as JSON files.
 Templates are made to allow the user to control what type of data is being generated through the CLI. For more information
-regarding templates, please read [THIS](template/README.md). The commands in this palette are `create` and `update`.
+regarding templates, please read [THIS](format/README.md). The commands in this palette are `create` and `update`.
 
 ### create
 ```

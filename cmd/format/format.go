@@ -4,34 +4,40 @@
 package format
 
 import (
-	"fmt"
 	"github.com/spf13/cobra"
 	"log"
 )
 
 var ConnString string
+var path string
 
 // FormatCmd represents the format command
 var FormatCmd = &cobra.Command{
 	Use:   "format",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Short: "The palette responsible for formatting and updating templates",
+	Long: `This palette is responsible for formatting and updating the JSON templates that are used
+by other portions of the code.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("format called")
+		cmd.Help()
 	},
+}
+
+func addSubCommands() {
+	FormatCmd.AddCommand(insertTemplateCmd)
 }
 
 func init() {
 	FormatCmd.PersistentFlags().StringVarP(&ConnString, "database", "", "", "url to connect to the database with")
+	FormatCmd.PersistentFlags().StringVarP(&path, "path", "p", "", "specifies which file to use or output data to")
 
 	if err := FormatCmd.MarkPersistentFlagRequired("database"); err != nil {
 		log.Fatal(err)
 	}
+	if err := FormatCmd.MarkPersistentFlagRequired("path"); err != nil {
+		log.Fatal(err)
+	}
+
+	addSubCommands()
 	// Here you will define your flags and configuration settings.
 
 	// Cobra supports Persistent Flags which will work for this command
