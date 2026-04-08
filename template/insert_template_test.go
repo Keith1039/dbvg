@@ -6,7 +6,6 @@ import (
 	"errors"
 	database "github.com/Keith1039/dbvg/db"
 	"github.com/Keith1039/dbvg/graph"
-	"github.com/Keith1039/dbvg/parameters"
 	"github.com/Keith1039/dbvg/strategy"
 	"github.com/Keith1039/dbvg/template"
 	"github.com/Keith1039/dbvg/utils"
@@ -28,8 +27,6 @@ var tableData map[string]map[string]string
 var requiredTables []string
 
 const path = "file://../db/migrations/"
-
-const realMigrationPath = "file://../db/real_migrations/"
 
 func drop() {
 	// drop the database
@@ -78,23 +75,6 @@ func buildUp(caseName string) error {
 	driver, err := postgres.WithInstance(db, &postgres.Config{})
 	m, err2 := migrate.NewWithDatabaseInstance(
 		path+caseName,
-		"postgres", driver)
-	if m != nil {
-		err = m.Up()
-		if err != nil {
-			return err
-		}
-	} else {
-		return err2
-	}
-	return nil
-}
-
-func buildUpRealCase() error {
-	// migrate the schema up
-	driver, err := postgres.WithInstance(db, &postgres.Config{})
-	m, err2 := migrate.NewWithDatabaseInstance(
-		realMigrationPath,
 		"postgres", driver)
 	if m != nil {
 		err = m.Up()
@@ -441,22 +421,4 @@ func TestInsertTemplateDefaults(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-}
-
-func BenchmarkGenerateQueries(b *testing.B) {
-	drop()
-	err := buildUpRealCase()
-	if err != nil {
-		b.Fatal(err)
-	}
-	writer, err := parameters.NewQueryWriter(db, "purchases")
-	if err != nil {
-		b.Fatal(err)
-	}
-	b.ResetTimer()
-	for range b.N {
-		insertBatch, deleteBatch := writer.GenerateEntries(5000)
-		b.Logf("\ninsert batch size: %d\ndelete batch size: %d", insertBatch.Size(), deleteBatch.Size())
-	}
-	b.StopTimer()
 }

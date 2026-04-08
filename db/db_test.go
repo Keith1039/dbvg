@@ -397,7 +397,7 @@ func TestRunUnsafeQueries(t *testing.T) {
 		fmt.Sprintf("INSERT INTO USERS(ID, FIRST_NAME, LAST_NAME, EMAIL, ADDRESS, CREATED_AT) VALUES ('%v', '%v', '%v', '%v', '%v', '%v')", uuid.New(), "some", "name", "test@gmail.com", "SOMETHING", time.Now().Format("2006-01-02 15:04:05")),
 		fmt.Sprintf("INSERT INTO USERS(ID, FIRST_NAME, LAST_NAME, EMAIL, ADDRESS, CREATED_AT) VALUES ('%v', '%v', '%v', '%v', '%v', '%v')", uuid.New(), "some", "name", "test2@gmail.com", "SOMETHING", time.Now().Format("2006-01-02 15:04:05")),
 	}
-	err = database.RunUnsafeQueries(db, queries)
+	err = database.RunUnsafeQueries(db, queries, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -409,7 +409,7 @@ func TestRunUnsafeQueries(t *testing.T) {
 	queries = []string{
 		fmt.Sprintf("INSERT INTO USERS(ID, FIRST_NAME, LAST_NAME, EMAIL, ADDRESS, CREATED_AT) VALUES ('%v', '%v', '%v', '%v', '%v', '%v')", uuid.New(), "some", "name", "test@gmail.com", "SOMETHING", time.Now().Format("2006-01-02 15:04:05")),
 	}
-	err = database.RunUnsafeQueries(db, queries)
+	err = database.RunUnsafeQueries(db, queries, false)
 	if err == nil {
 		t.Fatal("query should violate emails unique constraint")
 	}
