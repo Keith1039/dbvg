@@ -10,9 +10,9 @@ The following is a template generated for a given table "products":
 {
   "products": {
     "price": {
-      "Code": "",
-      "Type": "FLOAT",
-      "Value": ""
+      "code": "",
+      "type": "FLOAT",
+      "value": nil
     }
     ... 
 }
@@ -29,12 +29,13 @@ case-insensitive so putting "random" would be the same as putting "RANDOM".
 
 ## Type
 This is the perceived type of the column, in other words, how the program will interpret the column's type.
-This key's value is assigned during the template's creation. It serves as a reference for the user 
-when using the template and code guide. Any changes made to this field's value is irrelevant.
+This key's value is assigned during the template's creation and is automatically updated when updating the template. 
+It serves as a reference for the user when using the template and code guide. This value should not be edited by users.
 
 ## Value
 This is the field meant to be used with the Code field to help generate data.
-While this value is always a string, different codes will require different formats.
+This value is of type `any` and thus can be anything, however it should be noted that the value needed will depend on the code.
+Each Code is linked to a `Strategy` that expects a certain value.
 Please consult the [Code Guide](#code-guide) for more information regarding the accepted format for the "Value" field.
 
 ## Warning
@@ -71,7 +72,8 @@ A quick look at the supported codes for each column type
 
 **UUID**: `UUID`
 
-**VARCHAR**: `REGEX` with default value: "[a-zA-Z]{10}"
+**VARCHAR**: `REGEX` with default value: "[a-zA-Z]{10}" however, this default will scale to match the column's length
+for example, if a column of type **VARCHAR** only allows for 6 characters, the regex will become "[a-zA-Z]{6}"
 
 
 ## RANDOM
