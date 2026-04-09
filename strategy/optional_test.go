@@ -23,7 +23,7 @@ func intSerialTestRunner() *testRunner {
 		if !ok {
 			return strategy.UnexpectedTypeError{ExpectedType: "int", ActualType: fmt.Sprintf("%T", val)}
 		}
-		s, ok := t.strategy.(*strategy.SerialOptionalStrategy)
+		s, ok := t.strategy.(*strategy.OptionalStrategy)
 		if !ok {
 			return errors.New("strategy received could not be cast to `SerialOptionStrategy`")
 		}

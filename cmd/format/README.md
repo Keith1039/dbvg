@@ -1,8 +1,7 @@
 # Templates
 
-Templates are used for data generation in order to provide some amount of control to the
-data generated. JSON templates are created and used to store/define certain
-fields which are referenced when generating data.
+Templates are used for data generation in order to provide control over what data is generated.
+JSON templates are created and used to store/define certain fields which are referenced when generating data.
 
 The following is a template generated for a given table "products":
 
@@ -18,25 +17,25 @@ The following is a template generated for a given table "products":
 }
 ```
 the first key, `products`, is the table name. The second key, `price`, is the column name. Mapped to the column name are the fields
-used for data generation. These fields are `Code`, `Type` and `Value`.
+used for data generation. These fields are `code`, `type` and `value`.
 
 
-## Code
-This is the field that determines the type of data that will be generated. These codes include `RANDOM`, `STATIC`, `NULL`
+## code
+This is a string field that determines the type of data that will be generated. These codes include `RANDOM`, `STATIC`, `NULL`
 etc. By using these values, you can influence how the data for that specific column is generated. 
-For more information regarding the codes, please consult the [Code Guide](#code-guide). The value for this field is
+For more information regarding the codes, please consult the [code guide](#code-guide). The value for this field is
 case-insensitive so putting "random" would be the same as putting "RANDOM".
 
-## Type
-This is the perceived type of the column, in other words, how the program will interpret the column's type.
-This key's value is assigned during the template's creation and is automatically updated when updating the template. 
-It serves as a reference for the user when using the template and code guide. This value should not be edited by users.
+## type
+This is a string field representing the perceived type of the column, in other words, how the program will interpret the column's type.
+This key's value is assigned during the template's creation. It serves as a reference for the user when using the [code guide](#code-guide). 
+This value should not be edited by users.
 
-## Value
-This is the field meant to be used with the Code field to help generate data.
-This value is of type `any` and thus can be anything, however it should be noted that the value needed will depend on the code.
-Each Code is linked to a `Strategy` that expects a certain value.
-Please consult the [Code Guide](#code-guide) for more information regarding the accepted format for the "Value" field.
+## value
+This is the field meant to be used with the [code](#code) field to help generate data. The fields of `code` and `type` are
+used to select the `Strategy` that will use this field's value. This field is of type `any` and thus can be anything, 
+however it should be noted that the value needed will depend on the linked `Strategy`. 
+Please consult the [Code Guide](#code-guide) for more information regarding the accepted data type for the `value` field.
 
 ## Warning
 Template's can get fairly large, after all they include the source table and all it's dependencies.
@@ -53,7 +52,7 @@ A quick look at the supported codes for each column type
 
 **DATE**: `RANDOM` | `STATIC` | `NOW` | `NULL`
 
-**INT**: `RANDOM` | `STATIC` | `SEQ` | `NULL`
+**INT**: `RANDOM` | `STATIC` | `SERIAL` | `NULL`
 
 **FLOAT**: `RANDOM` | `STATIC` | `NULL`
 
@@ -62,22 +61,25 @@ A quick look at the supported codes for each column type
 **VARCHAR**: `STATIC` | `REGEX` | `EMAIL` | `FIRSTNAME` | `LASTNAME` | `FULLNAME` | `PHONE` | `COUNTRY` | `ADDRESS` | `ZIPCODE` | `CITY` | `NULL`
 
 ## Code Type Defaults
-**BOOL**: `RANDOM`
+**BOOL**: `RANDOM` randomly selects between true and false as value
 
-**DATE**: `NOW`
+**DATE**: `NOW` uses the current date
 
-**INT**: `SEQ`
+**INT**: `SERIAL` uses an auto incrementing integer for value
 
-**FLOAT**: `RANDOM`
+**FLOAT**: `RANDOM` with the default range being a random number between 1.0 - 10.0
 
-**UUID**: `UUID`
+**UUID**: `UUID`  generates a new UUID
 
 **VARCHAR**: `REGEX` with default value: "[a-zA-Z]{10}" however, this default will scale to match the column's length
 for example, if a column of type **VARCHAR** only allows for 6 characters, the regex will become "[a-zA-Z]{6}"
 
+For more details on these codes and their associated `Strategy` please consult the [Strategy README](../../strategy/README.md)
+
+## Codes for type Int
 
 ## RANDOM
-Generates a random value based on the `Value` field in the template. If no value is given, i.e.  `"Value": ""`, a default will be 
+Generates a random value based on the `value` field in the template.  
 used. This code is supported only by `INT`, `FLOAT` and `Date` type columns. The supported value format is a range between two values of the
 column type.
 
