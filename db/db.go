@@ -33,11 +33,9 @@ const postgresFKRelations = `
 `
 
 var typeMap = map[string]string{
+	"INT2":        "INT",
 	"INT4":        "INT",
 	"INT8":        "INT",
-	"INT16":       "INT",
-	"INT32":       "INT",
-	"INT64":       "INT",
 	"NUMERIC":     "FLOAT",
 	"MONEY":       "FLOAT",
 	"FLOAT4":      "FLOAT",
