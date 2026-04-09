@@ -56,7 +56,7 @@ Then, from that point forward it's the `parameters` package that handles the res
 
 ## Creating Strategies
 As you may have noticed, the behavior of a `Strategy` depends largely on the user defined functions (`Strategy() (any, error)`, 
-`Strategy(val any) (any, error)` and `Criteria(val any) error`). This flexibility allows users to create their own `Strategy`
+`Strategy(val any) (any, error)` and `Criteria(val any) error`). This modularity allows users to create their own `Strategy`
 based on the above types. The library can then add these new Strategies using predefined functions:
 - `AddNewOverrideStrategy(columnType string, codeName string, strategy func() Strategy) error`
 - `AddNewOptionalStrategy(columnType string, codeName string, strategy func() ValueStrategy) error`
@@ -69,9 +69,10 @@ follows existing convention. For `AddNewOverrideStrategy` specifically, it ensur
 
 ### Strategy functions over Strategies
 The above functions do not take in the `Strategy` but a function that returns the `Strategy`. The reason for this is to allow for 
-flexibility. Some Strategies can be shared i.e. the same struct is linked to the same column and some can not. This allows for the user
-to decide whether an existing struct should be used or if a new one is created each time. An example of this can be seen with the 
-`SERIAL` code for the `INT` type. It's behavior matches the auto-incrementing integer of the same name in databases as seen [here](https://www.geeksforgeeks.org/postgresql/postgresql-serial/)
+flexibility. Some Strategies can be shared i.e. the same struct is linked to all columns that use it and some can not. 
+This allows for the user to decide whether an existing struct should be used or if a new one is created each time. An example of this 
+can be seen with the `SERIAL` code for the `INT` type. It's behavior matches the auto-incrementing integer of the same name in 
+databases as seen [here](https://www.geeksforgeeks.org/postgresql/postgresql-serial/)
 
 If the `Strategy` is shared i.e. each column uses the same struct the following occurs:
 ![incorrect_serial_case](images/incorrect_serial_case.png)

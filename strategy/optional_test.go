@@ -15,8 +15,8 @@ func wrapError(columnType string, code string, err error) error {
 func intSerialTestRunner() *testRunner {
 	t := testRunner{
 		isOptional:     true,
-		testValues:     []any{"", 20},
-		expectedErrors: []error{strategy.UnexpectedTypeError{}},
+		testValues:     []any{"", 0, 20},
+		expectedErrors: []error{strategy.UnexpectedTypeError{}, strategy.NotInRangeError{}},
 	}
 	t.evalCriteria = func(val any) error {
 		val, ok := val.(int)
