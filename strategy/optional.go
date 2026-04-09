@@ -2,27 +2,18 @@ package strategy
 
 import (
 	"fmt"
+	"github.com/Keith1039/dbvg/utils"
 )
 
 // OptionalStrategy is a type of Strategy that can take in either nil or a valid input as their value
 type OptionalStrategy struct {
+	Default any
 	*defaultStrategy
 }
 
-type SerialOptionalStrategy struct {
-	*defaultStrategy
-}
-
-func (s *SerialOptionalStrategy) ExecuteStrategy() (any, error) {
-	cur := s.Value.(int)
-	s.Value = s.Value.(int) + 1
-	return cur, nil
-}
-
-func (s *SerialOptionalStrategy) SetValue(val any) {
-	// assume criteria works
+func (s *OptionalStrategy) SetValue(val any) {
 	if val == nil {
-		s.Value = 0
+		s.Value = s.Default
 	} else {
 		s.Value = val
 	}
@@ -31,6 +22,9 @@ func (s *SerialOptionalStrategy) SetValue(val any) {
 func serialIntCriteria(val any) error {
 	switch t := val.(type) {
 	case int:
+		if t < 1 {
+			return NotInRangeError{value: t, rangeStr: ">=1"}
+		}
 		return nil
 	default:
 		return UnexpectedTypeError{ExpectedType: "int", ActualType: fmt.Sprintf("%T", t)}
@@ -39,5 +33,14 @@ func serialIntCriteria(val any) error {
 
 // NewSerialStrategy defines and returns a ValueStrategy of type SerialOptionalStrategy to handle the "SERIAL" code for the "INT" type
 func NewSerialStrategy() ValueStrategy {
-	return &SerialOptionalStrategy{defaultStrategy: &defaultStrategy{Criteria: serialIntCriteria}}
+	s := &OptionalStrategy{Default: 1, defaultStrategy: &defaultStrategy{Criteria: serialIntCriteria}}
+	s.Strategy = func(val any) (any, error) {
+		intVal, ok := val.(int)
+		if !ok {
+			return nil, UnexpectedTypeError{ExpectedType: "int", ActualType: utils.GetStringType(val)}
+		}
+		s.Value = intVal + 1
+		return intVal, nil
+	}
+	return s
 }

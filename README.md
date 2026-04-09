@@ -217,7 +217,6 @@ package main
 import (
 	"database/sql"
 	"fmt"
-	database "github.com/Keith1039/dbvg/db"
 	"github.com/Keith1039/dbvg/parameters"
 	_ "github.com/lib/pq"
 	"log"
@@ -234,14 +233,14 @@ func main() {
 	if err != nil {
 		log.Fatal(err) // log error
 	}
-	insertQueries, deleteQueries := writer.GenerateEntries(1) // functional equivalent to calling writer.GenerateEntry()
+	insertBatch, deleteBatch := writer.GenerateEntries(1) // functional equivalent to calling writer.GenerateEntry()
 
-	err = database.RunUnsafeQueriesVerbose(db, insertQueries) // run the insert queries while printing them out
+	err = insertBatch.Exec(db, true) // run the insert queries from the batch while printing them out
 	if err != nil {
 		log.Fatal(err)
 	}
 	fmt.Println(".................................................") // print a divider
-	err = database.RunUnsafeQueriesVerbose(db, deleteQueries)              // run the delete queries to delete the inserted values
+	err = deleteBatch.Exec(db, true)                                 // run the delete queries from the batch while printing them out
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -251,15 +250,15 @@ func main() {
 ```
 sample output:
 ```
-Query 1: INSERT INTO companies (id, name, email, created) VALUES ('59dff505-fca0-4703-b9dc-28b257b2e83f', 'RfsZsjvnAB', 'FbbKXnnzyu', '2025-03-06 19:36:36');
-Query 2: INSERT INTO products (id, company_id, item_name, price, quantity, description, created) VALUES ('165f178b-d246-42c1-9f76-13d4d06132ec', '59dff505-fca0-4703-b9dc-28b257b2e83f', 'MZCEDV', 60.30811117342869::MONEY, 1, 'YorqnDvEHk', '2025-03-06 19:36:36');
-Query 3: INSERT INTO users (email, address, created, id, name, last_name) VALUES ('ARRRMBbaUP', 'pmbBxRDhHZ', '2025-03-06 19:36:36', 'c97e0b57-89f1-4605-baa3-3a7922cb4800', 'WzpvjaQtFQ', 'YttUJbPifL');
-Query 4: INSERT INTO purchases (user_id, product_id, quantity, created) VALUES ('c97e0b57-89f1-4605-baa3-3a7922cb4800', '165f178b-d246-42c1-9f76-13d4d06132ec', 1, '2025-03-06 19:36:36');
+executing query 1: 'INSERT INTO users (id, first_name, last_name, email, address, created_at) VALUES ($1, $2, $3, $4, $5, $6);' with parameters: ['0760dba1-abfe-48ad-a989-a40e3918c118', 'hygGjbWauP', 'WxQkcYQsup', 'ZFQHFrHhNr', 'gXAXDTihuW', '2026-04-12 16:32:48']
+executing query 2: 'INSERT INTO companies (id, name, email, created_at) VALUES ($1, $2, $3, $4);' with parameters: ['69d97c9f-3610-4448-b97a-0cf72c9a06cb', 'aKyDTmDVwg', 'AuvwxnEACm', '2026-04-12 16:32:48']
+executing query 3: 'INSERT INTO products (description, created_at, id, company_id, item_name, price, quantity) VALUES ($1, $2, $3, $4, $5, $6, $7);' with parameters: ['zPeNhYFZct', '2026-04-12 16:32:48', 'd9fbd334-7c27-4c36-861e-72165b98892c', '69d97c9f-3610-4448-b97a-0cf72c9a06cb', 'ACXgzI', '9.997602235779429', '1']
+executing query 4: 'INSERT INTO purchases (product_id, quantity, created_at, user_id) VALUES ($1, $2, $3, $4);' with parameters: ['d9fbd334-7c27-4c36-861e-72165b98892c', '1', '2026-04-12 16:32:48', '0760dba1-abfe-48ad-a989-a40e3918c118']
 .................................................
-Query 1: DELETE FROM purchases WHERE user_id='c97e0b57-89f1-4605-baa3-3a7922cb4800' AND product_id='165f178b-d246-42c1-9f76-13d4d06132ec' AND quantity=1 AND created='2025-03-06 19:36:36';
-Query 2: DELETE FROM users WHERE email='ARRRMBbaUP' AND address='pmbBxRDhHZ' AND created='2025-03-06 19:36:36' AND id='c97e0b57-89f1-4605-baa3-3a7922cb4800' AND name='WzpvjaQtFQ' AND last_name='YttUJbPifL';
-Query 3: DELETE FROM products WHERE id='165f178b-d246-42c1-9f76-13d4d06132ec' AND company_id='59dff505-fca0-4703-b9dc-28b257b2e83f' AND item_name='MZCEDV' AND price=60.30811117342869::MONEY AND quantity=1 AND description='YorqnDvEHk' AND created='2025-03-06 19:36:36';
-Query 4: DELETE FROM companies WHERE id='59dff505-fca0-4703-b9dc-28b257b2e83f' AND name='RfsZsjvnAB' AND email='FbbKXnnzyu' AND created='2025-03-06 19:36:36';
+executing query 1: 'DELETE FROM purchases WHERE product_id=$1 AND quantity=$2 AND created_at=$3 AND user_id=$4;' with parameters: ['d9fbd334-7c27-4c36-861e-72165b98892c', '1', '2026-04-12 16:32:48', '0760dba1-abfe-48ad-a989-a40e3918c118']
+executing query 2: 'DELETE FROM products WHERE description=$1 AND created_at=$2 AND id=$3 AND company_id=$4 AND item_name=$5 AND price=$6 AND quantity=$7;' with parameters: ['zPeNhYFZct', '2026-04-12 16:32:48', 'd9fbd334-7c27-4c36-861e-72165b98892c', '69d97c9f-3610-4448-b97a-0cf72c9a06cb', 'ACXgzI', '9.997602235779429', '1']
+executing query 3: 'DELETE FROM companies WHERE id=$1 AND name=$2 AND email=$3 AND created_at=$4;' with parameters: ['69d97c9f-3610-4448-b97a-0cf72c9a06cb', 'aKyDTmDVwg', 'AuvwxnEACm', '2026-04-12 16:32:48']
+executing query 4: 'DELETE FROM users WHERE id=$1 AND first_name=$2 AND last_name=$3 AND email=$4 AND address=$5 AND created_at=$6;' with parameters: ['0760dba1-abfe-48ad-a989-a40e3918c118', 'hygGjbWauP', 'WxQkcYQsup', 'ZFQHFrHhNr', 'gXAXDTihuW', '2026-04-12 16:32:48']
 ```
 *Note*: The `QueryWriter` struct cannot be used if a cycle exists in the path for the desired table.
 It is recommended to always resolve cycles before generating data. below is the result of using the above

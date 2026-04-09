@@ -36,6 +36,6 @@ func defaultRegex() strategy.Strategy {
 
 func defaultSerial() strategy.Strategy {
 	s := strategy.NewSerialStrategy()
-	s.SetValue(0)
+	s.SetValue(1)
 	return s
 }

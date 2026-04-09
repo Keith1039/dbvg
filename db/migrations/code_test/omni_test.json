@@ -1,0 +1,465 @@
+{
+ "test": {
+  "bool_null": {
+   "code": "NULL",
+   "type": "BOOL",
+   "value": null
+  },
+  "bool_random": {
+   "code": "RANDOM",
+   "type": "BOOL",
+   "value": null
+  },
+  "bool_static": {
+   "code": "STATIC",
+   "type": "BOOL",
+   "value": false
+  },
+  "bpchar_address": {
+   "code": "ADDRESS",
+   "type": "VARCHAR",
+   "value": null
+  },
+  "bpchar_city": {
+   "code": "CITY",
+   "type": "VARCHAR",
+   "value": null
+  },
+  "bpchar_country": {
+   "code": "COUNTRY",
+   "type": "VARCHAR",
+   "value": null
+  },
+  "bpchar_email": {
+   "code": "EMAIL",
+   "type": "VARCHAR",
+   "value": null
+  },
+  "bpchar_firstname": {
+   "code": "FIRSTNAME",
+   "type": "VARCHAR",
+   "value": null
+  },
+  "bpchar_fullname": {
+   "code": "FULLNAME",
+   "type": "VARCHAR",
+   "value": null
+  },
+  "bpchar_lastname": {
+   "code": "LASTNAME",
+   "type": "VARCHAR",
+   "value": null
+  },
+  "bpchar_null": {
+   "code": "NULL",
+   "type": "VARCHAR",
+   "value": null
+  },
+  "bpchar_phone": {
+   "code": "PHONE",
+   "type": "VARCHAR",
+   "value": null
+  },
+  "bpchar_regex": {
+   "code": "REGEX",
+   "type": "VARCHAR",
+   "value": "[aA-zZ]{10}"
+  },
+  "bpchar_static": {
+   "code": "STATIC",
+   "type": "VARCHAR",
+   "value": "test"
+  },
+  "bpchar_zipcode": {
+   "code": "ZIPCODE",
+   "type": "VARCHAR",
+   "value": null
+  },
+  "date_now": {
+   "code": "NOW",
+   "type": "DATE",
+   "value": null
+  },
+  "date_null": {
+   "code": "NULL",
+   "type": "DATE",
+   "value": null
+  },
+  "date_random": {
+   "code": "RANDOM",
+   "type": "DATE",
+   "value": [
+    "2020-01-01",
+    "2026-01-01"
+   ]
+  },
+  "date_static": {
+   "code": "STATIC",
+   "type": "DATE",
+   "value": "2023-07-08"
+  },
+  "float4_null": {
+   "code": "NULL",
+   "type": "FLOAT",
+   "value": null
+  },
+  "float4_random": {
+   "code": "RANDOM",
+   "type": "FLOAT",
+   "value": [
+    1,
+    30.65
+   ]
+  },
+  "float4_static": {
+   "code": "STATIC",
+   "type": "FLOAT",
+   "value": 23.5431
+  },
+  "float8_null": {
+   "code": "NULL",
+   "type": "FLOAT",
+   "value": null
+  },
+  "float8_random": {
+   "code": "RANDOM",
+   "type": "FLOAT",
+   "value": [
+    1,
+    30.65124
+   ]
+  },
+  "float8_static": {
+   "code": "STATIC",
+   "type": "FLOAT",
+   "value": 163.123985
+  },
+  "int2_null": {
+   "code": "NULL",
+   "type": "INT",
+   "value": null
+  },
+  "int2_random": {
+   "code": "RANDOM",
+   "type": "INT",
+   "value": [
+    1,
+    10
+   ]
+  },
+  "int2_serial": {
+   "code": "SERIAL",
+   "type": "INT",
+   "value": null
+  },
+  "int2_static": {
+   "code": "STATIC",
+   "type": "INT",
+   "value": 20
+  },
+  "int4_null": {
+   "code": "NULL",
+   "type": "INT",
+   "value": null
+  },
+  "int4_random": {
+   "code": "RANDOM",
+   "type": "INT",
+   "value": [
+    -100,
+    100
+   ]
+  },
+  "int4_serial": {
+   "code": "SERIAL",
+   "type": "INT",
+   "value": 23
+  },
+  "int4_static": {
+   "code": "STATIC",
+   "type": "INT",
+   "value": 51
+  },
+  "int8_null": {
+   "code": "NULL",
+   "type": "INT",
+   "value": null
+  },
+  "int8_random": {
+   "code": "RANDOM",
+   "type": "INT",
+   "value": [
+    -500,
+    100
+   ]
+  },
+  "int8_serial": {
+   "code": "SERIAL",
+   "type": "INT",
+   "value": 100
+  },
+  "int8_static": {
+   "code": "STATIC",
+   "type": "INT",
+   "value": 30
+  },
+  "money_null": {
+   "code": "NULL",
+   "type": "FLOAT",
+   "value": null
+  },
+  "money_random": {
+   "code": "RANDOM",
+   "type": "FLOAT",
+   "value": [
+    -2000,
+    3000.1258
+   ]
+  },
+  "money_static": {
+   "code": "STATIC",
+   "type": "FLOAT",
+   "value": 40.12989579052
+  },
+  "numeric_null": {
+   "code": "NULL",
+   "type": "FLOAT",
+   "value": null
+  },
+  "numeric_random": {
+   "code": "RANDOM",
+   "type": "FLOAT",
+   "value": [
+    1,
+    100
+   ]
+  },
+  "numeric_static": {
+   "code": "STATIC",
+   "type": "FLOAT",
+   "value": 2.58
+  },
+  "text_address": {
+   "code": "ADDRESS",
+   "type": "VARCHAR",
+   "value": null
+  },
+  "text_city": {
+   "code": "CITY",
+   "type": "VARCHAR",
+   "value": null
+  },
+  "text_country": {
+   "code": "COUNTRY",
+   "type": "VARCHAR",
+   "value": null
+  },
+  "text_email": {
+   "code": "EMAIL",
+   "type": "VARCHAR",
+   "value": null
+  },
+  "text_firstname": {
+   "code": "FIRSTNAME",
+   "type": "VARCHAR",
+   "value": null
+  },
+  "text_fullname": {
+   "code": "FULLNAME",
+   "type": "VARCHAR",
+   "value": null
+  },
+  "text_lastname": {
+   "code": "LASTNAME",
+   "type": "VARCHAR",
+   "value": null
+  },
+  "text_null": {
+   "code": "NULL",
+   "type": "VARCHAR",
+   "value": null
+  },
+  "text_phone": {
+   "code": "PHONE",
+   "type": "VARCHAR",
+   "value": null
+  },
+  "text_regex": {
+   "code": "REGEX",
+   "type": "VARCHAR",
+   "value": "I | LOVE | TESTS"
+  },
+  "text_static": {
+   "code": "STATIC",
+   "type": "VARCHAR",
+   "value": "text_static"
+  },
+  "text_zipcode": {
+   "code": "ZIPCODE",
+   "type": "VARCHAR",
+   "value": null
+  },
+  "time_now": {
+   "code": "NOW",
+   "type": "DATE",
+   "value": null
+  },
+  "time_null": {
+   "code": "NULL",
+   "type": "DATE",
+   "value": null
+  },
+  "time_random": {
+   "code": "RANDOM",
+   "type": "DATE",
+   "value": [
+    "2020-01-01",
+    "2026-01-01"
+   ]
+  },
+  "time_static": {
+   "code": "STATIC",
+   "type": "DATE",
+   "value": "2014-07-19"
+  },
+  "timestamp_now": {
+   "code": "NOW",
+   "type": "DATE",
+   "value": null
+  },
+  "timestamp_null": {
+   "code": "NULL",
+   "type": "DATE",
+   "value": null
+  },
+  "timestamp_random": {
+   "code": "RANDOM",
+   "type": "DATE",
+   "value": [
+    "2014-01-01",
+    "2026-01-01"
+   ]
+  },
+  "timestamp_static": {
+   "code": "STATIC",
+   "type": "DATE",
+   "value": "2010-01-01"
+  },
+  "timestamptz_now": {
+   "code": "NOW",
+   "type": "DATE",
+   "value": null
+  },
+  "timestamptz_null": {
+   "code": "NULL",
+   "type": "DATE",
+   "value": null
+  },
+  "timestamptz_random": {
+   "code": "RANDOM",
+   "type": "DATE",
+   "value": [
+    "2014-01-01",
+    "2016-01-01"
+   ]
+  },
+  "timestamptz_static": {
+   "code": "STATIC",
+   "type": "DATE",
+   "value": "2008-01-20"
+  },
+  "timetz_now": {
+   "code": "NOW",
+   "type": "DATE",
+   "value": null
+  },
+  "timetz_null": {
+   "code": "NULL",
+   "type": "DATE",
+   "value": null
+  },
+  "timetz_random": {
+   "code": "RANDOM",
+   "type": "DATE",
+   "value": [
+    "2014-01-01",
+    "2018-03-01"
+   ]
+  },
+  "timetz_static": {
+   "code": "STATIC",
+   "type": "DATE",
+   "value": "1999-10-10"
+  },
+  "uuid_null": {
+   "code": "NULL",
+   "type": "UUID",
+   "value": null
+  },
+  "uuid_uuid": {
+   "code": "UUID",
+   "type": "UUID",
+   "value": null
+  },
+  "varchar_address": {
+   "code": "ADDRESS",
+   "type": "VARCHAR",
+   "value": null
+  },
+  "varchar_city": {
+   "code": "CITY",
+   "type": "VARCHAR",
+   "value": null
+  },
+  "varchar_country": {
+   "code": "COUNTRY",
+   "type": "VARCHAR",
+   "value": null
+  },
+  "varchar_email": {
+   "code": "EMAIL",
+   "type": "VARCHAR",
+   "value": null
+  },
+  "varchar_firstname": {
+   "code": "FIRSTNAME",
+   "type": "VARCHAR",
+   "value": null
+  },
+  "varchar_fullname": {
+   "code": "FULLNAME",
+   "type": "VARCHAR",
+   "value": null
+  },
+  "varchar_lastname": {
+   "code": "LASTNAME",
+   "type": "VARCHAR",
+   "value": null
+  },
+  "varchar_null": {
+   "code": "NULL",
+   "type": "VARCHAR",
+   "value": null
+  },
+  "varchar_phone": {
+   "code": "PHONE",
+   "type": "VARCHAR",
+   "value": null
+  },
+  "varchar_regex": {
+   "code": "REGEX",
+   "type": "VARCHAR",
+   "value": "A(be | dam)"
+  },
+  "varchar_static": {
+   "code": "STATIC",
+   "type": "VARCHAR",
+   "value": "testing varchar"
+  },
+  "varchar_zipcode": {
+   "code": "ZIPCODE",
+   "type": "VARCHAR",
+   "value": null
+  }
+ }
+}

@@ -59,6 +59,16 @@ func (e DeleteDefaultError) Error() string {
 	return fmt.Sprintf("cannot delete the following strategy for column type: '%s' and code: '%s' as it is a default code", e.columnType, e.code)
 }
 
+// NotInRangeError is given when a value isn't in a predefined range which represented as a string
+type NotInRangeError struct {
+	value    any
+	rangeStr string
+}
+
+func (e NotInRangeError) Error() string {
+	return fmt.Sprintf("value '%v' is not within the accepted range: '%s'", e.value, e.rangeStr)
+}
+
 func wrapError(columnType string, code string, err error) error {
 	return fmt.Errorf("for column type '%s' and code '%s': [%w]", columnType, code, err)
 }
