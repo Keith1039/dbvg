@@ -67,6 +67,10 @@ to generate data. Validation for all 3 is mostly the same, ensuring that an exis
 i.e. no overwriting existing codes. They also ensure that the given columnType specified is supported and that the new entry
 follows existing convention. For `AddNewOverrideStrategy` specifically, it ensures that the `Strategy` given is not a `ValueStrategy`.
 
+**Note:** Because of this explicit need to add the created `Strategy` using these functions, creating and utilizing your own `Strategy`
+is not currently compatible with the CLI tool. For the CLI tool, you are restricted to the Strategies that are already defined.
+A definitive list of existing Strategies can be found [here](Existing_Strategies.md)
+
 ### Strategy functions over Strategies
 The above functions do not take in the `Strategy` but a function that returns the `Strategy`. The reason for this is to allow for 
 flexibility. Some Strategies can be shared i.e. the same struct is linked to all columns that use it and some can not. 

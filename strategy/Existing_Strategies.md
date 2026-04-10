@@ -312,18 +312,63 @@ N/A
 ```
 
 ## DATE
+
+### NOW
+#### Type: `Override Strategy`
+#### Expected Value: N/A
+#### Behavior: Outputs the current time as a `time.time` struct every time the `Strategy` is executed
+#### Valid Example:
+
+#### Invalid Example:
+N/A
+
 ### RANDOM
 #### Type: `Required Strategy`
 #### Expected Value: [2]string with 2 valid date strings where string[0] < string[1]
-#### Behavior: Outputs a date object with a date that's in the range of [ string[0], string[1] )
+#### Behavior: Outputs a `time.time` struct with a date that's in the range of [ string[0], string[1] )
 
 
 
 ## VARCHAR
+
+### REGEX
+#### Type: `Required Strategy`
+#### Expected Value: any valid regex string
+#### Behavior: Outputs a string that fits the given Regex everytime the `Strategy` is executed
+#### Valid Example:
+```json
+{
+  "purchase": {
+    "type": "VARCHAR",
+    "code": "STATIC",
+    "value": "gr(a|e)y" 
+  }
+}
+```
+#### Invalid Examples:
+```json
+{
+  "purchase": {
+    "type": "VARCHAR",
+    "code": "STATIC",
+    "value": "[aZ-Az]"
+  }
+}
+```
+```json
+{
+  "purchase": {
+    "type": "VARCHAR",
+    "code": "STATIC",
+    "value": null
+  }
+}
+```
+
 ### STATIC
 #### Type: `Required Strategy`
 #### Expected Value: any string
-#### Behavior: Outputs the given string
+#### Behavior: Outputs the given string every time the `Strategy` is executed
 #### Valid Example:
 ```json
 {
@@ -353,3 +398,240 @@ N/A
   }
 }
 ```
+
+### EMAIL
+#### Type: `Override Strategy`
+#### Expected Value: N/A
+#### Behavior: Uses the `gofakeit` library to output a random email as string every time the `Strategy` is executed
+#### Valid Example:
+```json
+{
+  "purchase": {
+    "type": "VARCHAR",
+    "code": "EMAIL",
+    "value": null
+  }
+}
+```
+```json
+{
+  "purchase": {
+    "type": "VARCHAR",
+    "code": "EMAIL",
+    "value": true
+  }
+}
+```
+#### Invalid Example
+N/A
+
+### FIRSTNAME
+#### Type: `Override Strategy`
+#### Expected Value: N/A
+#### Behavior: Uses the `gofakeit` library to output a random first name as a string every time the `Strategy` is executed
+#### Valid Example:
+```json
+{
+  "purchase": {
+    "type": "VARCHAR",
+    "code": "FIRSTNAME",
+    "value": null
+  }
+}
+```
+```json
+{
+  "purchase": {
+    "type": "VARCHAR",
+    "code": "FIRSTNAME",
+    "value": 20
+  }
+}
+```
+#### Invalid Example
+N/A
+
+
+### LASTNAME
+#### Type: `Override Strategy`
+#### Expected Value: N/A
+#### Behavior: Uses the `gofakeit` library to output a random last name as a string every time the `Strategy` is executed
+#### Valid Example:
+```json
+{
+  "purchase": {
+    "type": "VARCHAR",
+    "code": "LASTNAME",
+    "value": null
+  }
+}
+```
+```json
+{
+  "purchase": {
+    "type": "VARCHAR",
+    "code": "LASTNAME",
+    "value": [1, ""]
+  }
+}
+```
+#### Invalid Example
+N/A
+
+### FULLNAME
+#### Type: `Override Strategy`
+#### Expected Value: N/A
+#### Behavior: Uses the `gofakeit` library to output a random full name as a string everytime the `Strategy` is executed
+#### Valid Example:
+```json
+{
+  "purchase": {
+    "type": "VARCHAR",
+    "code": "FULLNAME",
+    "value": null
+  }
+}
+```
+```json
+{
+  "purchase": {
+    "type": "VARCHAR",
+    "code": "FULLNAME",
+    "value": [1,"", 1204]
+  }
+}
+```
+#### Invalid Example
+N/A
+
+### PHONE
+#### Type: `Override Strategy`
+#### Expected Value: N/A
+#### Behavior: Uses the `gofakeit` library to output a random phone number as a string every time the `Strategy` is executed
+#### Valid Example:
+```json
+{
+  "purchase": {
+    "type": "VARCHAR",
+    "code": "PHONE",
+    "value": null
+  }
+}
+```
+```json
+{
+  "purchase": {
+    "type": "VARCHAR",
+    "code": "PHONE",
+    "value": "2026-01"
+  }
+}
+```
+#### Invalid Example
+N/A
+
+
+### COUNTRY
+#### Type: `Override Strategy`
+#### Expected Value: N/A
+#### Behavior: Uses the `gofakeit` library to output a random country's name as a string every time the `Strategy` is executed
+#### Valid Example:
+```json
+{
+  "purchase": {
+    "type": "VARCHAR",
+    "code": "COUNTRY",
+    "value": null
+  }
+}
+```
+```json
+{
+  "purchase": {
+    "type": "VARCHAR",
+    "code": "COUNTRY",
+    "value": "Random Country Name"
+  }
+}
+```
+#### Invalid Example
+N/A
+
+### ADDRESS
+#### Type: `Override Strategy`
+#### Expected Value: N/A
+#### Behavior: Uses the `gofakeit` library to output a random address as a string every time the `Strategy` is executed
+#### Valid Example:
+```json
+{
+  "purchase": {
+    "type": "VARCHAR",
+    "code": "ADDRESS",
+    "value": null
+  }
+}
+```
+```json
+{
+  "purchase": {
+    "type": "VARCHAR",
+    "code": "ADDRESS",
+    "value": "900 some address ave"
+  }
+}
+```
+#### Invalid Example
+N/A
+
+### ZIPCODE
+#### Type: `Override Strategy`
+#### Expected Value: N/A
+#### Behavior: Uses the `gofakeit` library to output a random zip code as a string every time the `Strategy` is executed
+#### Valid Example:
+```json
+{
+  "purchase": {
+    "type": "VARCHAR",
+    "code": "ZIPCODE",
+    "value": null
+  }
+}
+```
+```json
+{
+  "purchase": {
+    "type": "VARCHAR",
+    "code": "ZIPCODE",
+    "value": "1 + 2"
+  }
+}
+```
+#### Invalid Example
+N/A
+
+
+### CITY
+#### Type: `Override Strategy`
+#### Expected Value: N/A
+#### Behavior: Uses the `gofakeit` library to output a random city's name as a string every time the `Strategy` is executed
+#### Valid Example:
+```json
+{
+  "purchase": {
+    "type": "VARCHAR",
+    "code": "CITY",
+    "value": null
+  }
+}
+```
+```json
+{
+  "purchase": {
+    "type": "VARCHAR",
+    "code": "CITY",
+    "value": "Atl"
+  }
+}
+```
+#### Invalid Example
+N/A
