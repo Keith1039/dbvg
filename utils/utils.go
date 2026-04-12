@@ -201,7 +201,7 @@ func UpdateInsertTemplate(path string, newTemplate map[string]map[string]map[str
 	// for the normalization as well
 	err = verifyTemplate(newTemplate)
 	if err != nil {
-		return fmt.Errorf("for the inputed template: [%w]", err)
+		return fmt.Errorf("for the template at '%s' the following error occured: [%w]", path, err)
 	}
 	updateTemplate(data, newTemplate)
 	err = WriteInsertTemplateToFile(path, newTemplate)
@@ -255,9 +255,8 @@ func updateTemplate(oldTemplate map[string]map[string]map[string]any, newTemplat
 		for columnName := range columns {
 			_, ok := oldTemplate[tableName][columnName]
 			if ok {
-				if val, ok = oldTemplate[tableName][columnName]["type"]; ok {
-					newTemplate[tableName][columnName]["type"] = val
-				}
+				// the system given type is always correct, overwrite the users
+
 				if val, ok = oldTemplate[tableName][columnName]["code"]; ok {
 					newTemplate[tableName][columnName]["code"] = val
 				}
