@@ -29,7 +29,8 @@ case-insensitive so putting "random" would be the same as putting "RANDOM".
 ## type
 This is a string field representing the perceived type of the column, in other words, how the program will interpret the column's type.
 This key's value is assigned during the template's creation. It serves as a reference for the user when using the [code guide](#code-guide). 
-This value should not be edited by users.
+This value should not be edited by users. For more information about accepted types as well as how the program interprets column type,
+please consult the [`database` package's README](../../db/README.md).
 
 ## value
 This is the field meant to be used with the [code](#code) field to help generate data. The fields of `code` and `type` are
@@ -71,87 +72,9 @@ A quick look at the supported codes for each column type
 
 **UUID**: `UUID`  generates a new UUID
 
-**VARCHAR**: `REGEX` with default value: "[a-zA-Z]{10}" however, this default will scale to match the column's length
-for example, if a column of type **VARCHAR** only allows for 6 characters, the regex will become "[a-zA-Z]{6}"
+**VARCHAR**: `REGEX` with default value: `[a-zA-Z]{10}` however, this default will scale down to match the column's length if it is lower than 10 characters.
+For example, if a column of type `VARCHAR` only allows for 6 characters, the regex will become `[a-zA-Z]{6}`
 
-For more details on these codes and their associated `Strategy` please consult the [Strategy README](../../strategy/README.md)
-
-## Codes for type Int
-
-## RANDOM
-Generates a random value based on the `value` field in the template.  
-used. This code is supported only by `INT`, `FLOAT` and `Date` type columns. The supported value format is a range between two values of the
-column type.
-
-The following are examples of the supported format for the `RANDOM` code.
-
-INT: "2,6"
-
-FLOAT: "2, 6" or "2.0,6.0"
-
-DATE: "2024-02-23, 2025-01-1"
-
-## STATIC
-Generates a static value based on the `Value` field in the template. In the case of `INT` type columns, if no value is
-given, `"Value": ""`, the default of "0" is used instead. This code is supported by ALL column types 
-(`BOOL`, `DATE`, `INT`, `FLOAT`, `UUID`, `VARCHAR`). The supported format for this code is simply a string
-value for the given column type. Integer for INT, Boolean for Bool etc.
-
-## SEQ
-Generates a sequential integer value starting from 1. Behaves how a serial integer would behave. 
-This code does not use the `Value` field. This code is supported by `INT` type columns.
-
-## UUID
-Generates a UUID for the column. This code does not use the `Value` field. This code is supported by `UUID` type
-columns.
-
-## REGEX
-Generates a string value based on the REGEX given by the `Value` field. 
-if no value is given, `"Value": ""`, the default of "[a-zA-Z]{10}" is used instead. The supported format for this code is
-a valid regex string. This code is supported by `VARCHAR` type columns.
-
-## EMAIL
-Generates a random email string value using `gofakeit` for the column. This code does not use the `Value` field. 
-This code is supported by `VARCHAR` type columns.
-
-## FIRSTNAME
-Generates a random first name string value using `gofakeit` for the column. This code does not use the `Value` field. 
-This code is supported by `VARCHAR` type columns.
-
-## LASTNAME
-Generates a random last name string value using `gofakeit` for the column. This code does not use the `Value` field. 
-This code is supported by `VARCHAR` type columns.
-
-## FULLNAME
-Generates a random full name string value using `gofakeit` for the column. This code does not use the `Value` field. 
-This code is supported by `VARCHAR` type columns.
-
-## PHONE
-Generates a random phone number string value using `gofakeit` for the column. This code does not use the `Value` field. 
-This code is supported by `VARCHAR` type columns.
-
-## COUNTRY
-Generates a random country string value using `gofakeit` for the column. This code does not use the `Value` field. 
-This code is supported by `VARCHAR` type columns.
-
-## ADDRESS
-Generates a random address string value using `gofakeit` for the column. This code does not use the `Value` field. 
-This code is supported by `VARCHAR` type columns.
-
-## ZIPCODE
-Generates a random zipcode string value using `gofakeit` for the column. This code does not use the `Value` field. 
-This code is supported by `VARCHAR` type columns.
-
-## CITY
-Generates a random city string value using `gofakeit` for the column. This code does not use the `Value` field. 
-This code is supported by `VARCHAR` type columns.
-
-## NULL
-Generate a NULL value for the given column. This code does not use the `Value` field. This code is supported by ALL
-column types (`BOOL`, `DATE`, `INT`, `UUID`, `VARCHAR`).
-
-## NOW
-Generate a timestamp based on the current time and uses it as the value for the column. This code does not use the `Value` field. 
-This code is supported by `DATE` type columns.
-
+For more details on `Strategy` please consult the [Strategy README](../../strategy/README.md)
+For the definitive list of defined Strategies, please consult the [Existing_Strategies markdown file](../../strategy/Existing_Strategies.md)
 
