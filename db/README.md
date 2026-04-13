@@ -45,8 +45,8 @@ and `Strategy` support.
 - `TEXT` --> `VARCHAR`
 - `BOOL` --> `BOOL`
 - `DATE` --> `DATE`
-- `TIME` --> `DATE`
-- `TIMETZ` --> `DATE`
+- `TIME` --> `TIME`
+- `TIMETZ` --> `TIME`
 - `TIMESTAMP` --> `DATE`
 - `TIMESTAMPTZ` --> `DATE`
 

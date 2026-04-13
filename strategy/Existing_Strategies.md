@@ -3,10 +3,7 @@
 ## Overview
 Each `Strategy` is supported by a specific type and a code. In other words, those are the keys for the `Strategy` in the internal maps.
 As such, each supported type will have a section and underneath their section will be a description of the Strategies supported for that type.
-
-
-## Special Case
-All types by default accept the `NULL` code.
+A special case is the `NULL` code. All types by default accept the `NULL` code.
 
 ## ALL
 ### NULL
@@ -16,7 +13,7 @@ All types by default accept the `NULL` code.
 #### Valid Example:
 ```json
 {
-  "purchase": {
+  "column": {
     "type": "FLOAT",
     "code": "NULL",
     "value": [1, 10]
@@ -25,7 +22,7 @@ All types by default accept the `NULL` code.
 ```
 ```json
 {
-  "purchase": {
+  "column": {
     "type": "VARCHAR",
     "code": "NULL",
     "value": true
@@ -44,7 +41,7 @@ N/A
 #### Valid Example:
 ```json
 {
-  "purchase": {
+  "column": {
     "type": "INT",
     "code": "RANDOM",
     "value": [1, 10]
@@ -55,7 +52,7 @@ N/A
 #### Invalid Examples
 ```json
 {
-  "purchase": {
+  "column": {
     "type": "INT",
     "code": "RANDOM",
     "value": [10, 5]
@@ -65,7 +62,7 @@ N/A
 
 ```json
 {
-  "purchase": {
+  "column": {
     "type": "INT",
     "code": "RANDOM",
     "value": "1-20"
@@ -80,7 +77,7 @@ N/A
 #### Valid Example:
 ```json
 {
-  "purchase": {
+  "column": {
     "type": "INT",
     "code": "STATIC",
     "value": 5
@@ -91,7 +88,7 @@ N/A
 #### Invalid Example:
 ```json
 {
-  "purchase": {
+  "column": {
     "type": "INT",
     "code": "STATIC",
     "value": "5.0"
@@ -99,14 +96,14 @@ N/A
 }
 ```
 
-#### SERIAL
+### SERIAL
 #### Type: `Optional Strategy`
 #### Expected Value: null (defaults to 1) or any integer >= 1
 #### Behavior: Outputs the given integer and then increments the value by 1 for the next time the `Strategy` is executed
 #### Valid Example:
 ```json
 {
-  "purchase": {
+  "column": {
     "type": "INT",
     "code": "STATIC",
     "value": null
@@ -115,7 +112,7 @@ N/A
 ```
 ```json
 {
-  "purchase": {
+  "column": {
     "type": "INT",
     "code": "STATIC",
     "value": 5
@@ -126,7 +123,7 @@ N/A
 #### Invalid Example:
 ```json
 {
-  "purchase": {
+  "column": {
     "type": "INT",
     "code": "STATIC",
     "value": 0
@@ -135,7 +132,7 @@ N/A
 ```
 ```json
 {
-  "purchase": {
+  "column": {
     "type": "INT",
     "code": "STATIC",
     "value": "6"
@@ -151,7 +148,7 @@ N/A
 #### Valid Example:
 ```json
 {
-  "purchase": {
+  "column": {
     "type": "FLOAT",
     "code": "RANDOM",
     "value": [1, 10]
@@ -162,7 +159,7 @@ N/A
 #### Invalid Examples
 ```json
 {
-  "purchase": {
+  "column": {
     "type": "FLOAT",
     "code": "RANDOM",
     "value": [10, 5]
@@ -172,7 +169,7 @@ N/A
 
 ```json
 {
-  "purchase": {
+  "column": {
     "type": "FLOAT",
     "code": "RANDOM",
     "value": "1.75-10.80"
@@ -187,7 +184,7 @@ N/A
 #### Valid Example:
 ```json
 {
-  "purchase": {
+  "column": {
     "type": "FLOAT",
     "code": "STATIC",
     "value": 5
@@ -196,7 +193,7 @@ N/A
 ```
 ```json
 {
-  "purchase": {
+  "column": {
     "type": "FLOAT",
     "code": "STATIC",
     "value": 20.34
@@ -206,7 +203,7 @@ N/A
 #### Invalid Example:
 ```json
 {
-  "purchase": {
+  "column": {
     "type": "FLOAT",
     "code": "STATIC",
     "value": "54.76"
@@ -222,7 +219,7 @@ N/A
 #### Valid Examples:
 ```json
 {
-  "purchase": {
+  "column": {
     "type": "UUID",
     "code": "UUID",
     "value": [1, 20, 314]
@@ -231,7 +228,7 @@ N/A
 ```
 ```json
 {
-  "purchase": {
+  "column": {
     "type": "UUID",
     "code": "UUID",
     "value": true
@@ -241,7 +238,7 @@ N/A
 #### Invalid Examples:
 N/A
 
-## Bool
+## BOOL
 ### RANDOM
 #### Type: `Override Strategy`
 #### Expected Value: N/A
@@ -249,7 +246,7 @@ N/A
 #### Valid Example:
 ```json
 {
-  "purchase": {
+  "column": {
     "type": "BOOL",
     "code": "RANDOM",
     "value": "some string"
@@ -258,7 +255,7 @@ N/A
 ```
 ```json
 {
-  "purchase": {
+  "column": {
     "type": "BOOL",
     "code": "RANDOM",
     "value": true
@@ -275,7 +272,7 @@ N/A
 #### Valid Example:
 ```json
 {
-  "purchase": {
+  "column": {
     "type": "BOOL",
     "code": "STATIC",
     "value": true
@@ -284,7 +281,7 @@ N/A
 ```
 ```json
 {
-  "purchase": {
+  "column": {
     "type": "BOOL",
     "code": "STATIC",
     "value": false
@@ -294,7 +291,7 @@ N/A
 #### Invalid Example:
 ```json
 {
-  "purchase": {
+  "column": {
     "type": "BOOL",
     "code": "STATIC",
     "value": "true"
@@ -303,7 +300,7 @@ N/A
 ```
 ```json
 {
-  "purchase": {
+  "column": {
     "type": "BOOL",
     "code": "STATIC",
     "value": null
@@ -316,18 +313,191 @@ N/A
 ### NOW
 #### Type: `Override Strategy`
 #### Expected Value: N/A
-#### Behavior: Outputs the current time as a `time.time` struct every time the `Strategy` is executed
+#### Behavior: Outputs the current time as a `time.Time` struct every time the `Strategy` is executed
 #### Valid Example:
-
+```json
+{
+  "column": {
+    "type": "DATE",
+    "code": "NOW",
+    "value": null
+  }
+}
+```
+```json
+{
+  "column": {
+    "type": "DATE",
+    "code": "NOW",
+    "value": 50
+  }
+}
+```
 #### Invalid Example:
 N/A
+
+### STATIC
+#### Type: `Required Strategy`
+#### Expected Value: valid date string
+#### Behavior: Outputs a `time.Time` struct with using the given date string every time the `Strategy` is executed
+#### Valid Example:
+```json
+{
+  "column": {
+    "type": "DATE",
+    "code": "STATIC",
+    "value": "2009-11-10 23:00:00"
+  }
+}
+```
+#### Invalid Example
+```json
+{
+  "column": {
+    "type": "DATE",
+    "code": "STATIC",
+    "value": 20221001
+  }
+}
+```
+```json
+{
+  "column": {
+    "type": "DATE",
+    "code": "STATIC",
+    "value": "14-2020"
+  }
+}
+```
 
 ### RANDOM
 #### Type: `Required Strategy`
 #### Expected Value: [2]string with 2 valid date strings where string[0] < string[1]
-#### Behavior: Outputs a `time.time` struct with a date that's in the range of [ string[0], string[1] )
+#### Behavior: Outputs a `time.Time` struct with a date that's in the range of [ string[0], string[1] ) every time the `Strategy` is executed
+#### Valid Example:
+```json
+{
+  "column": {
+    "type": "DATE",
+    "code": "RANDOM",
+    "value": ["2000-01-02", "2026-01-01"]
+  }
+}
+```
+#### Invalid Example:
+```json
+{
+  "column": {
+    "type": "DATE",
+    "code": "RANDOM",
+    "value": true
+  }
+}
+```
+```json
+{
+  "column": {
+    "type": "DATE",
+    "code": "RANDOM",
+    "value": ["2026-01-01", "2000-01-02"]
+  }
+}
+```
+## TIME
 
+### NOW
+#### Type: `Override Strategy`
+#### Expected Value: N/A
+#### Behavior: Outputs the current time as a `time.Time` struct every time the `Strategy` is executed
+#### Valid Example:
+```json
+{
+  "column": {
+    "type": "TIME",
+    "code": "NOW",
+    "value": null
+  }
+}
+```
+```json
+{
+  "column": {
+    "type": "TIME",
+    "code": "NOW",
+    "value": 50
+  }
+}
+```
+#### Invalid Example:
+N/A
 
+### STATIC
+#### Type: `Required Strategy`
+#### Expected Value: valid time string of format (HH:MM:SS)
+#### Behavior: Outputs a `time.Time` struct with using the given time string every time the `Strategy` is executed
+#### Valid Example:
+```json
+{
+  "column": {
+    "type": "TIME",
+    "code": "STATIC",
+    "value": "23:00:00"
+  }
+}
+```
+#### Invalid Example
+```json
+{
+  "column": {
+    "type": "TIME",
+    "code": "STATIC",
+    "value": 230000
+  }
+}
+```
+```json
+{
+  "column": {
+    "type": "TIME",
+    "code": "STATIC",
+    "value": "2009-11-10 23:00:00"
+  }
+}
+```
+
+### RANDOM
+#### Type: `Required Strategy`
+#### Expected Value: [2]string with 2 valid time (HH:MM:SS) strings where string[0] < string[1]
+#### Behavior: Outputs a `time.Time` struct with a time that's in the range of [ string[0], string[1] ) every time the `Strategy` is executed
+#### Valid Example:
+```json
+{
+  "column": {
+    "type": "TIME",
+    "code": "RANDOM",
+    "value": ["00:00:00", "23:59:59"]
+  }
+}
+```
+#### Invalid Example
+```json
+{
+  "column": {
+    "type": "TIME",
+    "code": "RANDOM",
+    "value": ["23:59:59", "00:00:00"]
+  }
+}
+```
+```json
+{
+  "column": {
+    "type": "TIME",
+    "code": "RANDOM",
+    "value": 500
+  }
+}
+```
 
 ## VARCHAR
 
@@ -338,7 +508,7 @@ N/A
 #### Valid Example:
 ```json
 {
-  "purchase": {
+  "column": {
     "type": "VARCHAR",
     "code": "STATIC",
     "value": "gr(a|e)y" 
@@ -348,7 +518,7 @@ N/A
 #### Invalid Examples:
 ```json
 {
-  "purchase": {
+  "column": {
     "type": "VARCHAR",
     "code": "STATIC",
     "value": "[aZ-Az]"
@@ -357,7 +527,7 @@ N/A
 ```
 ```json
 {
-  "purchase": {
+  "column": {
     "type": "VARCHAR",
     "code": "STATIC",
     "value": null
@@ -372,7 +542,7 @@ N/A
 #### Valid Example:
 ```json
 {
-  "purchase": {
+  "column": {
     "type": "VARCHAR",
     "code": "STATIC",
     "value": "some string"
@@ -382,7 +552,7 @@ N/A
 #### Invalid Examples:
 ```json
 {
-  "purchase": {
+  "column": {
     "type": "VARCHAR",
     "code": "STATIC",
     "value": true
@@ -391,7 +561,7 @@ N/A
 ```
 ```json
 {
-  "purchase": {
+  "column": {
     "type": "VARCHAR",
     "code": "STATIC",
     "value": null
@@ -406,7 +576,7 @@ N/A
 #### Valid Example:
 ```json
 {
-  "purchase": {
+  "column": {
     "type": "VARCHAR",
     "code": "EMAIL",
     "value": null
@@ -415,7 +585,7 @@ N/A
 ```
 ```json
 {
-  "purchase": {
+  "column": {
     "type": "VARCHAR",
     "code": "EMAIL",
     "value": true
@@ -432,7 +602,7 @@ N/A
 #### Valid Example:
 ```json
 {
-  "purchase": {
+  "column": {
     "type": "VARCHAR",
     "code": "FIRSTNAME",
     "value": null
@@ -441,7 +611,7 @@ N/A
 ```
 ```json
 {
-  "purchase": {
+  "column": {
     "type": "VARCHAR",
     "code": "FIRSTNAME",
     "value": 20
@@ -459,7 +629,7 @@ N/A
 #### Valid Example:
 ```json
 {
-  "purchase": {
+  "column": {
     "type": "VARCHAR",
     "code": "LASTNAME",
     "value": null
@@ -468,7 +638,7 @@ N/A
 ```
 ```json
 {
-  "purchase": {
+  "column": {
     "type": "VARCHAR",
     "code": "LASTNAME",
     "value": [1, ""]
@@ -485,7 +655,7 @@ N/A
 #### Valid Example:
 ```json
 {
-  "purchase": {
+  "column": {
     "type": "VARCHAR",
     "code": "FULLNAME",
     "value": null
@@ -494,7 +664,7 @@ N/A
 ```
 ```json
 {
-  "purchase": {
+  "column": {
     "type": "VARCHAR",
     "code": "FULLNAME",
     "value": [1,"", 1204]
@@ -511,7 +681,7 @@ N/A
 #### Valid Example:
 ```json
 {
-  "purchase": {
+  "column": {
     "type": "VARCHAR",
     "code": "PHONE",
     "value": null
@@ -520,7 +690,7 @@ N/A
 ```
 ```json
 {
-  "purchase": {
+  "column": {
     "type": "VARCHAR",
     "code": "PHONE",
     "value": "2026-01"
@@ -538,7 +708,7 @@ N/A
 #### Valid Example:
 ```json
 {
-  "purchase": {
+  "column": {
     "type": "VARCHAR",
     "code": "COUNTRY",
     "value": null
@@ -547,7 +717,7 @@ N/A
 ```
 ```json
 {
-  "purchase": {
+  "column": {
     "type": "VARCHAR",
     "code": "COUNTRY",
     "value": "Random Country Name"
@@ -564,7 +734,7 @@ N/A
 #### Valid Example:
 ```json
 {
-  "purchase": {
+  "column": {
     "type": "VARCHAR",
     "code": "ADDRESS",
     "value": null
@@ -573,7 +743,7 @@ N/A
 ```
 ```json
 {
-  "purchase": {
+  "column": {
     "type": "VARCHAR",
     "code": "ADDRESS",
     "value": "900 some address ave"
@@ -590,7 +760,7 @@ N/A
 #### Valid Example:
 ```json
 {
-  "purchase": {
+  "column": {
     "type": "VARCHAR",
     "code": "ZIPCODE",
     "value": null
@@ -599,7 +769,7 @@ N/A
 ```
 ```json
 {
-  "purchase": {
+  "column": {
     "type": "VARCHAR",
     "code": "ZIPCODE",
     "value": "1 + 2"
@@ -617,7 +787,7 @@ N/A
 #### Valid Example:
 ```json
 {
-  "purchase": {
+  "column": {
     "type": "VARCHAR",
     "code": "CITY",
     "value": null
@@ -626,7 +796,7 @@ N/A
 ```
 ```json
 {
-  "purchase": {
+  "column": {
     "type": "VARCHAR",
     "code": "CITY",
     "value": "Atl"

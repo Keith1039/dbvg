@@ -46,10 +46,10 @@ var typeMap = map[string]string{
 	"TEXT":        "VARCHAR",
 	"BOOL":        "BOOL",
 	"DATE":        "DATE",
-	"TIME":        "DATE",
-	"TIMETZ":      "DATE",
 	"TIMESTAMP":   "DATE",
 	"TIMESTAMPTZ": "DATE",
+	"TIME":        "TIME",
+	"TIMETZ":      "TIME",
 }
 
 var supportedTypes = map[string]bool{
@@ -59,6 +59,7 @@ var supportedTypes = map[string]bool{
 	"VARCHAR": true,
 	"BOOL":    true,
 	"DATE":    true,
+	"TIME":    true,
 }
 
 func IsSupportedType(typeName string) bool {

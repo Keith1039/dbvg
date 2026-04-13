@@ -17,6 +17,11 @@ var defaults = map[string]map[string]bool{
 		"RANDOM": true,
 		"STATIC": true,
 	},
+	"TIME": {
+		"NOW":    true,
+		"RANDOM": true,
+		"STATIC": true,
+	},
 	"UUID": {"UUID": true},
 	"BOOL": {
 		"RANDOM": true,
@@ -52,7 +57,8 @@ func makeCopyAndReturn[T factories](m map[string]map[string]T) map[string]map[st
 }
 
 var overrideCodeMap = map[string]map[string]func() Strategy{
-	"DATE": {"NOW": NewNowStrategy},
+	"DATE": {"NOW": NewNowDateStrategy},
+	"TIME": {"NOW": NewNowTimeStrategy}, // db handles getting only the time part of time stamp
 	"UUID": {"UUID": NewUUIDStrategy},
 	"BOOL": {"RANDOM": NewRandomBoolStrategy},
 	"VARCHAR": {
@@ -89,6 +95,10 @@ var requiredCodeMap = map[string]map[string]func() ValueStrategy{
 	"DATE": {
 		"RANDOM": NewRandomDateStrategy,
 		"STATIC": NewStaticDateStrategy,
+	},
+	"TIME": {
+		"RANDOM": NewRandomTimeStrategy,
+		"STATIC": NewStaticTimeStrategy,
 	},
 	"INT": {
 		"RANDOM": NewRandomIntStrategy,
@@ -129,7 +139,7 @@ func DeleteStrategy(columnType, codeName string) error {
 	}
 	s, _ := GetStrategy(columnType, codeName) // we don't care if there's an error, we care that we got a strategy
 	if s != nil {
-		if _, ok := defaults[columnType][codeName]; ok {
+		if ok := defaults[columnType][codeName]; ok {
 			return DeleteDefaultError{columnType: columnType, code: codeName}
 		} else {
 			// literally has to be one of these, if not it would return nil
@@ -163,12 +173,7 @@ func GetStrategy(columnType, codeName string) (Strategy, error) {
 	}
 	codeName = utils.TrimAndUpperString(codeName)
 	if codeName == "NULL" {
-		switch columnType {
-		case "UUID":
-			return NewNullUUIDStrategy(), nil
-		default:
-			return NewNullStrategy(), nil
-		}
+		return NewNullStrategy(), nil
 	}
 
 	strategy, ok := overrideCodeMap[columnType][codeName]

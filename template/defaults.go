@@ -8,7 +8,8 @@ var defaults = map[string]func() strategy.Strategy{
 	"INT":     func() strategy.Strategy { return defaultSerial() },
 	"FLOAT":   defaultFloatRandom,
 	"UUID":    func() strategy.Strategy { return strategy.NewUUIDStrategy() },
-	"DATE":    func() strategy.Strategy { return strategy.NewNowStrategy() },
+	"DATE":    func() strategy.Strategy { return strategy.NewNowDateStrategy() },
+	"TIME":    func() strategy.Strategy { return strategy.NewNowTimeStrategy() },
 	"BOOL":    func() strategy.Strategy { return strategy.NewRandomBoolStrategy() },
 	"VARCHAR": defaultRegex,
 }
@@ -18,6 +19,7 @@ var defaultCode = map[string]string{
 	"FLOAT":   "RANDOM",
 	"UUID":    "UUID",
 	"DATE":    "NOW",
+	"TIME":    "NOW",
 	"BOOL":    "RANDOM",
 	"VARCHAR": "REGEX",
 }

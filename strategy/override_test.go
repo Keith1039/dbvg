@@ -3,7 +3,6 @@ package strategy
 import (
 	"fmt"
 	"github.com/Keith1039/dbvg/utils"
-	"github.com/google/uuid"
 	"testing"
 )
 
@@ -13,7 +12,8 @@ func implementsValueStrategy(s Strategy) bool {
 }
 
 var overrideExpectMap = map[string]string{
-	"DATE":    "string",
+	"TIME":    "time.Time",
+	"DATE":    "time.Time",
 	"UUID":    "string",
 	"BOOL":    "bool",
 	"VARCHAR": "string",
@@ -47,28 +47,6 @@ func TestOverrideStrategy_Null(t *testing.T) {
 
 	if res != nil {
 		t.Fatal(UnexpectedTypeError{ExpectedType: "nil", ActualType: fmt.Sprintf("%T", res)})
-	}
-
-	uuidNullStrategy, err := GetStrategy("uuid", "null")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if implementsValueStrategy(uuidNullStrategy) {
-		t.Fatal(ValueStrategyImplementedError{})
-	}
-
-	res, err = uuidNullStrategy.ExecuteStrategy()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	val, ok := res.(string)
-	if !ok {
-		t.Fatal(UnexpectedTypeError{ExpectedType: "string", ActualType: fmt.Sprintf("%T", res)})
-	}
-	uuidNull := uuid.Nil.String()
-	if val != uuidNull {
-		t.Fatalf("expected value '%s', actual value '%s'", uuidNull, val)
 	}
 }
 
