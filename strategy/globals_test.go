@@ -17,7 +17,7 @@ func attemptDeletionForMap[T factories](m map[string]map[string]T) error {
 		for code, _ := range values {
 			err = strategy.DeleteStrategy(columnType, code)
 			if err == nil {
-				return errors.New(fmt.Sprintf("sucessfully deleated a default, columnType: '%s', code: '%s'", columnType, code))
+				return errors.New(fmt.Sprintf("sucessfully deleted a default, columnType: '%s', code: '%s'", columnType, code))
 			}
 		}
 	}
@@ -57,32 +57,21 @@ func TestDeleteStrategy(t *testing.T) {
 }
 
 func TestGetStrategy(t *testing.T) {
-	s, err := strategy.GetStrategy("", "")
+	_, err := strategy.GetStrategy("", "")
 	if err == nil {
 		t.Fatalf("expected error for unsupported column type")
 	}
-	s, err = strategy.GetStrategy("int", "asddfaafaffd")
+	_, err = strategy.GetStrategy("int", "asddfaafaffd")
 	if !errors.As(err, &strategy.UnsupportedCodeError{}) {
 		t.Fatalf("expected 'UnsupportedCodeError' but received %v", err)
 	}
-	s, err = strategy.GetStrategy("          int        ", " random       ")
+	_, err = strategy.GetStrategy("          int        ", " random       ")
 	if err != nil {
 		t.Fatalf("expected no error but received %v", err)
 	}
-	s, err = strategy.GetStrategy("int", "null")
+	_, err = strategy.GetStrategy("int", "null")
 	if err != nil {
 		t.Fatalf("expected no error but received %v", err)
-	}
-	genericStrat := s.(*strategy.OverrideStrategy).Strategy
-	s, err = strategy.GetStrategy("uuid", "null")
-	if err != nil {
-		t.Fatalf("expected no error but received %v", err)
-	}
-	uuidSpecificStrat := s.(*strategy.OverrideStrategy).Strategy
-	val1, _ := genericStrat()
-	val2, _ := uuidSpecificStrat()
-	if val1 == val2 {
-		t.Fatal("generic Null strategy should not return the same as uuid's Null strategy")
 	}
 }
 

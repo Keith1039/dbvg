@@ -8,6 +8,7 @@ import (
 	"github.com/golang-module/carbon"
 	"regexp"
 	"testing"
+	"time"
 )
 
 type expectedValueError struct {
@@ -57,9 +58,9 @@ func dateRandomTestRunner() *testRunner {
 		arr := s.Value.([]string)
 		t1, _ := utils.GetTimeFromString(arr[0])
 		t2, _ := utils.GetTimeFromString(arr[1])
-		t3, err := utils.GetTimeFromString(val.(string))
-		if err != nil {
-			return err
+		t3, ok := val.(time.Time)
+		if !ok {
+			return strategy.UnexpectedTypeError{ExpectedType: "time.Time", ActualType: utils.GetStringType(val)}
 		}
 		if t3.Before(t1) || t3.After(t2) {
 			return errors.New(fmt.Sprintf("generated value '%v' is out of bounds of value '%v", t3, arr))
@@ -80,9 +81,54 @@ func dateStaticTestRunner() *testRunner {
 		if !ok {
 			return errors.New("strategy could not be cast to 'RequiredStrategy'")
 		}
-		return staticEvaluator(val, s.Value)
+		return staticEvaluator(val, carbon.Parse(s.Value.(string)).ToStdTime())
 	}
 
+	return &t
+}
+
+func timeStaticTestRunner() *testRunner {
+	t := testRunner{
+		testValues:     []any{false, "24:00:00", "22:00:00"},
+		expectedErrors: []error{strategy.UnexpectedTypeError{}, strategy.ImproperTimeStringFormatError{}},
+	}
+
+	t.evalCriteria = func(val any) error {
+		s, ok := t.strategy.(*strategy.RequiredStrategy)
+		if !ok {
+			return errors.New("strategy could not be cast to 'RequiredStrategy'")
+		}
+		return staticEvaluator(val, carbon.Parse(s.Value.(string)).ToStdTime())
+	}
+
+	return &t
+}
+
+func timeRandomTestRunner() *testRunner {
+	t := testRunner{
+		testValues: []any{"", []string{"", "", ""}, []string{"03-01-2025", "2025-01-02"},
+			[]string{"00:00:00", "24:00:00"}, []string{"13:00:00", "00:00:00"},
+			[]string{"00:00:00", "23:00:00"}},
+		expectedErrors: []error{strategy.UnexpectedTypeError{}, strategy.UnexpectedArrayLengthError{}, strategy.ImproperTimeStringFormatError{},
+			strategy.ImproperTimeStringFormatError{}, strategy.RandomBoundError{}},
+	}
+	t.evalCriteria = func(val any) error {
+		s, ok := t.strategy.(*strategy.RequiredStrategy)
+		if !ok {
+			return errors.New("strategy could not be cast to 'RequiredStrategy'")
+		}
+		arr := s.Value.([]string)
+		t1, _ := utils.GetTimeFromString(arr[0])
+		t2, _ := utils.GetTimeFromString(arr[1])
+		t3, ok := val.(time.Time)
+		if !ok {
+			return strategy.UnexpectedTypeError{ExpectedType: "time.Time", ActualType: utils.GetStringType(val)}
+		}
+		if t3.Before(t1) || t3.After(t2) {
+			return errors.New(fmt.Sprintf("generated value '%v' is out of bounds of value '%v", t3, arr))
+		}
+		return nil
+	}
 	return &t
 }
 

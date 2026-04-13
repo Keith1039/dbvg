@@ -42,21 +42,17 @@ func NewNullStrategy() Strategy {
 	return &OverrideStrategy{Strategy: handleNullCode}
 }
 
-func handleNullCodeUUID() (any, error) {
-	return uuid.Nil.String(), nil
-}
-
-// NewNullUUIDStrategy defines and returns a Strategy of type OverrideStrategy meant to handle the "NUll" code for type "UUID"
-func NewNullUUIDStrategy() Strategy {
-	return &OverrideStrategy{Strategy: handleNullCodeUUID}
-}
-
 func handleNowCode() (any, error) {
-	return time.Now().String()[0:19], nil
+	return time.Now(), nil
 }
 
-// NewNowStrategy defines and returns a Strategy of type OverrideStrategy meant to handle code "NOW" for type "DATE"
-func NewNowStrategy() Strategy {
+// NewNowDateStrategy defines and returns a Strategy of type OverrideStrategy meant to handle code "NOW" for type "DATE"
+func NewNowDateStrategy() Strategy {
+	return &OverrideStrategy{Strategy: handleNowCode}
+}
+
+// NewNowTimeStrategy defines and returns a Strategy of type OverrideStrategy meant to handle code "NOW" for type "TIME"
+func NewNowTimeStrategy() Strategy {
 	return &OverrideStrategy{Strategy: handleNowCode}
 }
 

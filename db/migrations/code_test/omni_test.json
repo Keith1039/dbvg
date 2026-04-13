@@ -301,26 +301,26 @@
   },
   "time_now": {
    "code": "NOW",
-   "type": "DATE",
+   "type": "TIME",
    "value": null
   },
   "time_null": {
    "code": "NULL",
-   "type": "DATE",
+   "type": "TIME",
    "value": null
   },
   "time_random": {
    "code": "RANDOM",
-   "type": "DATE",
+   "type": "TIME",
    "value": [
-    "2020-01-01",
-    "2026-01-01"
+    "00:00:00",
+    "23:59:59"
    ]
   },
   "time_static": {
    "code": "STATIC",
-   "type": "DATE",
-   "value": "2014-07-19"
+   "type": "TIME",
+   "value": "01:20:00"
   },
   "timestamp_now": {
    "code": "NOW",
@@ -370,26 +370,26 @@
   },
   "timetz_now": {
    "code": "NOW",
-   "type": "DATE",
+   "type": "TIME",
    "value": null
   },
   "timetz_null": {
    "code": "NULL",
-   "type": "DATE",
+   "type": "TIME",
    "value": null
   },
   "timetz_random": {
    "code": "RANDOM",
-   "type": "DATE",
+   "type": "TIME",
    "value": [
-    "2014-01-01",
-    "2018-03-01"
+    "14:59:59",
+    "20:00:00"
    ]
   },
   "timetz_static": {
    "code": "STATIC",
-   "type": "DATE",
-   "value": "1999-10-10"
+   "type": "TIME",
+   "value": "14:14:09"
   },
   "uuid_null": {
    "code": "NULL",

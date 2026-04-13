@@ -8,6 +8,7 @@ import (
 	regen "github.com/zach-klippenstein/goregen"
 	"math/rand/v2"
 	"regexp"
+	"strings"
 	"time"
 )
 
@@ -174,9 +175,21 @@ func staticDateCriteria(val any) error {
 	}
 }
 
+func staticDateStrategy(val any) (any, error) {
+	v, ok := val.(string)
+	if !ok {
+		return nil, UnexpectedTypeError{ExpectedType: "string", ActualType: v}
+	}
+	c := carbon.Parse(v)
+	if c.Error != nil {
+		return nil, ImproperDateStringFormatError{DateString: v}
+	}
+	return c.ToStdTime(), nil
+}
+
 // NewStaticDateStrategy defines and returns a Strategy of type RequiredStrategy meant to handle code "STATIC" for type "DATE"
 func NewStaticDateStrategy() ValueStrategy {
-	return &RequiredStrategy{defaultStrategy: &defaultStrategy{Strategy: staticStrategy, Criteria: staticDateCriteria}}
+	return &RequiredStrategy{defaultStrategy: &defaultStrategy{Strategy: staticDateStrategy, Criteria: staticDateCriteria}}
 }
 
 func randomDateCriteria(val any) error {
@@ -219,7 +232,7 @@ func randomDateStrategy(val any) (any, error) {
 	if err != nil {
 		return nil, err
 	}
-	return carbon.Parse(date).ToString(), nil
+	return carbon.Parse(date).ToStdTime(), nil
 }
 
 // NewRandomDateStrategy defines and returns a Strategy of type RequiredStrategy meant to handle code "RANDOM" for type "DATE"
@@ -227,4 +240,79 @@ func NewRandomDateStrategy() ValueStrategy {
 	return &RequiredStrategy{defaultStrategy: &defaultStrategy{Strategy: randomDateStrategy, Criteria: randomDateCriteria}}
 }
 
-//
+// Time type
+
+func staticTimeCriteria(val any) error {
+	switch t := val.(type) {
+	case string:
+		t = strings.TrimSpace(t)
+		_, err := time.Parse(time.TimeOnly, t)
+		if err != nil {
+			return ImproperTimeStringFormatError{TimeString: t}
+		}
+		return nil
+	default:
+		return UnexpectedTypeError{ExpectedType: "string", ActualType: utils.GetStringType(t)}
+	}
+}
+
+func staticTimeStrategy(val any) (any, error) {
+	timeString := val.(string)
+	t, err := time.Parse(time.TimeOnly, timeString)
+	if err != nil {
+		return nil, ImproperTimeStringFormatError{TimeString: timeString}
+	}
+	return t, nil
+}
+
+// NewStaticTimeStrategy defines and returns a Strategy of type RequiredStrategy meant to handle code "STATIC" for type "TIME"
+func NewStaticTimeStrategy() ValueStrategy {
+	return &RequiredStrategy{defaultStrategy: &defaultStrategy{Strategy: staticTimeStrategy, Criteria: staticTimeCriteria}}
+}
+
+func randomTimeCriteria(val any) error {
+	switch t := val.(type) {
+	case []string:
+		if len(t) == 2 {
+			t[0] = strings.TrimSpace(t[0])
+			t[1] = strings.TrimSpace(t[1])
+			t1, err := time.Parse(time.TimeOnly, t[0])
+			if err != nil {
+				return ImproperTimeStringFormatError{TimeString: t[0]}
+			}
+			t2, err := time.Parse(time.TimeOnly, t[1])
+			if err != nil {
+				return ImproperTimeStringFormatError{TimeString: t[1]}
+			}
+			if t1.After(t2) { // check to see if the bound works
+				return RandomBoundError{LowerBound: t[0], UpperBound: t[1]}
+			}
+			return nil
+		} else {
+			return UnexpectedArrayLengthError{ExpectedLength: 2, ActualLength: len(t)}
+		}
+	default:
+		return UnexpectedTypeError{ExpectedType: "[]string", ActualType: fmt.Sprintf("%T", t)}
+	}
+}
+
+func randomTimeStrategy(val any) (any, error) {
+	t1, err := time.Parse(time.TimeOnly, "12:00:00")
+	if err != nil {
+		return nil, err
+	}
+	t2, err := time.Parse(time.TimeOnly, "23:00:00")
+	if err != nil {
+		return nil, err
+	}
+	duration := t2.Sub(t1)
+	r := int64(duration / time.Second) // the range between the 2 times as an int
+	num := rand.N(r)
+	t3 := t1.Add(time.Duration(num) * time.Second)
+	return t3, nil
+}
+
+// NewRandomTimeStrategy defines and returns a Strategy of type RequiredStrategy meant to handle code "RANDOM" for type "TIME"
+func NewRandomTimeStrategy() ValueStrategy {
+	return &RequiredStrategy{defaultStrategy: &defaultStrategy{Strategy: randomTimeStrategy, Criteria: randomTimeCriteria}}
+}

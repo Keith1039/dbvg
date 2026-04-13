@@ -16,7 +16,7 @@ func preprocess(val *any, columnType string) error {
 		}
 	case []interface{}:
 		// check if this is string
-		if (columnType == "VARCHAR" || columnType == "DATE") && checkForTypeHomogeny(*val, "string") { // check if it's a string arr
+		if (columnType == "VARCHAR" || columnType == "DATE" || columnType == "TIME") && checkForTypeHomogeny(*val, "string") { // check if it's a string arr
 			convertToStringArray(val) // convert it to []string under the hood
 		} else if columnType == "INT" && checkIfNumericArray(*val) { // check if it's a numeric array
 			convertToIntArray(val) // convert it to []int under the hood

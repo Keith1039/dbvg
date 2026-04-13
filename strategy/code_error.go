@@ -66,11 +66,20 @@ func (e InvalidRegexError) Error() string {
 	return fmt.Sprintf("string '%s' is not proper regex, failed with %v", e.Regex, e.Err)
 }
 
-// ImproperDateStringFormatError is an error given when the given date string doesn't match the RFC3339
+// ImproperDateStringFormatError is an error given when the given date string doesn't match any known format
 type ImproperDateStringFormatError struct {
 	DateString string
 }
 
 func (e ImproperDateStringFormatError) Error() string {
 	return fmt.Sprintf("date string '%s' cannot be parsed via carbon", e.DateString)
+}
+
+// ImproperTimeStringFormatError is an error given when the given time string doesn't match the time.TimeOnly layout
+type ImproperTimeStringFormatError struct {
+	TimeString string
+}
+
+func (e ImproperTimeStringFormatError) Error() string {
+	return fmt.Sprintf("time string '%s' does not fit the layout of 'HH:MM:SS' or was beyond the acceptable range of '00:00:00' - '23:59:59'", e.TimeString)
 }
