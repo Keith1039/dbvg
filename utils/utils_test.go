@@ -190,4 +190,17 @@ func TestUpdateInsertTemplate(t *testing.T) {
 	if !reflect.DeepEqual(retrievedTemplate, sampleClone) {
 		t.Fatalf("retrieved template '%v'\ninputed template '%v'", retrievedTemplate, sampleClone)
 	}
+	// check if the new type is saved over the old
+	sampleClone["table"]["column"]["TYPE"] = "FLOAT"
+	err = utils.UpdateInsertTemplate(f.Name(), sampleClone)
+	if err != nil {
+		t.Fatal(err)
+	}
+	retrievedTemplate, err = utils.RetrieveInsertTemplateJSON(f.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(retrievedTemplate, sampleClone) {
+		t.Fatalf("retrieved template '%v'\ninputed template '%v'", retrievedTemplate, sampleClone)
+	}
 }

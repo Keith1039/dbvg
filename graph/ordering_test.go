@@ -4,79 +4,40 @@ import (
 	"database/sql"
 	"errors"
 	"github.com/Keith1039/dbvg/graph"
-	"github.com/golang-migrate/migrate/v4"
-	"github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	_ "github.com/lib/pq"
-	"log"
-	"os"
+	"github.com/peterldowns/pgtestdb"
+	"github.com/peterldowns/pgtestdb/migrators/golangmigrator"
 	"strings"
 	"testing"
 )
 
 var db *sql.DB
 
-const path = "file://../db/migrations/"
+var pgConf pgtestdb.Config
 
-func drop() {
-	// drop the database
-	driver, err := postgres.WithInstance(db, &postgres.Config{})
-	if err != nil {
-		log.Fatal(err)
-	}
-	m, err2 := migrate.NewWithDatabaseInstance(
-		path+"case1",
-		"postgres", driver)
-	if m != nil {
-		err = m.Drop()
-		if err != nil {
-			log.Fatal(err)
-		}
-	} else {
-		log.Fatal(err2)
-	}
-}
+var migrator pgtestdb.Migrator
+
+var migrationDir = "../db/migrations/"
 
 func init() {
-	var err error
-	err = os.Setenv("DATABASE_URL", "postgres://postgres:localDB12@localhost:5432/testgres?sslmode=disable")
-	if err != nil {
-		log.Fatal(err)
+	pgConf = pgtestdb.Config{
+		DriverName: "postgres", // uses the lib/pq driver
+		//Database:   "postgres",
+		User:     "postgres",
+		Password: "password",
+		Host:     "localhost",
+		Port:     "2000",
+		Options:  "sslmode=disable",
 	}
-	db, err = sql.Open("postgres", os.Getenv("DATABASE_URL"))
-	if err != nil {
-		panic(err)
-	}
-	drop() // drop the database
-}
-
-func buildUp(caseName string) error {
-	// migrate the schema up
-	driver, err := postgres.WithInstance(db, &postgres.Config{})
-	m, err2 := migrate.NewWithDatabaseInstance(
-		path+caseName,
-		"postgres", driver)
-	if m != nil {
-		err = m.Up()
-		if err != nil {
-			return err
-		}
-	} else {
-		return err2
-	}
-	return nil
 }
 
 func TestOrdering_FindOrderCase1(t *testing.T) {
 	// case where something on level 2 is moved down to level 4
-	defer drop()
-	caseName := "case1"
-	err := buildUp(caseName)
-	if err != nil {
-		t.Fatal(err)
-	}
+	migrator = golangmigrator.New(migrationDir + "case1")
+	db = pgtestdb.New(t, pgConf, migrator)
 	ordering := graph.Ordering{}
-	err = ordering.Init(db)
+	err := ordering.Init(db)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -101,15 +62,10 @@ func TestOrdering_FindOrderCase1(t *testing.T) {
 
 func TestOrdering_FindOrderCase2(t *testing.T) {
 	// case where there's a cyclic dependency
-	defer drop()
-	caseName := "case2"
-	err := buildUp(caseName)
-	if err != nil {
-		t.Fatal(err)
-	}
-
+	migrator = golangmigrator.New(migrationDir + "case2")
+	db = pgtestdb.New(t, pgConf, migrator)
 	ordering := graph.Ordering{}
-	err = ordering.Init(db)
+	err := ordering.Init(db)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -122,15 +78,11 @@ func TestOrdering_FindOrderCase2(t *testing.T) {
 
 func TestOrdering_FindOrderCase3(t *testing.T) {
 	// give the function a table with no relationships
-	defer drop()
-	caseName := "case3"
-	err := buildUp(caseName)
-	if err != nil {
-		t.Fatal(err)
-	}
+	migrator = golangmigrator.New(migrationDir + "case3")
+	db = pgtestdb.New(t, pgConf, migrator)
 
 	ordering := graph.Ordering{}
-	err = ordering.Init(db)
+	err := ordering.Init(db)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -143,14 +95,10 @@ func TestOrdering_FindOrderCase3(t *testing.T) {
 }
 
 func TestOrdering_FindOrderCase4(t *testing.T) {
-	defer drop()
-	caseName := "case4"
-	err := buildUp(caseName)
-	if err != nil {
-		t.Fatal("Error should have been given")
-	}
+	migrator = golangmigrator.New(migrationDir + "case4")
+	db = pgtestdb.New(t, pgConf, migrator)
 	ordering := graph.Ordering{}
-	err = ordering.Init(db)
+	err := ordering.Init(db)
 	if err != nil {
 		t.Fatal(err)
 	}

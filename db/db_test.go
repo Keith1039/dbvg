@@ -4,97 +4,38 @@ import (
 	"database/sql"
 	"fmt"
 	database "github.com/Keith1039/dbvg/db"
-	"github.com/golang-migrate/migrate/v4"
-	"github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/google/uuid"
 	_ "github.com/lib/pq"
-	"log"
+	"github.com/peterldowns/pgtestdb"
+	"github.com/peterldowns/pgtestdb/migrators/golangmigrator"
 	"maps"
-	"os"
 	"slices"
 	"testing"
 	"time"
 )
 
-const path = "file://../db/migrations/"
-
-const realMigrationPath = "file://../db/real_migrations/"
-
 var db *sql.DB
 
-func drop() {
-	// drop the database
-	driver, err := postgres.WithInstance(db, &postgres.Config{})
-	if err != nil {
-		log.Fatal(err)
-	}
-	m, err2 := migrate.NewWithDatabaseInstance(
-		path+"case1",
-		"postgres", driver)
-	if m != nil {
-		err = m.Drop()
-		if err != nil {
-			log.Fatal(err)
-		}
-	} else {
-		log.Fatal(err2)
-	}
-}
+var pgConf pgtestdb.Config
 
-func buildUp(caseName string) error {
-	// migrate the schema up
-	driver, err := postgres.WithInstance(db, &postgres.Config{})
-	m, err2 := migrate.NewWithDatabaseInstance(
-		path+caseName,
-		"postgres", driver)
-	if m != nil {
-		err = m.Up()
-		if err != nil {
-			return err
-		}
-	} else {
-		return err2
-	}
-	return nil
-}
-
-func buildUpRealCase() error {
-	// migrate the schema up
-	driver, err := postgres.WithInstance(db, &postgres.Config{})
-	m, err2 := migrate.NewWithDatabaseInstance(
-		realMigrationPath,
-		"postgres", driver)
-	if m != nil {
-		err = m.Up()
-		if err != nil {
-			return err
-		}
-	} else {
-		return err2
-	}
-	return nil
-}
+var migrator pgtestdb.Migrator
 
 func init() {
-	var err error
-	err = os.Setenv("DATABASE_URL", "postgres://postgres:localDB12@localhost:5432/testgres?sslmode=disable")
-	if err != nil {
-		log.Fatal(err)
+	pgConf = pgtestdb.Config{
+		DriverName: "postgres", // uses the lib/pq driver
+		//Database:   "postgres",
+		User:     "postgres",
+		Password: "password",
+		Host:     "localhost",
+		Port:     "2000",
+		Options:  "sslmode=disable",
 	}
-	db, err = sql.Open("postgres", os.Getenv("DATABASE_URL"))
-	if err != nil {
-		panic(err)
-	}
-	drop()
 }
 
 func TestGetTableMap(t *testing.T) {
-	drop()
-	err := buildUp("case5")
-	if err != nil {
-		t.Fatal(err)
-	}
+	migrator = golangmigrator.New("migrations/case5")
+	db = pgtestdb.New(t, pgConf, migrator)
 	expectedMap := map[string]int{
 		"a": 1,
 		"b": 1,
@@ -111,11 +52,8 @@ func TestGetTableMap(t *testing.T) {
 }
 
 func TestGetColumnMap(t *testing.T) {
-	drop()
-	err := buildUpRealCase()
-	if err != nil {
-		t.Fatal(err)
-	}
+	migrator = golangmigrator.New("real_migrations/")
+	db = pgtestdb.New(t, pgConf, migrator)
 	expectedMap := map[string]string{
 		"user_id":    "UUID",
 		"product_id": "UUID",
@@ -130,11 +68,8 @@ func TestGetColumnMap(t *testing.T) {
 }
 
 func TestGetAllColumnData(t *testing.T) {
-	drop()
-	err := buildUpRealCase()
-	if err != nil {
-		t.Fatal(err)
-	}
+	migrator = golangmigrator.New("real_migrations/")
+	db = pgtestdb.New(t, pgConf, migrator)
 	expectedMap := map[string]map[string]string{
 		"users": {
 			"id":         "UUID",
@@ -179,11 +114,8 @@ func TestGetAllColumnData(t *testing.T) {
 }
 
 func TestGetRawColumnMap(t *testing.T) {
-	drop()
-	err := buildUpRealCase()
-	if err != nil {
-		t.Fatal(err)
-	}
+	migrator = golangmigrator.New("real_migrations/")
+	db = pgtestdb.New(t, pgConf, migrator)
 	validateMap := map[string]string{
 		"id":          "UUID",
 		"company_id":  "UUID",
@@ -206,11 +138,8 @@ func TestGetRawColumnMap(t *testing.T) {
 }
 
 func TestGetTablePKMap(t *testing.T) {
-	drop()
-	err := buildUp("case8")
-	if err != nil {
-		t.Fatal(err)
-	}
+	migrator = golangmigrator.New("migrations/case8/")
+	db = pgtestdb.New(t, pgConf, migrator)
 	expectedMap := map[string][]string{
 		"a": {"akey"},
 		"b": {"bkey", "bkey2"},
@@ -231,11 +160,8 @@ func TestGetTablePKMap(t *testing.T) {
 }
 
 func TestGetRelationships(t *testing.T) {
-	drop()
-	err := buildUp("case9")
-	if err != nil {
-		t.Fatal(err)
-	}
+	migrator = golangmigrator.New("migrations/case9/")
+	db = pgtestdb.New(t, pgConf, migrator)
 	expectedMap := map[string]map[string]map[string]string{
 		"a": {
 			"bkey": {
@@ -331,11 +257,8 @@ func TestGetRelationships(t *testing.T) {
 }
 
 func TestGetInverseRelationships(t *testing.T) {
-	drop()
-	err := buildUp("case9")
-	if err != nil {
-		t.Fatal(err)
-	}
+	migrator = golangmigrator.New("migrations/case9/")
+	db = pgtestdb.New(t, pgConf, migrator)
 	expectedMap := map[string]map[string]bool{
 		"a": {
 			"c": true,
@@ -388,16 +311,13 @@ func TestGetInverseRelationships(t *testing.T) {
 }
 
 func TestRunUnsafeQueries(t *testing.T) {
-	drop()
-	err := buildUpRealCase()
-	if err != nil {
-		t.Fatal(err)
-	}
+	migrator = golangmigrator.New("real_migrations/")
+	db = pgtestdb.New(t, pgConf, migrator)
 	queries := []string{
 		fmt.Sprintf("INSERT INTO USERS(ID, FIRST_NAME, LAST_NAME, EMAIL, ADDRESS, CREATED_AT) VALUES ('%v', '%v', '%v', '%v', '%v', '%v')", uuid.New(), "some", "name", "test@gmail.com", "SOMETHING", time.Now().Format("2006-01-02 15:04:05")),
 		fmt.Sprintf("INSERT INTO USERS(ID, FIRST_NAME, LAST_NAME, EMAIL, ADDRESS, CREATED_AT) VALUES ('%v', '%v', '%v', '%v', '%v', '%v')", uuid.New(), "some", "name", "test2@gmail.com", "SOMETHING", time.Now().Format("2006-01-02 15:04:05")),
 	}
-	err = database.RunUnsafeQueries(db, queries, false)
+	err := database.RunUnsafeQueries(db, queries, false)
 	if err != nil {
 		t.Fatal(err)
 	}
