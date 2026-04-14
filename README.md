@@ -19,6 +19,17 @@ https://github.com/Keith1039/dbvg/releases
 Antivirus' on Windows sometimes flag Golang compiled executables as malware.
 This is shown [here](https://go.dev/doc/faq#virus).
 
+## Testing
+To run the tests for this project, you first need to start the DB using:
+```shell
+docker-compose up
+```
+
+All the tests reference this database and will fail without it. Once the database is up and running, you can then run the go CLI.
+```shell
+go test -v ./...
+```
+ 
 ## Main Offering
 dbvg provides tools to detect/resolve cycles in a database schema
 as well as generate a variable amount of table entries while maintaining

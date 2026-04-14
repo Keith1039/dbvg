@@ -255,7 +255,7 @@ func updateTemplate(oldTemplate map[string]map[string]map[string]any, newTemplat
 		for columnName := range columns {
 			_, ok := oldTemplate[tableName][columnName]
 			if ok {
-				// the system given type is always correct, overwrite the users
+				// assume that new template is given via MakeTemplates() and thus should have the correct type
 
 				if val, ok = oldTemplate[tableName][columnName]["code"]; ok {
 					newTemplate[tableName][columnName]["code"] = val

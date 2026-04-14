@@ -8,11 +8,11 @@ import (
 	"github.com/Keith1039/dbvg/graph"
 	"github.com/Keith1039/dbvg/parameters"
 	"github.com/Keith1039/dbvg/utils"
-	"github.com/golang-migrate/migrate/v4"
-	"github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/google/uuid"
 	_ "github.com/lib/pq"
+	"github.com/peterldowns/pgtestdb"
+	"github.com/peterldowns/pgtestdb/migrators/golangmigrator"
 	"log"
 	"os"
 	"testing"
@@ -21,65 +21,23 @@ import (
 
 var db *sql.DB
 
-const path = "file://../db/real_migrations/"
+var pgConf pgtestdb.Config
 
-var batchWriter *parameters.QueryWriter
+var migrator pgtestdb.Migrator
 
-func drop() {
-	// drop the database
-	driver, err := postgres.WithInstance(db, &postgres.Config{})
-	if err != nil {
-		log.Fatal(err)
-	}
-	m, err2 := migrate.NewWithDatabaseInstance(
-		path,
-		"postgres", driver)
-	if m != nil {
-		err = m.Drop()
-		if err != nil {
-			log.Fatal(err)
-		}
-	} else {
-		log.Fatal(err2)
-	}
-}
+const realMigrationDir = "../db/real_migrations/"
 
 func init() {
-	var err error
-	err = os.Setenv("DATABASE_URL", "postgres://postgres:localDB12@localhost:5432/testgres?sslmode=disable")
-	if err != nil {
-		log.Fatal(err)
+	pgConf = pgtestdb.Config{
+		DriverName: "postgres", // uses the lib/pq driver
+		//Database:   "postgres",
+		User:     "postgres",
+		Password: "password",
+		Host:     "localhost",
+		Port:     "2000",
+		Options:  "sslmode=disable",
 	}
-	db, err = sql.Open("postgres", os.Getenv("DATABASE_URL"))
-	if err != nil {
-		panic(err)
-	}
-	drop()          // drop the database
-	err = buildUp() // build up
-	if err != nil {
-		log.Fatal(err)
-	}
-	batchWriter, err = parameters.NewQueryWriter(db, "purchases")
-	if err != nil {
-		log.Fatal(err)
-	}
-}
-
-func buildUp() error {
-	// migrate the schema up
-	driver, err := postgres.WithInstance(db, &postgres.Config{})
-	m, err2 := migrate.NewWithDatabaseInstance(
-		path,
-		"postgres", driver)
-	if m != nil {
-		err = m.Up()
-		if err != nil {
-			return err
-		}
-	} else {
-		return err2
-	}
-	return nil
+	migrator = golangmigrator.New(realMigrationDir)
 }
 
 func checkCountForTable(db *sql.DB, tableName string, expected int) error {
@@ -114,12 +72,13 @@ func writeMapToJSONFile(filePath string, data map[string]map[string]map[string]a
 }
 
 func TestQueryBatch_Exec(t *testing.T) {
-	drop()
-	err := buildUp() // build up
+	migrator = golangmigrator.New(realMigrationDir)
+	db = pgtestdb.New(t, pgConf, migrator)
+	_, err := db.Exec("INSERT INTO COMPANIES(ID, NAME, EMAIL, CREATED_AT) VALUES($1, $2, $3, $4)", uuid.New(), "test", "some@email.com", time.Now())
 	if err != nil {
-		log.Fatal(err)
+		t.Fatal(err)
 	}
-	_, err = db.Exec("INSERT INTO COMPANIES(ID, NAME, EMAIL, CREATED_AT) VALUES($1, $2, $3, $4)", uuid.New(), "test", "some@email.com", time.Now())
+	batchWriter, err := parameters.NewQueryWriter(db, "purchases")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -143,11 +102,8 @@ func TestQueryBatch_Exec(t *testing.T) {
 }
 
 func TestQueryBatch_ExecRollback(t *testing.T) {
-	drop()
-	err := buildUp() // build up
-	if err != nil {
-		log.Fatal(err)
-	}
+	migrator = golangmigrator.New(realMigrationDir)
+	db = pgtestdb.New(t, pgConf, migrator)
 	dir := t.TempDir()
 	f, err := os.CreateTemp(dir, "")
 	if err != nil {
@@ -166,6 +122,10 @@ func TestQueryBatch_ExecRollback(t *testing.T) {
 	template["users"]["email"]["code"] = "STATIC"
 	template["users"]["email"]["value"] = "GonnaFail"
 	err = writeMapToJSONFile(f.Name(), template)
+	if err != nil {
+		t.Fatal(err)
+	}
+	batchWriter, err := parameters.NewQueryWriter(db, "purchases")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -190,13 +150,14 @@ func TestQueryBatch_ExecRollback(t *testing.T) {
 }
 
 func TestQueryBatch_ExecContext(t *testing.T) {
-	drop()
-	err := buildUp()
+	migrator = golangmigrator.New(realMigrationDir)
+	db = pgtestdb.New(t, pgConf, migrator)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	batchWriter, err := parameters.NewQueryWriter(db, "purchases")
 	if err != nil {
 		t.Fatal(err)
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	defer cancel()
 	insertBatch, _ := batchWriter.GenerateEntries(5000)
 	err = insertBatch.ExecContext(ctx, db, false)
 	if err == nil {
@@ -208,11 +169,50 @@ func TestQueryBatch_ExecContext(t *testing.T) {
 	}
 }
 
-func Benchmark_ExecInsert(b *testing.B) {
-	drop()
-	err := buildUp()
+// tests the migration with every possible supported type and code with their defaults
+func TestQueryBatch_OmniCodeTestDefault(t *testing.T) {
+	migrator = golangmigrator.New(migrationDir + "code_test")
+	db = pgtestdb.New(t, pgConf, migrator)
+	batchWriter, err := parameters.NewQueryWriter(db, "test")
 	if err != nil {
-		log.Fatal(err)
+		t.Fatal(err)
+	}
+	insertBatch, deleteBatch := batchWriter.GenerateEntries(500)
+	err = insertBatch.Exec(db, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = deleteBatch.Exec(db, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+// tests the migration with every possible supported type and code with their template values
+func TestQueryBatch_OmniCodeTestWithTemplate(t *testing.T) {
+	migrator = golangmigrator.New(migrationDir + "code_test")
+	db = pgtestdb.New(t, pgConf, migrator)
+	batchWriter, err := parameters.NewQueryWriterWithTemplate(db, "test", migrationDir+"code_test/omni_test.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	insertBatch, deleteBatch := batchWriter.GenerateEntries(500)
+	err = insertBatch.Exec(db, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = deleteBatch.Exec(db, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func Benchmark_ExecInsert(b *testing.B) {
+	migrator = golangmigrator.New(realMigrationDir)
+	db = pgtestdb.New(b, pgConf, migrator)
+	batchWriter, err := parameters.NewQueryWriter(db, "purchases")
+	if err != nil {
+		b.Fatal(err)
 	}
 	insertBatch, deleteBatch := batchWriter.GenerateEntries(5000)
 	b.ResetTimer()
@@ -232,10 +232,11 @@ func Benchmark_ExecInsert(b *testing.B) {
 }
 
 func Benchmark_ExecDelete(b *testing.B) {
-	drop()
-	err := buildUp()
+	migrator = golangmigrator.New(realMigrationDir)
+	db = pgtestdb.New(b, pgConf, migrator)
+	batchWriter, err := parameters.NewQueryWriter(db, "purchases")
 	if err != nil {
-		log.Fatal(err)
+		b.Fatal(err)
 	}
 	insertBatch, deleteBatch := batchWriter.GenerateEntries(5000)
 	b.ResetTimer()

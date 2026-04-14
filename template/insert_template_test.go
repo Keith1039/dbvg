@@ -9,10 +9,10 @@ import (
 	"github.com/Keith1039/dbvg/strategy"
 	"github.com/Keith1039/dbvg/template"
 	"github.com/Keith1039/dbvg/utils"
-	"github.com/golang-migrate/migrate/v4"
-	"github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	_ "github.com/lib/pq"
+	"github.com/peterldowns/pgtestdb"
+	"github.com/peterldowns/pgtestdb/migrators/golangmigrator"
 	"log"
 	"os"
 	"testing"
@@ -26,65 +26,33 @@ var tableData map[string]map[string]string
 
 var requiredTables []string
 
-const path = "file://../db/migrations/"
+const path = "../db/migrations/templates"
 
-func drop() {
-	// drop the database
-	driver, err := postgres.WithInstance(db, &postgres.Config{})
-	if err != nil {
-		log.Fatal(err)
-	}
-	m, err2 := migrate.NewWithDatabaseInstance(
-		path+"case1",
-		"postgres", driver)
-	if m != nil {
-		err = m.Drop()
-		if err != nil {
-			log.Fatal(err)
-		}
-	} else {
-		log.Fatal(err2)
+var pgConf pgtestdb.Config
+
+var migrator pgtestdb.Migrator
+
+func init() {
+	pgConf = pgtestdb.Config{
+		DriverName: "postgres", // uses the lib/pq driver
+		//Database:   "postgres",
+		User:     "postgres",
+		Password: "password",
+		Host:     "localhost",
+		Port:     "2000",
+		Options:  "sslmode=disable",
 	}
 }
 
-func init() {
-	var err error
-	err = os.Setenv("DATABASE_URL", "postgres://postgres:localDB12@localhost:5432/testgres?sslmode=disable")
-	if err != nil {
-		log.Fatal(err)
-	}
-	db, err = sql.Open("postgres", os.Getenv("DATABASE_URL"))
-	if err != nil {
-		panic(err)
-	}
-	drop() // drop the database
-	err = buildUp("templates")
-	if err != nil {
-		log.Fatal(err)
-	}
+func initForTest(t *testing.T) {
+	migrator = golangmigrator.New(path)
+	db = pgtestdb.New(t, pgConf, migrator)
 	tableData = database.GetAllColumnData(db) // set table data
 	ord, err := graph.NewOrdering(db)
 	if err != nil {
 		log.Fatal(err)
 	}
 	requiredTables, err = ord.GetOrder("template")
-}
-
-func buildUp(caseName string) error {
-	// migrate the schema up
-	driver, err := postgres.WithInstance(db, &postgres.Config{})
-	m, err2 := migrate.NewWithDatabaseInstance(
-		path+caseName,
-		"postgres", driver)
-	if m != nil {
-		err = m.Up()
-		if err != nil {
-			return err
-		}
-	} else {
-		return err2
-	}
-	return nil
 }
 
 // to get the desired behavior, we need to take the sample template, shove it into a temporary file
@@ -103,6 +71,7 @@ func writeMapToJSONFile(filePath string, data map[string]map[string]map[string]a
 // this code is to check if certain cases produce the correct errors (missing table etc)
 // this also indirectly tests if the keys are case-insensitive
 func TestGenericErrors(t *testing.T) {
+	initForTest(t)
 	// check for missing table error
 	sampleTemplate = map[string]map[string]map[string]any{
 		"table": {
@@ -172,6 +141,7 @@ func TestGenericErrors(t *testing.T) {
 }
 
 func TestTemplateWithRequiredTables(t *testing.T) {
+	initForTest(t)
 	sampleTemplate = map[string]map[string]map[string]any{
 		"template": {
 			"int": {
@@ -225,6 +195,7 @@ func TestTemplateWithRequiredTables(t *testing.T) {
 // this also applies to the NULL code which is a special code that behaves like an override for any column type
 // the usual checks should still run
 func TestOverrideCode(t *testing.T) {
+	initForTest(t)
 	// sample template with an override code
 	tempDir := t.TempDir()
 	tempFile, err := os.CreateTemp(tempDir, "") // create a temporary file
@@ -266,6 +237,7 @@ func TestOverrideCode(t *testing.T) {
 }
 
 func TestOptionalCodes(t *testing.T) {
+	initForTest(t)
 	var unsupportedErr strategy.UnexpectedTypeError
 	tempDir := t.TempDir()
 	tempFile, err := os.CreateTemp(tempDir, "")
@@ -334,6 +306,7 @@ func TestOptionalCodes(t *testing.T) {
 }
 
 func TestInsertTemplate_GetStrategy(t *testing.T) {
+	initForTest(t)
 	var tmpl *template.InsertTemplate
 	tempDir := t.TempDir()
 	tempFile, err := os.CreateTemp(tempDir, "")
@@ -383,6 +356,7 @@ func TestInsertTemplate_GetStrategy(t *testing.T) {
 }
 
 func TestInsertTemplateDefaults(t *testing.T) {
+	initForTest(t)
 	tempDir := t.TempDir()
 	tempFile, err := os.CreateTemp(tempDir, "")
 	if err != nil {
