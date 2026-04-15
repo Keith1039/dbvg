@@ -4,6 +4,7 @@
 package validate
 
 import (
+	"bufio"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -12,6 +13,7 @@ import (
 	"github.com/Keith1039/dbvg/utils"
 	"github.com/spf13/cobra"
 	"log"
+	"os"
 )
 
 var (
@@ -20,6 +22,8 @@ var (
 	suggestions bool
 	verbose     bool
 	output      string
+	force       bool
+	endEarly    bool
 )
 
 // ValidateCmd represents the validate command
@@ -64,6 +68,7 @@ func handleCmdFlags(db *sql.DB, ordering *graph.Ordering, cycles []string) {
 		suggestionQueries := ordering.GetSuggestionQueriesForCycles(cycles)
 		if len(suggestionQueries) == 0 { // print that there's nothing to do
 			fmt.Println("No suggestions to be made")
+			os.Exit(0) // clean exit
 		}
 		if suggestions {
 			if output != "" { // write queries to file if there is one specified
@@ -77,6 +82,13 @@ func handleCmdFlags(db *sql.DB, ordering *graph.Ordering, cycles []string) {
 				}
 			}
 		} else if run {
+			if !force { // if force isn't invoked, we have to ask
+				isYes := isYesOrNo()
+				if !isYes {
+					fmt.Println("operation cancelled...")
+					os.Exit(0) // clean exit (not an error)
+				}
+			}
 			err = database.RunUnsafeQueries(db, suggestionQueries, verbose)
 			if err != nil {
 				log.Fatal(err)
@@ -90,14 +102,44 @@ func addFlags(cmd *cobra.Command) {
 	cmd.Flags().BoolVarP(&run, "run", "r", false, "run suggestions queries")
 	cmd.Flags().BoolVarP(&suggestions, "suggestions", "s", false, "show suggestion queries")
 	cmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "verbose output")
+	cmd.Flags().BoolVarP(&endEarly, "end-early", "e", false, "exit with exit code 1 when a cycle is detected")
+	cmd.Flags().BoolVarP(&force, "force", "f", false, "skip asking for verification and begin running the queries")
 	cmd.Flags().StringVarP(&output, "output", "o", "", "output file name")
 	cmd.MarkFlagsMutuallyExclusive("suggestions", "run")          // either you want the suggestions or you run them
+	cmd.MarkFlagsMutuallyExclusive("end-early", "suggestions")    // fatal could end before suggestions can work so it's better for it to stand alone
+	cmd.MarkFlagsMutuallyExclusive("end-early", "run")            // fatal could end before we can run suggestions
 	cmd.PreRunE = func(cmd *cobra.Command, args []string) error { // define the pre-run function
 		flagSet := cmd.Flags()                                            // get flag set
 		if flagSet.Changed("output") && !flagSet.Changed("suggestions") { // check to see if output is set but suggestions isn't
 			return errors.New("'suggestions' flag must be set for 'output' flag to be used") // format error
+		} else if flagSet.Changed("force") && !flagSet.Changed("run") {
+			return errors.New("'run' flag must be set for 'force' flag to be used")
 		}
 		return nil
 	}
 	cmd.MarkFlagsMutuallyExclusive("run", "output") // if you're running the queries there's no need to output them
+}
+
+// asks if the user consents to running the potentially dangerous query
+func isYesOrNo() bool {
+	flag := true
+	isyes := false
+	br := bufio.NewReader(os.Stdin)
+	for flag {
+		fmt.Print("\nThe commands that will run will affect your database schema (creating/dropping tables and moving data) \nWould you like to proceed? [Y]es or [N]o: ")
+		readString, err := br.ReadString('\n')
+		if err != nil {
+			// error doesn't matter, we just print it and be done with it
+			fmt.Println(err)
+		} // error doesn't matter
+		cleanString := utils.TrimAndLowerString(readString)
+		switch cleanString {
+		case "y", "yes":
+			flag = false
+			isyes = true
+		case "n", "no":
+			flag = false
+		}
+	}
+	return isyes
 }

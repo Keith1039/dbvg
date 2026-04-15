@@ -13,13 +13,13 @@ var schemaCmd = &cobra.Command{
 	Use:   "schema",
 	Short: "Command used to validate the entire database schema.",
 	Long: `Command used to validate the database schema and identify cycles. 
-These cycles can immediately be resolved by running a set of queries or
-these suggestions to the user.
+These cycles can immediately be resolved by running a set of queries. The user
+has the option of simply viewing these suggestions or directly running them.
 
 examples:
-	dbvg validate schema --database ${POSTGRES_URL} --run
-	dbvg validate schema --database ${POSTGRES_URL} --suggestions -v
-	dbvg validate schema --database ${POSTGRES_URL} -s -o "script.sql"
+	dbvg validate schema --database "$URL" --run
+	dbvg validate schema --database "$URL" --suggestions -v
+	dbvg validate schema --database "$URL" -s -o "script.sql"
 `,
 	Run: func(cmd *cobra.Command, args []string) {
 		db, err := database.InitDB(ConnString)
@@ -38,7 +38,12 @@ examples:
 					fmt.Println(fmt.Sprintf("Cycle Detected!: %s", cycle))
 				}
 			}
-			fmt.Println(fmt.Sprintf("%d cycles detected", len(cycles)))
+			str := fmt.Sprintf("%d cycles detected", len(cycles))
+			if endEarly { // exit with code 1 or print the string like normal
+				log.Fatal(str)
+			} else {
+				fmt.Println(str)
+			}
 		} else {
 			fmt.Println("No cycles detected!")
 		}

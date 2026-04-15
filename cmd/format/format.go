@@ -16,7 +16,7 @@ var FormatCmd = &cobra.Command{
 	Use:   "format",
 	Short: "The palette responsible for formatting and updating templates",
 	Long: `This palette is responsible for formatting and updating the JSON templates that are used
-by other portions of the code.`,
+for generating data.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		cmd.Help()
 	},
@@ -28,7 +28,7 @@ func addSubCommands() {
 
 func init() {
 	FormatCmd.PersistentFlags().StringVarP(&ConnString, "database", "", "", "url to connect to the database with")
-	FormatCmd.PersistentFlags().StringVarP(&path, "path", "p", "", "specifies which file to use or output data to")
+	FormatCmd.PersistentFlags().StringVarP(&path, "path", "p", "", "specifies which file to use or where to output the template")
 
 	if err := FormatCmd.MarkPersistentFlagRequired("database"); err != nil {
 		log.Fatal(err)

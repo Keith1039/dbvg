@@ -20,12 +20,13 @@ DFS for cycle detection and will ignore any cycles that does not involve the giv
 This command will return a formatted string with the result of the process.
 
 examples:
-	dbvg validate table --database ${POSTGRES_URL} --name "users" --run -v
-	dbvg validate table --database ${POSTGRES_URL} --name "users" --suggestions -v
-	dbvg validate table --database ${POSTGRES_URL} --name "users" -s -o "script.sql"
+	dbvg validate table --database "$URL" --name "users" --run -v
+	dbvg validate table --database "$URL" --name "users" --suggestions -v
+	dbvg validate table --database "$URL" --name "users" -s -o "script.sql"
 `,
 	Run: func(cmd *cobra.Command, args []string) {
 		var cycles []string
+		var message string
 		db, err := database.InitDB(ConnString) // starts up the database connection
 		// error check
 		if err != nil {
@@ -46,12 +47,17 @@ examples:
 		size := len(cycles)
 		if size > 0 {
 			if verbose { // only print out the individual cycles if verbose is true
-				fmt.Printf("The table '%s' is involved in %d cycles: \n%s", tableName, size, strings.Join(cycles, "\n"))
+				message = fmt.Sprintf("The table '%s' is involved in %d cycles: \n%s", tableName, size, strings.Join(cycles, "\n"))
 			} else {
-				fmt.Printf("The table '%s' is involved in %d cycles", tableName, size)
+				message = fmt.Sprintf("The table '%s' is involved in %d cycles", tableName, size)
+			}
+			if endEarly {
+				log.Fatal(message)
+			} else {
+				fmt.Println(message)
 			}
 		} else {
-			fmt.Printf("The table '%s' is not involved in any cycles.", tableName)
+			fmt.Println(fmt.Sprintf("The table '%s' is not involved in any cycles.", tableName))
 		}
 		handleCmdFlags(db, ord, cycles) // handles the other flags
 	},
