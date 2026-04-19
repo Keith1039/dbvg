@@ -11,6 +11,7 @@ import (
 	"github.com/Keith1039/dbvg/utils"
 	"github.com/spf13/cobra"
 	"log"
+	"strings"
 )
 
 var table string
@@ -49,9 +50,15 @@ ex)
 		}
 		templates := utils.MakeTemplates(db, tableOrder)
 		if update {
-			err = utils.UpdateInsertTemplate(path, templates)
+			changes, err := utils.UpdateInsertTemplate(path, templates)
 			if err != nil {
 				log.Fatal(err)
+			}
+			if len(changes) > 0 {
+				fmt.Println(fmt.Sprintf("the followng changes were applied to the template at path '%s':", path))
+				fmt.Println(strings.Join(changes, "\n"))
+			} else {
+				fmt.Println(fmt.Sprintf("no changes made to the template at path '%s'", path))
 			}
 		} else if verify {
 			_, err = template.NewInsertTemplate(database.GetAllColumnData(db), tableOrder, path)
@@ -61,10 +68,12 @@ ex)
 				fmt.Println(fmt.Sprintf("template at '%s' contains no errors", path))
 			}
 		} else {
+			// create code
 			err = utils.WriteInsertTemplateToFile(path, templates)
 			if err != nil {
 				log.Fatal(err)
 			}
+			fmt.Println(fmt.Sprintf("template successfully created at '%s'", path))
 		}
 	},
 }
@@ -74,7 +83,6 @@ func init() {
 	insertTemplateCmd.Flags().BoolVarP(&update, "update", "u", false, "update the given template with current schema information")
 	insertTemplateCmd.Flags().BoolVarP(&verify, "verify", "", false, "run deep verification on the template by checking codes and values")
 	insertTemplateCmd.Flags().BoolVarP(&create, "create", "c", false, "create a new template")
-
 	insertTemplateCmd.MarkFlagsOneRequired("create", "update", "verify")
 	err := insertTemplateCmd.MarkFlagRequired("table")
 	if err != nil {
