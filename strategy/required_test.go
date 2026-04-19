@@ -6,10 +6,49 @@ import (
 	"github.com/Keith1039/dbvg/strategy"
 	"github.com/Keith1039/dbvg/utils"
 	"github.com/golang-module/carbon"
+	"log"
 	"regexp"
 	"testing"
 	"time"
 )
+
+func init() {
+	// make sure a test runner exists for each Strategy
+	req := strategy.GetRequiredCodeMap()
+	for typeString, v := range req {
+		for code := range v {
+			if _, ok := requiredRunnerMap[typeString][code]; !ok {
+				log.Fatalf("missing tests for required strategy: code '%s' of type '%s'", code, typeString)
+			}
+		}
+	}
+}
+
+var requiredRunnerMap = map[string]map[string]*testRunner{
+	"BOOL": {
+		"STATIC": boolStaticTestRunner(),
+	},
+	"DATE": {
+		"RANDOM": dateRandomTestRunner(),
+		"STATIC": dateStaticTestRunner(),
+	},
+	"TIME": {
+		"RANDOM": timeRandomTestRunner(),
+		"STATIC": timeStaticTestRunner(),
+	},
+	"INT": {
+		"RANDOM": intRandomTestRunner(),
+		"STATIC": intStaticTestRunner(),
+	},
+	"FLOAT": {
+		"RANDOM": floatRandomTestRunner(),
+		"STATIC": floatStaticTestRunner(),
+	},
+	"VARCHAR": {
+		"STATIC": varcharStaticTestRunner(),
+		"REGEX":  varcharRegexTestRunner(),
+	},
+}
 
 type expectedValueError struct {
 	expectedValue any
@@ -55,15 +94,24 @@ func dateRandomTestRunner() *testRunner {
 		if !ok {
 			return errors.New("strategy could not be cast to 'RequiredStrategy'")
 		}
-		arr := s.Value.([]string)
-		t1, _ := utils.GetTimeFromString(arr[0])
-		t2, _ := utils.GetTimeFromString(arr[1])
+		arr, ok := s.Value.([]string)
+		if !ok {
+			return strategy.UnexpectedTypeError{ExpectedType: "[]string", ActualType: utils.GetStringType(s.Value)}
+		}
+		t1, err := utils.GetTimeFromString(arr[0])
+		if err != nil {
+			return err
+		}
+		t2, err := utils.GetTimeFromString(arr[1])
+		if err != nil {
+			return err
+		}
 		t3, ok := val.(time.Time)
 		if !ok {
 			return strategy.UnexpectedTypeError{ExpectedType: "time.Time", ActualType: utils.GetStringType(val)}
 		}
 		if t3.Before(t1) || t3.After(t2) {
-			return errors.New(fmt.Sprintf("generated value '%v' is out of bounds of value '%v", t3, arr))
+			return strategy.RandomBoundError{LowerBound: t1, UpperBound: t2}
 		}
 		return nil
 	}
@@ -75,15 +123,17 @@ func dateStaticTestRunner() *testRunner {
 		testValues:     []any{false, "01-02-2026", carbon.Parse("2026-03-01").ToRfc3339String()},
 		expectedErrors: []error{strategy.UnexpectedTypeError{}, strategy.ImproperDateStringFormatError{}},
 	}
-
 	t.evalCriteria = func(val any) error {
 		s, ok := t.strategy.(*strategy.RequiredStrategy)
 		if !ok {
 			return errors.New("strategy could not be cast to 'RequiredStrategy'")
 		}
-		return staticEvaluator(val, carbon.Parse(s.Value.(string)).ToStdTime())
+		date, ok := s.Value.(string)
+		if !ok {
+			return strategy.UnexpectedTypeError{ExpectedType: "string", ActualType: utils.GetStringType(s.Value)}
+		}
+		return staticEvaluator(val, carbon.Parse(date).ToStdTime())
 	}
-
 	return &t
 }
 
@@ -98,7 +148,15 @@ func timeStaticTestRunner() *testRunner {
 		if !ok {
 			return errors.New("strategy could not be cast to 'RequiredStrategy'")
 		}
-		return staticEvaluator(val, carbon.Parse(s.Value.(string)).ToStdTime())
+		timeStr, ok := s.Value.(string)
+		if !ok {
+			return strategy.UnexpectedTypeError{ExpectedType: "string", ActualType: utils.GetStringType(s.Value)}
+		}
+		timeObj, err := time.Parse(time.TimeOnly, timeStr)
+		if err != nil {
+			return err
+		}
+		return staticEvaluator(val, timeObj)
 	}
 
 	return &t
@@ -108,7 +166,7 @@ func timeRandomTestRunner() *testRunner {
 	t := testRunner{
 		testValues: []any{"", []string{"", "", ""}, []string{"03-01-2025", "2025-01-02"},
 			[]string{"00:00:00", "24:00:00"}, []string{"13:00:00", "00:00:00"},
-			[]string{"00:00:00", "23:00:00"}},
+			[]string{"00:00:00", "02:00:00"}},
 		expectedErrors: []error{strategy.UnexpectedTypeError{}, strategy.UnexpectedArrayLengthError{}, strategy.ImproperTimeStringFormatError{},
 			strategy.ImproperTimeStringFormatError{}, strategy.RandomBoundError{}},
 	}
@@ -117,15 +175,24 @@ func timeRandomTestRunner() *testRunner {
 		if !ok {
 			return errors.New("strategy could not be cast to 'RequiredStrategy'")
 		}
-		arr := s.Value.([]string)
-		t1, _ := utils.GetTimeFromString(arr[0])
-		t2, _ := utils.GetTimeFromString(arr[1])
+		arr, ok := s.Value.([]string)
+		if !ok {
+			return strategy.UnexpectedTypeError{ExpectedType: "[]string", ActualType: utils.GetStringType(s.Value)}
+		}
+		t1, err := time.Parse(time.TimeOnly, arr[0])
+		if err != nil {
+			return err
+		}
+		t2, err := time.Parse(time.TimeOnly, arr[1])
+		if err != nil {
+			return err
+		}
 		t3, ok := val.(time.Time)
 		if !ok {
 			return strategy.UnexpectedTypeError{ExpectedType: "time.Time", ActualType: utils.GetStringType(val)}
 		}
 		if t3.Before(t1) || t3.After(t2) {
-			return errors.New(fmt.Sprintf("generated value '%v' is out of bounds of value '%v", t3, arr))
+			return strategy.RandomBoundError{LowerBound: t1, UpperBound: t2}
 		}
 		return nil
 	}
@@ -142,14 +209,18 @@ func intRandomTestRunner() *testRunner {
 		if !ok {
 			return errors.New("strategy could not be cast to 'RequiredStrategy'")
 		}
-		lowerBound := s.Value.([]int)[0]
-		upperBound := s.Value.([]int)[1]
+		arr, ok := s.Value.([]int)
+		if !ok {
+			return strategy.UnexpectedTypeError{ExpectedType: "[]int", ActualType: utils.GetStringType(s.Value)}
+		}
+		lowerBound := arr[0]
+		upperBound := arr[1]
 		intVal, ok := val.(int)
 		if !ok {
-			return errors.New("not int")
+			return strategy.UnexpectedTypeError{ExpectedType: "int", ActualType: utils.GetStringType(val)}
 		}
 		if intVal < lowerBound || intVal > upperBound {
-			return errors.New(fmt.Sprintf("generated value '%v' is out of bounds of value '%v", val, s.Value))
+			return strategy.RandomBoundError{LowerBound: lowerBound, UpperBound: upperBound}
 		}
 		return nil
 	}
@@ -183,14 +254,18 @@ func floatRandomTestRunner() *testRunner {
 		if !ok {
 			return errors.New("strategy could not be cast to 'RequiredStrategy'")
 		}
-		lowerBound := s.Value.([]float64)[0]
-		upperBound := s.Value.([]float64)[1]
+		arr, ok := s.Value.([]float64)
+		if !ok {
+			return strategy.UnexpectedTypeError{ExpectedType: "[]float64", ActualType: utils.GetStringType(s.Value)}
+		}
+		lowerBound := arr[0]
+		upperBound := arr[1]
 		floatVal, ok := val.(float64)
 		if !ok {
-			return errors.New("not float")
+			return strategy.UnexpectedTypeError{ExpectedType: "float64", ActualType: utils.GetStringType(val)}
 		}
 		if floatVal < lowerBound || floatVal > upperBound {
-			return errors.New(fmt.Sprintf("generated value '%v' is out of bounds of value '%v", val, s.Value))
+			return strategy.RandomBoundError{LowerBound: lowerBound, UpperBound: upperBound}
 		}
 		return nil
 	}
@@ -240,8 +315,14 @@ func varcharRegexTestRunner() *testRunner {
 		if !ok {
 			return errors.New("strategy could not be cast to 'RequiredStrategy'")
 		}
-		regex := s.Value.(string)
-		regexStr := val.(string)
+		regex, ok := s.Value.(string)
+		if !ok {
+			return strategy.UnexpectedTypeError{ExpectedType: "string", ActualType: utils.GetStringType(s.Value)}
+		}
+		regexStr, ok := val.(string)
+		if !ok {
+			return strategy.UnexpectedTypeError{ExpectedType: "string", ActualType: utils.GetStringType(val)}
+		}
 		matched, err := regexp.MatchString(regex, regexStr)
 		if err != nil {
 			return err
@@ -252,28 +333,6 @@ func varcharRegexTestRunner() *testRunner {
 		return nil
 	}
 	return &t
-}
-
-var requiredRunnerMap = map[string]map[string]*testRunner{
-	"BOOL": {
-		"STATIC": boolStaticTestRunner(),
-	},
-	"DATE": {
-		"RANDOM": dateRandomTestRunner(),
-		"STATIC": dateStaticTestRunner(),
-	},
-	"INT": {
-		"RANDOM": intRandomTestRunner(),
-		"STATIC": intStaticTestRunner(),
-	},
-	"FLOAT": {
-		"RANDOM": floatRandomTestRunner(),
-		"STATIC": floatStaticTestRunner(),
-	},
-	"VARCHAR": {
-		"STATIC": varcharStaticTestRunner(),
-		"REGEX":  varcharRegexTestRunner(),
-	},
 }
 
 func TestRequiredStrategies(t *testing.T) {

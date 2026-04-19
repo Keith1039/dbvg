@@ -68,7 +68,3 @@ type NotInRangeError struct {
 func (e NotInRangeError) Error() string {
 	return fmt.Sprintf("value '%v' is not within the accepted range: '%s'", e.value, e.rangeStr)
 }
-
-func wrapError(columnType string, code string, err error) error {
-	return fmt.Errorf("for column type '%s' and code '%s': [%w]", columnType, code, err)
-}

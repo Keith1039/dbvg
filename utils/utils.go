@@ -36,11 +36,6 @@ func ListToStringArray(l *list.List) []string {
 	return listToArray[string](l)
 }
 
-// ListToAnyArray takes in a linked list and returns it as an any array
-func ListToAnyArray(l *list.List) []any {
-	return listToArray[any](l)
-}
-
 // MakeTemplates takes in a database connection and an array of tables and formats it into a map suitable for JSON
 func MakeTemplates(db *sql.DB, tableOrder []string) map[string]map[string]map[string]any {
 	m := make(map[string]map[string]map[string]any)
