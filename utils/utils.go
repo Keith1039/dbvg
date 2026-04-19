@@ -180,12 +180,14 @@ func WriteInsertTemplateToFile(path string, data map[string]map[string]map[strin
 // This includes adding new tables, removing irrelevant tables and altering types.
 // Shallow verification is done on the given template to ensure that each is valid
 // before overwriting data.
+//
 // Code and value pairs from the old template are still moved into the new template if there
-// is a matching entry
-func UpdateInsertTemplate(path string, newTemplate map[string]map[string]map[string]any) error {
+// is a matching entry. This function returns an array of changes made i.e. tables/columns that were added or removed
+// alongside any errors.
+func UpdateInsertTemplate(path string, newTemplate map[string]map[string]map[string]any) ([]string, error) {
 	data, err := RetrieveInsertTemplateJSON(path)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	// we normalize for existing template to see if there's useful data
 	for _, columnInfo := range data {
@@ -196,14 +198,14 @@ func UpdateInsertTemplate(path string, newTemplate map[string]map[string]map[str
 	// for the normalization as well
 	err = verifyTemplate(newTemplate)
 	if err != nil {
-		return fmt.Errorf("for the template at '%s' the following error occured: [%w]", path, err)
+		return nil, fmt.Errorf("for the template at '%s' the following error occured: [%w]", path, err)
 	}
-	updateTemplate(data, newTemplate)
+	changes := updateTemplate(data, newTemplate)
 	err = WriteInsertTemplateToFile(path, newTemplate)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return nil
+	return changes, nil
 }
 
 func normalizeKeys(columnInfo map[string]any) {
@@ -244,23 +246,45 @@ func verifyTemplate(m map[string]map[string]map[string]any) error {
 	return nil
 }
 
-func updateTemplate(oldTemplate map[string]map[string]map[string]any, newTemplate map[string]map[string]map[string]any) {
+func updateTemplate(oldTemplate map[string]map[string]map[string]any, newTemplate map[string]map[string]map[string]any) []string {
 	var val any
+	var changesArr []string
+	// adding to the new template and getting all the new additions
 	for tableName, columns := range newTemplate {
-		for columnName := range columns {
-			_, ok := oldTemplate[tableName][columnName]
-			if ok {
-				// assume that new template is given via MakeTemplates() and thus should have the correct type
+		_, ok := oldTemplate[tableName]
+		if !ok {
+			changesArr = append(changesArr, fmt.Sprintf("+ new table '%s' added", tableName))
+		} else {
+			for columnName := range columns {
+				_, ok = oldTemplate[tableName][columnName]
+				if ok {
+					// assume that new template is given via MakeTemplates() and thus should have the correct type
 
-				if val, ok = oldTemplate[tableName][columnName]["code"]; ok {
-					newTemplate[tableName][columnName]["code"] = val
-				}
-				if val, ok = oldTemplate[tableName][columnName]["value"]; ok {
-					newTemplate[tableName][columnName]["value"] = val
+					if val, ok = oldTemplate[tableName][columnName]["code"]; ok {
+						newTemplate[tableName][columnName]["code"] = val
+					}
+					if val, ok = oldTemplate[tableName][columnName]["value"]; ok {
+						newTemplate[tableName][columnName]["value"] = val
+					}
+				} else {
+					changesArr = append(changesArr, fmt.Sprintf("+ new column '%s' added to table '%s'", columnName, tableName))
 				}
 			}
 		}
 	}
+	// now to get the deletions
+	for tableName, columns := range oldTemplate {
+		if _, ok := newTemplate[tableName]; !ok {
+			changesArr = append(changesArr, fmt.Sprintf("- table '%s' removed", tableName))
+		} else {
+			for columnName := range columns {
+				if _, ok = newTemplate[tableName][columnName]; !ok {
+					changesArr = append(changesArr, fmt.Sprintf("- column '%s' removed from table '%s'", columnName, tableName))
+				}
+			}
+		}
+	}
+	return changesArr
 }
 
 // GetStringType is a function take takes in a value of any type and returns the string name of the type of value given

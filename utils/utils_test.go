@@ -150,12 +150,12 @@ func TestUpdateInsertTemplate(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = utils.UpdateInsertTemplate(f.Name(), sampleTemplate)
+	_, err = utils.UpdateInsertTemplate(f.Name(), sampleTemplate)
 	if err == nil {
 		t.Fatal("value key missing, error should have occurred")
 	}
 	sampleTemplate["table"]["column"]["vaLue"] = any(5)
-	err = utils.UpdateInsertTemplate(f.Name(), sampleTemplate)
+	_, err = utils.UpdateInsertTemplate(f.Name(), sampleTemplate)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -167,7 +167,7 @@ func TestUpdateInsertTemplate(t *testing.T) {
 			"value": any("XD"),
 		},
 	}
-	err = utils.UpdateInsertTemplate(f.Name(), sampleTemplate)
+	_, err = utils.UpdateInsertTemplate(f.Name(), sampleTemplate)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -179,7 +179,7 @@ func TestUpdateInsertTemplate(t *testing.T) {
 		t.Fatalf("retrieved template '%v'\ninputed template '%v'", retrievedTemplate, sampleTemplate)
 	}
 	// check to see if irrelevant data is left out
-	err = utils.UpdateInsertTemplate(f.Name(), sampleClone)
+	_, err = utils.UpdateInsertTemplate(f.Name(), sampleClone)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -192,7 +192,7 @@ func TestUpdateInsertTemplate(t *testing.T) {
 	}
 	// check if the new type is saved over the old
 	sampleClone["table"]["column"]["TYPE"] = "FLOAT"
-	err = utils.UpdateInsertTemplate(f.Name(), sampleClone)
+	_, err = utils.UpdateInsertTemplate(f.Name(), sampleClone)
 	if err != nil {
 		t.Fatal(err)
 	}
