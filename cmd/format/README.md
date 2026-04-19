@@ -76,5 +76,5 @@ A quick look at the supported codes for each column type
 For example, if a column of type `VARCHAR` only allows for 6 characters, the regex will become `[a-zA-Z]{6}`
 
 For more details on `Strategy` please consult the [Strategy README](../../strategy/README.md)
-For the definitive list of defined Strategies, please consult the [Existing_Strategies markdown file](../../strategy/Existing_Strategies.md)
+For the definitive list of defined Strategies, please consult the [list of existing Strategies](../../strategy/Existing_Strategies.md)
 

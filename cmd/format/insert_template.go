@@ -55,7 +55,7 @@ ex)
 				log.Fatal(err)
 			}
 			if len(changes) > 0 {
-				fmt.Println(fmt.Sprintf("the followng changes were applied to the template at path '%s':", path))
+				fmt.Println(fmt.Sprintf("the following changes were applied to the template at path '%s':", path))
 				fmt.Println(strings.Join(changes, "\n"))
 			} else {
 				fmt.Println(fmt.Sprintf("no changes made to the template at path '%s'", path))

@@ -36,7 +36,7 @@ func addSubCommands() {
 func init() {
 
 	InsertCmd.PersistentFlags().StringVarP(&ConnString, "database", "", "", "url to connect to the database with")
-	InsertCmd.PersistentFlags().StringVarP(&table, "table", "", "", "name of sql table in the database")
+	InsertCmd.PersistentFlags().StringVarP(&table, "table", "", "", "name of table in the database")
 	InsertCmd.PersistentFlags().StringVarP(&template, "template", "", "", "path to the template file")
 	InsertCmd.PersistentFlags().IntVarP(&amount, "amount", "", 1, "amount of items to insert")
 	InsertCmd.PersistentFlags().BoolVarP(&defaultConfig, "default", "", false, "flag that determines if the default configuration is used")
