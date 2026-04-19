@@ -14,7 +14,7 @@ type factories interface {
 func attemptDeletionForMap[T factories](m map[string]map[string]T) error {
 	var err error
 	for columnType, values := range m {
-		for code, _ := range values {
+		for code := range values {
 			err = strategy.DeleteStrategy(columnType, code)
 			if err == nil {
 				return errors.New(fmt.Sprintf("sucessfully deleted a default, columnType: '%s', code: '%s'", columnType, code))
@@ -23,6 +23,7 @@ func attemptDeletionForMap[T factories](m map[string]map[string]T) error {
 	}
 	return nil
 }
+
 func TestDeleteStrategy(t *testing.T) {
 	// test to see if defaults are up to date
 	override := strategy.GetOverrideCodeMap()
@@ -82,6 +83,7 @@ func testWorkingStrategy() strategy.Strategy {
 func testInvalidStrategy() strategy.Strategy {
 	return &strategy.OptionalStrategy{}
 }
+
 func TestAddOverrideStrategy(t *testing.T) {
 	err := strategy.AddNewOverrideStrategy("something", "new", nil)
 	if err == nil {
@@ -124,6 +126,7 @@ func TestAddOverrideStrategy(t *testing.T) {
 func workingValueStrategy() strategy.ValueStrategy {
 	return &strategy.OptionalStrategy{}
 }
+
 func TestAddNewOptionalStrategy(t *testing.T) {
 	err := strategy.AddNewOptionalStrategy("something", "new", nil)
 	if err == nil {
@@ -163,6 +166,7 @@ func TestAddNewOptionalStrategy(t *testing.T) {
 func workingRequiredValueStrategy() strategy.ValueStrategy {
 	return &strategy.RequiredStrategy{}
 }
+
 func TestAddNewRequiredStrategy(t *testing.T) {
 	err := strategy.AddNewRequiredStrategy("something", "new", nil)
 	if err == nil {

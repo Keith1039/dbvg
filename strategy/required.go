@@ -297,11 +297,15 @@ func randomTimeCriteria(val any) error {
 }
 
 func randomTimeStrategy(val any) (any, error) {
-	t1, err := time.Parse(time.TimeOnly, "12:00:00")
+	arr, ok := val.([]string)
+	if !ok {
+		return nil, UnexpectedTypeError{ExpectedType: "[]string", ActualType: utils.GetStringType(val)}
+	}
+	t1, err := time.Parse(time.TimeOnly, arr[0])
 	if err != nil {
 		return nil, err
 	}
-	t2, err := time.Parse(time.TimeOnly, "23:00:00")
+	t2, err := time.Parse(time.TimeOnly, arr[1])
 	if err != nil {
 		return nil, err
 	}

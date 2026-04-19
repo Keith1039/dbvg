@@ -2,29 +2,7 @@ package template
 
 import (
 	"fmt"
-	"strings"
 )
-
-// unsupportedCodeError is an error given when the code given by the template isn't supported by it's type
-type unsupportedCodeError struct {
-	code       string
-	columnType string
-}
-
-func (e unsupportedCodeError) Error() string {
-	return fmt.Sprintf("code '%s' is not supported for the type '%s'", e.code, e.columnType)
-}
-
-// unsupportedTypeError  is an error given when the value given by the template doesn't match a supported type for that code
-type unsupportedTypeError struct {
-	typeStr        string
-	code           string
-	supportedTypes []string
-}
-
-func (e unsupportedTypeError) Error() string {
-	return fmt.Sprintf("type '%s' is not supported for the code '%s'. Types supported are [%s]", e.typeStr, e.code, strings.Join(e.supportedTypes, ","))
-}
 
 // RandomBoundError is an error given when the lower bound of a "RANDOM" code is greater than the upper bound
 type RandomBoundError struct {
@@ -44,10 +22,6 @@ type UnexpectedArrayLengthError struct {
 
 func (e UnexpectedArrayLengthError) Error() string {
 	return fmt.Sprintf("expected array of length %d, received an array of length %d", e.expectedLength, e.actualLength)
-}
-
-func NewUnexpectedArrayLengthError(expectedLength int, actualLength int) UnexpectedArrayLengthError {
-	return UnexpectedArrayLengthError{expectedLength, actualLength}
 }
 
 // InvalidRegexError is an error given when the regex string, when given to `regexp.compile()`, returns an error

@@ -5,8 +5,25 @@ import (
 	"fmt"
 	"github.com/Keith1039/dbvg/strategy"
 	"github.com/Keith1039/dbvg/utils"
+	"log"
 	"testing"
 )
+
+func init() {
+	// make sure a test runner exists for each Strategy
+	opt := strategy.GetOptionalCodeMap()
+	for typeString, v := range opt {
+		for code := range v {
+			if _, ok := optionalRunnerMap[typeString][code]; !ok {
+				log.Fatalf("missing tests for optional strategy: code '%s' of type '%s'", code, typeString)
+			}
+		}
+	}
+}
+
+var optionalRunnerMap = map[string]map[string]*testRunner{
+	"INT": {"SERIAL": intSerialTestRunner()},
+}
 
 func wrapError(columnType string, code string, err error) error {
 	return fmt.Errorf("for column type '%s' and code '%s': [%w]", columnType, code, err)
@@ -25,19 +42,15 @@ func intSerialTestRunner() *testRunner {
 		}
 		s, ok := t.strategy.(*strategy.OptionalStrategy)
 		if !ok {
-			return errors.New("strategy received could not be cast to `SerialOptionStrategy`")
+			return errors.New("strategy received could not be cast to `OptionalStrategy`")
 		}
 		if val == 20 && s.Value == 21 {
 			return nil
 		} else {
-			return errors.New("expected execution value to be 20 and internal 'Value' paramater to be 21")
+			return errors.New("expected execution value to be 20 and internal 'Value' parameter to be 21")
 		}
 	}
 	return &t
-}
-
-var optionalRunnerMap = map[string]map[string]*testRunner{
-	"INT": {"SERIAL": intSerialTestRunner()},
 }
 
 type testRunner struct {
