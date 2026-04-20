@@ -3,5 +3,6 @@ reset.sh
 test.sh
 test.go
 script.sh
+coverage.sh
 # Added by goreleaser init:
 dist/

@@ -49,10 +49,10 @@ func MakeTemplates(db *sql.DB, tableOrder []string) map[string]map[string]map[st
 func makeTemplate(db *sql.DB, tName string, relations map[string]map[string]map[string]string) map[string]map[string]any {
 	m := make(map[string]map[string]any)
 	cols, err := schema.ColumnTypes(db, "", tName)
-	colMap := database.GetColumnMap(db, tName)
 	if err != nil {
 		log.Fatal(err)
 	}
+	colMap := database.GetColumnMap(db, tName)
 	for _, col := range cols {
 		_, ok := relations[tName][col.Name()] // check if the column is a fk
 		if !ok {
@@ -73,7 +73,7 @@ func TrimAndUpperString(s string) string {
 }
 
 // CleanFilePath ensures that the file path is a proper file path before returning an OS specific path using `filepath.clean()`
-// along with any errors that indicate problems with the given path
+// along with any errors that indicate problems with the given path. These errors include when a file name is not specified
 func CleanFilePath(path string) (string, error) {
 	testPath := strings.TrimSpace(path)
 	if testPath == "" {
@@ -96,10 +96,7 @@ func WriteQueriesToFile(path string, queries []string) error {
 		return err
 	}
 	dir, fileName := filepath.Split(cleanPath) // split the dir path and the file name
-	if fileName == "" {                        // check to see if there is a valid file name
-		return errors.New("file name not specified") // error out
-	}
-	if dir != "" { // check if the dir path is empty string
+	if dir != "" {                             // check if the dir path is empty string
 		if _, err = os.Stat(dir); os.IsNotExist(err) { // check if directory exists
 			err = os.MkdirAll(dir, os.ModePerm) // make all directories and subdirectories
 			if err != nil {
@@ -154,10 +151,7 @@ func WriteInsertTemplateToFile(path string, data map[string]map[string]map[strin
 		return err
 	}
 	dir, fileName := filepath.Split(cleanPath) // split the dir path and the file name
-	if fileName == "" {                        // check to see if there is a valid file name
-		return errors.New("file name not specified") // error out
-	}
-	if dir != "" { // check if the dir path is empty string
+	if dir != "" {                             // check if the dir path is empty string
 		if _, err = os.Stat(dir); os.IsNotExist(err) { // check if directory exists
 			err = os.MkdirAll(dir, os.ModePerm) // make all directories and subdirectories
 			if err != nil {
