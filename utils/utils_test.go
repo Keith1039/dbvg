@@ -1,10 +1,17 @@
 package utils_test
 
 import (
+	"container/list"
+	"database/sql"
 	"encoding/json"
 	"fmt"
+	"github.com/Keith1039/dbvg/graph"
 	"github.com/Keith1039/dbvg/utils"
 	"github.com/golang-module/carbon"
+	"github.com/google/uuid"
+	"github.com/peterldowns/pgtestdb"
+	"github.com/peterldowns/pgtestdb/migrators/golangmigrator"
+	regen "github.com/zach-klippenstein/goregen"
 	"maps"
 	"os"
 	"path/filepath"
@@ -14,6 +21,23 @@ import (
 	"testing"
 )
 
+var db *sql.DB
+
+var pgConf pgtestdb.Config
+
+var migrator pgtestdb.Migrator
+
+func init() {
+	pgConf = pgtestdb.Config{
+		DriverName: "postgres", // uses the lib/pq driver
+		//Database:   "postgres",
+		User:     "postgres",
+		Password: "password",
+		Host:     "localhost",
+		Port:     "2000",
+		Options:  "sslmode=disable",
+	}
+}
 func getTempDirAndFile(t *testing.T) (*os.File, string) {
 	dir := t.TempDir()
 	f, err := os.CreateTemp(dir, "")
@@ -92,6 +116,51 @@ func TestGetTimeFromString(t *testing.T) {
 	}
 }
 
+func TestGenericRetrieveInsertTemplateJSON(t *testing.T) {
+	noFilePath := "./db/"
+	_, err := utils.RetrieveInsertTemplateJSON(noFilePath)
+	if err == nil {
+		t.Fatalf("path '%s' should have caused an error since no file was specified", noFilePath)
+	}
+	fileNoExists := "./db/safmdasofmasf.json"
+	_, err = utils.RetrieveInsertTemplateJSON(fileNoExists)
+	if err == nil {
+		t.Fatalf("path '%s' should have caused an error since file doesn't exist", fileNoExists)
+	}
+}
+
+func TestWriteInsertTemplateToFileGeneric(t *testing.T) {
+	sampleTemplate := map[string]map[string]map[string]any{
+		"table": {
+			"column": {
+				"TYPE": "INT",
+				"CoDe": "RANDOM",
+			},
+		},
+	}
+	err := utils.WriteInsertTemplateToFile("           ", sampleTemplate)
+	if err == nil {
+		t.Fatal("error should have been returned since string was empty")
+	}
+
+	err = utils.WriteInsertTemplateToFile("../db/migrations/code_test", sampleTemplate)
+	if err == nil {
+		t.Fatal("error should have been returned since no file was specified")
+	}
+
+	err = utils.WriteInsertTemplateToFile("./test_dir/file.json", sampleTemplate)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = os.Stat("./test_dir/file.json"); os.IsNotExist(err) {
+		t.Fatal("file wasn't created in the new dir")
+	}
+	err = os.RemoveAll("./test_dir")
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestWriteAndRetrieveInsertTemplateJSON(t *testing.T) {
 	f, _ := getTempDirAndFile(t)
 	defer f.Close()
@@ -135,15 +204,25 @@ func TestWriteAndRetrieveInsertTemplateJSON(t *testing.T) {
 	}
 }
 
+func TestUpdateInsertTemplateGeneric(t *testing.T) {
+	sampleTemplate := map[string]map[string]map[string]any{
+		"table": {
+			"column": {},
+		},
+	}
+	// generic file doesn't exist
+	_, err := utils.UpdateInsertTemplate("./safdasfawfasfasegf.json", sampleTemplate)
+	if err == nil {
+		t.Fatal(err)
+	}
+}
+
 func TestUpdateInsertTemplate(t *testing.T) {
 	f, _ := getTempDirAndFile(t)
 	defer f.Close()
 	sampleTemplate := map[string]map[string]map[string]any{
 		"table": {
-			"column": {
-				"TYPE": "INT",
-				"CoDe": "RANDOM",
-			},
+			"column": {},
 		},
 	}
 	err := utils.WriteInsertTemplateToFile(f.Name(), sampleTemplate)
@@ -152,8 +231,29 @@ func TestUpdateInsertTemplate(t *testing.T) {
 	}
 	_, err = utils.UpdateInsertTemplate(f.Name(), sampleTemplate)
 	if err == nil {
+		t.Fatal("code key missing, error should have occurred")
+	}
+
+	sampleTemplate["table"]["column"]["CoDe"] = "RANDOM"
+	err = utils.WriteInsertTemplateToFile(f.Name(), sampleTemplate)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = utils.UpdateInsertTemplate(f.Name(), sampleTemplate)
+	if err == nil {
+		t.Fatal("type key missing, error should have occurred")
+	}
+
+	sampleTemplate["table"]["column"]["TYPE"] = "INT"
+	err = utils.WriteInsertTemplateToFile(f.Name(), sampleTemplate)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = utils.UpdateInsertTemplate(f.Name(), sampleTemplate)
+	if err == nil {
 		t.Fatal("value key missing, error should have occurred")
 	}
+
 	sampleTemplate["table"]["column"]["vaLue"] = any(5)
 	_, err = utils.UpdateInsertTemplate(f.Name(), sampleTemplate)
 	if err != nil {
@@ -202,5 +302,175 @@ func TestUpdateInsertTemplate(t *testing.T) {
 	}
 	if !reflect.DeepEqual(retrievedTemplate, sampleClone) {
 		t.Fatalf("retrieved template '%v'\ninputed template '%v'", retrievedTemplate, sampleClone)
+	}
+}
+
+func TestUpdateInsertTemplateChanges(t *testing.T) {
+	f, _ := getTempDirAndFile(t)
+	defer f.Close()
+	migrator = golangmigrator.New("../db/real_migrations/")
+	db = pgtestdb.New(t, pgConf, migrator)
+	ord, err := graph.NewOrdering(db)
+	if err != nil {
+		t.Fatal(err)
+	}
+	order, err := ord.GetOrder("products")
+	if err != nil {
+		t.Fatal(err)
+	}
+	templ := utils.MakeTemplates(db, order)
+	// apply changes
+	delete(templ, "companies")
+	delete(templ["products"], "id")
+	templ["products"]["ids"] = map[string]any{
+		"TYPE":  "VARCHAR",
+		"CoDe":  "STATIC",
+		"value": any("XD"),
+	}
+	templ["deletable"] = map[string]map[string]any{
+		"some_col": {
+			"TYPE":  "VARCHAR",
+			"CoDe":  "STATIC",
+			"value": any("XD"),
+		},
+	}
+	err = utils.WriteInsertTemplateToFile(f.Name(), templ)
+	if err != nil {
+		t.Fatal(err)
+	}
+	templ = utils.MakeTemplates(db, order)
+	changes, err := utils.UpdateInsertTemplate(f.Name(), templ)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(changes) != 4 {
+		t.Fatalf("wrong number of changes, expected 4, got %d", len(changes))
+	}
+}
+
+func TestListToStringArray(t *testing.T) {
+	l := list.New()
+	l.PushBack("1")
+	l.PushBack("2")
+	l.PushFront("3")
+	arr := utils.ListToStringArray(l)
+	if len(arr) != 3 {
+		t.Fatalf("list length should be 3, got %v", len(arr))
+	}
+	node := l.Front()
+	i := 0
+	// check the order
+	for node != nil {
+		nodeVal := node.Value.(string)
+		if nodeVal != arr[i] {
+			t.Fatalf("arr value should be %v, got %v", nodeVal, arr[i])
+		}
+		node = node.Next()
+		i++
+	}
+}
+
+func TestMakeTemplates(t *testing.T) {
+	migrator = golangmigrator.New("../db/real_migrations/")
+	db = pgtestdb.New(t, pgConf, migrator)
+	ord, err := graph.NewOrdering(db)
+	if err != nil {
+		t.Fatal(err)
+	}
+	order, err := ord.GetOrder("products")
+	if err != nil {
+		t.Fatal(err)
+	}
+	expectedTemplate := map[string]map[string]map[string]any{
+		"products": {
+			"id": {
+				"type":  "UUID",
+				"code":  "",
+				"value": nil,
+			},
+			"item_name": {
+				"type":  "VARCHAR",
+				"code":  "",
+				"value": nil,
+			},
+			"price": {
+				"type":  "FLOAT",
+				"code":  "",
+				"value": nil,
+			},
+			"quantity": {
+				"type":  "INT",
+				"code":  "",
+				"value": nil,
+			},
+			"description": {
+				"type":  "VARCHAR",
+				"code":  "",
+				"value": nil,
+			},
+			"created_at": {
+				"type":  "DATE",
+				"code":  "",
+				"value": nil,
+			},
+		},
+		"companies": {
+			"id": {
+				"type":  "UUID",
+				"code":  "",
+				"value": nil,
+			},
+			"name": {
+				"type":  "VARCHAR",
+				"code":  "",
+				"value": nil,
+			},
+			"email": {
+				"type":  "VARCHAR",
+				"code":  "",
+				"value": nil,
+			},
+			"created_at": {
+				"type":  "DATE",
+				"code":  "",
+				"value": nil,
+			},
+		},
+	}
+	templ := utils.MakeTemplates(db, order)
+	for k, v := range expectedTemplate {
+		if _, ok := templ[k]; !ok {
+			t.Fatalf("missing table '%s' in template", k)
+		} else {
+			for col, val := range v {
+				if _, ok = templ[k][col]; !ok {
+					fmt.Println(templ[k])
+					t.Fatalf("missing column '%s' for table '%s' in template", col, k)
+				} else {
+					if !reflect.DeepEqual(val, templ[k][col]) {
+						t.Fatalf("expected '%v' for column '%s' of table '%s' but received '%v'", val, col, k, templ[k][col])
+					}
+				}
+			}
+		}
+	}
+}
+
+func TestTrimAndUpperString(t *testing.T) {
+	generate, err := regen.Generate("[a-z]{10}")
+	if err != nil {
+		t.Fatal(err)
+	}
+	transformString := utils.TrimAndUpperString(generate)
+	expectedStr := strings.ToUpper(strings.TrimSpace(generate))
+	if transformString != expectedStr {
+		t.Fatalf("expected '%s' but got '%s'", expectedStr, transformString)
+	}
+}
+
+func TestGetStringType(t *testing.T) {
+	uu := uuid.New()
+	if "uuid.UUID" != utils.GetStringType(uu) {
+		t.Fatalf("expected 'uuid.UUID' but got '%s'", utils.GetStringType(uu))
 	}
 }
