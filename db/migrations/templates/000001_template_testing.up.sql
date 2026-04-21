@@ -1,12 +1,21 @@
 CREATE TABLE IF NOT EXISTS TEMPLATE(
-    uuid UUID,
+    uuid UUID PRIMARY KEY,
     int INT,
     float FLOAT,
     bool BOOLEAN,
     varchar VARCHAR,
-    date DATE
+    date DATE,
+    time TIME
 );
 
-CREATE TABLE IF NOT EXISTS IRRELIVANT(
-    key SERIAL PRIMARY KEY
+CREATE TABLE IF NOT EXISTS IRRELEVANT(
+    key SERIAL PRIMARY KEY,
+    template_key UUID,
+    FOREIGN KEY (template_key) REFERENCES TEMPLATE(uuid)
+);
+
+CREATE TABLE IF NOT EXISTS CYCLETABLE(
+    key SERIAL primary key,
+    key2 SERIAL,
+    FOREIGN KEY (key2) REFERENCES CYCLETABLE(key)
 )

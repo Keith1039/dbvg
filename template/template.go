@@ -4,7 +4,6 @@
 package template
 
 import (
-	"errors"
 	"fmt"
 	"github.com/Keith1039/dbvg/strategy"
 	"github.com/Keith1039/dbvg/utils"
@@ -25,15 +24,8 @@ func makeTypeMap(data map[string]any) map[string]string {
 
 // check if the type map matches the given schema
 func checkAgainstSchema(typeMap map[string]string, schema map[string]string) error {
-	var err error
-	if typeMap == nil || len(typeMap) != len(schema) {
-
-		if typeMap == nil {
-			err = errors.New("type map is nil")
-		} else {
-			err = SchemaError{expectedSchema: schema, actualSchema: typeMap}
-		}
-		return err
+	if len(typeMap) != len(schema) {
+		return SchemaError{expectedSchema: schema, actualSchema: typeMap}
 	} else {
 		for key, val := range typeMap {
 			// check the schema values but make an exception for any

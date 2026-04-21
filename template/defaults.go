@@ -1,6 +1,9 @@
 package template
 
-import "github.com/Keith1039/dbvg/strategy"
+import (
+	"github.com/Keith1039/dbvg/strategy"
+	"maps"
+)
 
 var DEFAULTREGEX = "[a-zA-Z]{10}"
 
@@ -14,6 +17,12 @@ var defaults = map[string]func() strategy.Strategy{
 	"VARCHAR": defaultRegex,
 }
 
+// GetDefaults returns a clone of the internal defaults map linking the types to their
+// Strategies. These Strategies can be executed as is
+func GetDefaults() map[string]func() strategy.Strategy {
+	return maps.Clone(defaults)
+}
+
 var defaultCode = map[string]string{
 	"INT":     "SERIAL",
 	"FLOAT":   "RANDOM",
@@ -22,6 +31,12 @@ var defaultCode = map[string]string{
 	"TIME":    "NOW",
 	"BOOL":    "RANDOM",
 	"VARCHAR": "REGEX",
+}
+
+// GetDefaultCodes returns a clone of the internal defaultCode map linking a type
+// to the code represented in the defaults map.
+func GetDefaultCodes() map[string]string {
+	return maps.Clone(defaultCode)
 }
 
 func defaultFloatRandom() strategy.Strategy {
