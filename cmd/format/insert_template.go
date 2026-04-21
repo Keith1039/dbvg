@@ -61,7 +61,7 @@ ex)
 				fmt.Println(fmt.Sprintf("no changes made to the template at path '%s'", path))
 			}
 		} else if verify {
-			_, err = template.NewInsertTemplate(database.GetAllColumnData(db), tableOrder, path)
+			_, err = template.NewInsertTemplate(db, table, path)
 			if err != nil {
 				log.Fatalf("template at '%s' failed with error [%v]", path, err)
 			} else {

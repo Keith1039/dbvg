@@ -12,7 +12,6 @@ import (
 	"github.com/Keith1039/dbvg/template"
 	"github.com/Keith1039/dbvg/utils"
 	"log"
-	"os"
 	"strings"
 )
 
@@ -23,7 +22,7 @@ func NewQueryWriter(db *sql.DB, tableName string) (*QueryWriter, error) {
 	if err != nil {
 		return nil, err // return the error
 	}
-	qw.template, err = template.NewDefaultInsertTemplate(db, qw.TableOrder)
+	qw.template, err = template.NewDefaultInsertTemplate(db, qw.tableName)
 	if err != nil {
 		return nil, err
 	}
@@ -35,15 +34,12 @@ func NewQueryWriter(db *sql.DB, tableName string) (*QueryWriter, error) {
 // before returning a pointer to the initialized QueryWriter as well as any errors that occurred
 func NewQueryWriterWithTemplate(db *sql.DB, tableName string, filePath string) (*QueryWriter, error) {
 	// check to see if file exists
-	if _, err := os.Stat(filePath); os.IsNotExist(err) {
-		return nil, err
-	}
 	qw := QueryWriter{db: db, tableName: tableName}
 	err := qw.init()
 	if err != nil {
 		return nil, err
 	}
-	qw.template, err = template.NewInsertTemplate(database.GetAllColumnData(db), qw.TableOrder, filePath)
+	qw.template, err = template.NewInsertTemplate(db, qw.tableName, filePath)
 	if err != nil {
 		return nil, err
 	}

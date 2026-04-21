@@ -41,6 +41,25 @@ type MissingRequiredTableError struct {
 	jsonKeys  []string
 }
 
+// MissingRequiredTableError is an error given when a template is missing a required table
 func (err MissingRequiredTableError) Error() string {
 	return fmt.Sprintf("missing required table '%s' in template keys [%s]", err.tableName, strings.Join(err.jsonKeys, ", "))
+}
+
+// MissingRequiredColumnError is an error given when a template is missing a required column
+type MissingRequiredColumnError struct {
+	columnName string
+	tableName  string
+}
+
+func (err MissingRequiredColumnError) Error() string {
+	return fmt.Sprintf("missing required column '%s' for table '%s'", err.columnName, err.tableName)
+}
+
+// MissingPathError is an error given when the required parameter 'path' is empty
+type MissingPathError struct {
+}
+
+func (err MissingPathError) Error() string {
+	return fmt.Sprintf("'path' variable cannot be empty")
 }
