@@ -1,6 +1,7 @@
 package strategy_test
 
 import (
+	"errors"
 	"fmt"
 	"github.com/Keith1039/dbvg/strategy"
 	"github.com/Keith1039/dbvg/utils"
@@ -29,6 +30,18 @@ var overrideExpectMap = map[string]string{
 	"UUID":    "string",
 	"BOOL":    "bool",
 	"VARCHAR": "string",
+}
+
+func TestOverrideStrategy_Behavior(t *testing.T) {
+	s := strategy.OverrideStrategy{}
+	_, err := s.ExecuteStrategy()
+	if !errors.As(err, &strategy.UnspecifiedStrategyError{}) {
+		t.Fatalf("expected 'UnspecifiedStrategyError', got %v", err)
+	}
+	err = s.CheckCriteria()
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
 }
 
 func TestOverrideStrategy_Implements(t *testing.T) {

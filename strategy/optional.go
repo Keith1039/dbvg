@@ -8,7 +8,7 @@ import (
 // OptionalStrategy is a type of Strategy that can take in either nil or a valid input as their value
 type OptionalStrategy struct {
 	Default any
-	*defaultStrategy
+	defaultStrategy
 }
 
 func (s *OptionalStrategy) SetValue(val any) {
@@ -33,7 +33,7 @@ func serialIntCriteria(val any) error {
 
 // NewSerialStrategy defines and returns a ValueStrategy of type SerialOptionalStrategy to handle the "SERIAL" code for the "INT" type
 func NewSerialStrategy() ValueStrategy {
-	s := &OptionalStrategy{Default: 1, defaultStrategy: &defaultStrategy{Criteria: serialIntCriteria}}
+	s := &OptionalStrategy{Default: 1, defaultStrategy: defaultStrategy{Criteria: serialIntCriteria}}
 	s.Strategy = func(val any) (any, error) {
 		intVal, ok := val.(int)
 		if !ok {

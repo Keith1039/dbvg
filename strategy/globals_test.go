@@ -55,6 +55,12 @@ func TestDeleteStrategy(t *testing.T) {
 	if err != nil {
 		t.Fatal("if the strategy cannot be found, it's a no opp and nil should be returned")
 	}
+
+	// null code check
+	err = strategy.DeleteStrategy("INT", "NULL")
+	if err != nil {
+		t.Fatal("no error should be returned for 'NULL' code for any type")
+	}
 }
 
 func TestGetStrategy(t *testing.T) {
@@ -215,5 +221,21 @@ func TestDuplicateStrategyInDifferentMap(t *testing.T) {
 	err = strategy.DeleteStrategy("bool", "TEST")
 	if err != nil {
 		t.Fatalf("delete strategy failed to be removed with error [%v]", err)
+	}
+}
+
+func TestUnsupportedType_AllTypes(t *testing.T) {
+	unsupportedType := "SOMETYPE"
+	err := strategy.AddNewOverrideStrategy(unsupportedType, "TEST", testWorkingStrategy)
+	if err == nil {
+		t.Fatalf("expected error for unsupported type [%v]", unsupportedType)
+	}
+	err = strategy.AddNewOptionalStrategy(unsupportedType, "TEST", workingValueStrategy)
+	if err == nil {
+		t.Fatalf("expected error for unsupported type [%v]", unsupportedType)
+	}
+	err = strategy.AddNewRequiredStrategy(unsupportedType, "TEST", workingRequiredValueStrategy)
+	if err == nil {
+		t.Fatalf("expected error for unsupported type [%v]", unsupportedType)
 	}
 }
