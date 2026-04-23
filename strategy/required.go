@@ -14,7 +14,7 @@ import (
 
 // RequiredStrategy is a type of strategy that requires a non-nil value to be given to it as input
 type RequiredStrategy struct {
-	*defaultStrategy
+	defaultStrategy
 }
 
 // ExecuteStrategy for the RequiredStrategy executes and returns it's strategy with its value field as input.
@@ -83,7 +83,7 @@ func randomIntCriteria(val any) error {
 
 // NewStaticIntStrategy defines and returns a Strategy of type RequiredStrategy meant to handle code "STATIC" for type "INT"
 func NewStaticIntStrategy() ValueStrategy {
-	return &RequiredStrategy{defaultStrategy: &defaultStrategy{Strategy: staticStrategy, Criteria: staticCriteria[int]}}
+	return &RequiredStrategy{defaultStrategy: defaultStrategy{Strategy: staticStrategy, Criteria: staticCriteria[int]}}
 }
 
 func randomIntStrategy(val any) (any, error) {
@@ -93,7 +93,7 @@ func randomIntStrategy(val any) (any, error) {
 
 // NewRandomIntStrategy defines and returns a Strategy of type RequiredStrategy meant to handle code "RANDOM" for type "INT"
 func NewRandomIntStrategy() ValueStrategy {
-	return &RequiredStrategy{defaultStrategy: &defaultStrategy{Strategy: randomIntStrategy, Criteria: randomIntCriteria}}
+	return &RequiredStrategy{defaultStrategy: defaultStrategy{Strategy: randomIntStrategy, Criteria: randomIntCriteria}}
 }
 
 //
@@ -102,7 +102,7 @@ func NewRandomIntStrategy() ValueStrategy {
 
 // NewStaticFloatStrategy defines and returns a Strategy of type RequiredStrategy meant to handle code "STATIC" for type "FLOAT"
 func NewStaticFloatStrategy() ValueStrategy {
-	return &RequiredStrategy{defaultStrategy: &defaultStrategy{Strategy: staticStrategy, Criteria: staticCriteria[float64]}}
+	return &RequiredStrategy{defaultStrategy: defaultStrategy{Strategy: staticStrategy, Criteria: staticCriteria[float64]}}
 }
 
 // NewRandomFloatStrategy defines and returns a Strategy of type RequiredStrategy meant to handle code "RANDOM" for type "FLOAT"
@@ -114,7 +114,7 @@ func randomFloatStrategy(val any) (any, error) {
 //
 
 func NewRandomFloatStrategy() ValueStrategy {
-	return &RequiredStrategy{defaultStrategy: &defaultStrategy{Strategy: randomFloatStrategy, Criteria: randomFloatCriteria}}
+	return &RequiredStrategy{defaultStrategy: defaultStrategy{Strategy: randomFloatStrategy, Criteria: randomFloatCriteria}}
 }
 
 //
@@ -123,7 +123,7 @@ func NewRandomFloatStrategy() ValueStrategy {
 
 // NewStaticBoolStrategy defines and returns a Strategy of type RequiredStrategy meant to handle code "STATIC" for type "BOOL"
 func NewStaticBoolStrategy() ValueStrategy {
-	return &RequiredStrategy{defaultStrategy: &defaultStrategy{Strategy: staticStrategy, Criteria: staticCriteria[bool]}}
+	return &RequiredStrategy{defaultStrategy: defaultStrategy{Strategy: staticStrategy, Criteria: staticCriteria[bool]}}
 }
 
 //
@@ -132,7 +132,7 @@ func NewStaticBoolStrategy() ValueStrategy {
 
 // NewStaticVarcharStrategy defines and returns a Strategy of type RequiredStrategy meant to handle code "STATIC" for type "VARCHAR"
 func NewStaticVarcharStrategy() ValueStrategy {
-	return &RequiredStrategy{defaultStrategy: &defaultStrategy{Strategy: staticStrategy, Criteria: staticCriteria[string]}}
+	return &RequiredStrategy{defaultStrategy: defaultStrategy{Strategy: staticStrategy, Criteria: staticCriteria[string]}}
 }
 
 func regexStrategy(val any) (any, error) {
@@ -156,7 +156,7 @@ func regexCriteria(val any) error {
 
 // NewRegexStrategy defines and returns a Strategy of type RequiredStrategy meant to handle code "REGEX" for type "VARCHAR"
 func NewRegexStrategy() ValueStrategy {
-	return &RequiredStrategy{defaultStrategy: &defaultStrategy{Strategy: regexStrategy, Criteria: regexCriteria}}
+	return &RequiredStrategy{defaultStrategy: defaultStrategy{Strategy: regexStrategy, Criteria: regexCriteria}}
 }
 
 //
@@ -189,7 +189,7 @@ func staticDateStrategy(val any) (any, error) {
 
 // NewStaticDateStrategy defines and returns a Strategy of type RequiredStrategy meant to handle code "STATIC" for type "DATE"
 func NewStaticDateStrategy() ValueStrategy {
-	return &RequiredStrategy{defaultStrategy: &defaultStrategy{Strategy: staticDateStrategy, Criteria: staticDateCriteria}}
+	return &RequiredStrategy{defaultStrategy: defaultStrategy{Strategy: staticDateStrategy, Criteria: staticDateCriteria}}
 }
 
 func randomDateCriteria(val any) error {
@@ -237,7 +237,7 @@ func randomDateStrategy(val any) (any, error) {
 
 // NewRandomDateStrategy defines and returns a Strategy of type RequiredStrategy meant to handle code "RANDOM" for type "DATE"
 func NewRandomDateStrategy() ValueStrategy {
-	return &RequiredStrategy{defaultStrategy: &defaultStrategy{Strategy: randomDateStrategy, Criteria: randomDateCriteria}}
+	return &RequiredStrategy{defaultStrategy: defaultStrategy{Strategy: randomDateStrategy, Criteria: randomDateCriteria}}
 }
 
 // Time type
@@ -267,7 +267,7 @@ func staticTimeStrategy(val any) (any, error) {
 
 // NewStaticTimeStrategy defines and returns a Strategy of type RequiredStrategy meant to handle code "STATIC" for type "TIME"
 func NewStaticTimeStrategy() ValueStrategy {
-	return &RequiredStrategy{defaultStrategy: &defaultStrategy{Strategy: staticTimeStrategy, Criteria: staticTimeCriteria}}
+	return &RequiredStrategy{defaultStrategy: defaultStrategy{Strategy: staticTimeStrategy, Criteria: staticTimeCriteria}}
 }
 
 func randomTimeCriteria(val any) error {
@@ -318,5 +318,5 @@ func randomTimeStrategy(val any) (any, error) {
 
 // NewRandomTimeStrategy defines and returns a Strategy of type RequiredStrategy meant to handle code "RANDOM" for type "TIME"
 func NewRandomTimeStrategy() ValueStrategy {
-	return &RequiredStrategy{defaultStrategy: &defaultStrategy{Strategy: randomTimeStrategy, Criteria: randomTimeCriteria}}
+	return &RequiredStrategy{defaultStrategy: defaultStrategy{Strategy: randomTimeStrategy, Criteria: randomTimeCriteria}}
 }

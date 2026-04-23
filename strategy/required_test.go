@@ -50,6 +50,46 @@ var requiredRunnerMap = map[string]map[string]*testRunner{
 	},
 }
 
+func TestRequiredStrategy_Behavior(t *testing.T) {
+	// test that a value check is performed when attempting to execute strategy or check criteria
+	s := strategy.RequiredStrategy{}
+	err := s.CheckCriteria()
+	if !errors.As(err, &strategy.RequiredValueNilError{}) {
+		t.Fatalf("expected 'RequiredValueNilError', got %v", err)
+	}
+	_, err = s.ExecuteStrategy()
+	if !errors.As(err, &strategy.RequiredValueNilError{}) {
+		t.Fatalf("expected 'RequiredValueNilError', got %v", err)
+	}
+}
+
+func TestRequiredStrategies(t *testing.T) {
+	for colType, codeMap := range requiredRunnerMap {
+		t.Log(".........................................")
+		t.Logf("Beginning test suite for type '%s'...", colType)
+		for code, runner := range codeMap {
+			runner.t = t
+			t.Logf("testing code '%s'...", code)
+			s, err := strategy.GetStrategy(colType, code)
+			if err != nil {
+				t.Fatal(err)
+			}
+			sVal, ok := s.(strategy.ValueStrategy)
+			if !ok {
+				t.Fatal("failed to assert value strategy")
+			}
+			runner.strategy = sVal
+			err = runner.Run()
+			if err != nil {
+				t.Fatal(wrapError(colType, code, err))
+			}
+			t.Logf("tests for code '%s' ended successfully!", code)
+		}
+		t.Logf("Ending test suite for type '%s'...", colType)
+		t.Log(".........................................\n")
+	}
+}
+
 type expectedValueError struct {
 	expectedValue any
 	actualValue   any
@@ -333,31 +373,4 @@ func varcharRegexTestRunner() *testRunner {
 		return nil
 	}
 	return &t
-}
-
-func TestRequiredStrategies(t *testing.T) {
-	for colType, codeMap := range requiredRunnerMap {
-		t.Log(".........................................")
-		t.Logf("Beginning test suite for type '%s'...", colType)
-		for code, runner := range codeMap {
-			runner.t = t
-			t.Logf("testing code '%s'...", code)
-			s, err := strategy.GetStrategy(colType, code)
-			if err != nil {
-				t.Fatal(err)
-			}
-			sVal, ok := s.(strategy.ValueStrategy)
-			if !ok {
-				t.Fatal("failed to assert value strategy")
-			}
-			runner.strategy = sVal
-			err = runner.Run()
-			if err != nil {
-				t.Fatal(wrapError(colType, code, err))
-			}
-			t.Logf("tests for code '%s' ended successfully!", code)
-		}
-		t.Logf("Ending test suite for type '%s'...", colType)
-		t.Log(".........................................\n")
-	}
 }

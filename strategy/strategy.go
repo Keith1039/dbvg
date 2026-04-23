@@ -34,18 +34,3 @@ func (s *defaultStrategy) CheckCriteria() error {
 func (s *defaultStrategy) SetValue(val any) {
 	s.Value = val
 }
-
-type CustomStrategy struct {
-}
-
-func (s *CustomStrategy) ExecuteStrategy() (any, error) {
-	return nil, nil
-}
-
-func (s *CustomStrategy) CheckCriteria() error {
-	return nil
-}
-
-func (s *CustomStrategy) SetValue(val any) {
-
-}
