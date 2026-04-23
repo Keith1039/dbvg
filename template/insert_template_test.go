@@ -57,19 +57,6 @@ func initForTest(t *testing.T) {
 	testCase = utils.MakeTemplates(db, tables)
 }
 
-// to get the desired behavior, we need to take the sample template, shove it into a temporary file
-func writeMapToJSONFile(filePath string, data map[string]map[string]map[string]any) error {
-	jsonData, err := json.MarshalIndent(data, "", " ")
-	if err != nil {
-		return err
-	}
-	err = os.WriteFile(filePath, jsonData, os.ModePerm)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
 func getTempDirAndFile(t *testing.T) (*os.File, string) {
 	dir := t.TempDir()
 	f, err := os.CreateTemp(dir, "")
@@ -173,7 +160,7 @@ func TestNewInsertGenericErrors(t *testing.T) {
 	tableName := "asfasfasfa"
 	_, err = template.NewInsertTemplate(db, tableName, file.Name())
 	if !errors.As(err, &graph.MissingTableError{}) {
-		t.Fatalf("expected error since the table '%s' does not exist", tableName)
+		t.Fatalf("expected error since the table '%s' does not exist but received '%v'", tableName, err)
 	}
 
 	tableName = "irrelevant"
@@ -218,7 +205,7 @@ func TestNewInsertGenericErrors(t *testing.T) {
 	}
 	_, err = template.NewInsertTemplate(db, tableName, file.Name())
 	if !errors.As(err, &template.SchemaError{}) {
-		t.Fatal("expected error since 'code' key is expected to be string but is 'int'")
+		t.Fatalf("expected error since 'code' key is expected to be string but is 'int' but received '%v'", err)
 	}
 
 	// test invalid type
@@ -248,7 +235,7 @@ func TestNewInsertGenericErrors(t *testing.T) {
 	}
 	_, err = template.NewInsertTemplate(db, tableName, file.Name())
 	if !errors.As(err, &template.MissingRequiredColumnError{}) {
-		t.Fatalf("expected error since the template at '%s' is missing required column '%s' for table '%s'", file.Name(), "date", "template")
+		t.Fatalf("expected error since the template at '%s' is missing required column '%s' for table '%s' but reveived '%v'", file.Name(), "date", "template", err)
 	}
 }
 
@@ -365,6 +352,140 @@ func TestNewInsertTemplate_Codes(t *testing.T) {
 
 }
 
+func TestInsertTemplate_Normalize(t *testing.T) {
+	var err error
+	initForTest(t)
+	file, _ := getTempDirAndFile(t)
+	defer file.Close()
+	tableName := "IRRELEVANT"
+	testCase, err = getTemplate(db, tableName)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// replace code
+	testCase["template"]["date"]["CoDe"] = ""
+	delete(testCase["date"], "code")
+
+	// replace type
+	testCase["template"]["date"]["     TYPE      "] = testCase["template"]["date"]["type"]
+	delete(testCase["date"], "type")
+
+	// replace value
+	testCase["template"]["date"][" Value     "] = nil
+	delete(testCase["date"], "value")
+	// test invalid code
+
+	err = utils.WriteInsertTemplateToFile(file.Name(), testCase)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// keys should have been normalized
+	_, err = template.NewInsertTemplate(db, tableName, file.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestInsertTemplate_Preprocess(t *testing.T) {
+	// since this schema has all possible combinations, it has all the cases for preprocess
+	// if this passes, that means values are being pre-processed correctly
+	file, _ := getTempDirAndFile(t)
+	defer file.Close()
+	omniTestPath := "../db/migrations/code_test/omni_test.json"
+	migrator = golangmigrator.New("../db/migrations/code_test")
+	db = pgtestdb.New(t, pgConf, migrator)
+	_, err := template.NewInsertTemplate(db, "test", omniTestPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// test for invalid preprocess
+	jsonData, err := utils.RetrieveInsertTemplateJSON(omniTestPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// fail for int/float
+	jsonData["test"]["int8_random"]["value"] = []any{20, "", true}
+	err = utils.WriteInsertTemplateToFile(file.Name(), jsonData)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = template.NewInsertTemplate(db, "test", file.Name())
+	if err == nil {
+		t.Fatal("expected preprocess error since the array is not homogenous for type 'INT'")
+	}
+
+	// float check
+	jsonData, err = utils.RetrieveInsertTemplateJSON(omniTestPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	jsonData["test"]["float8_random"]["value"] = []any{20, "", true}
+	err = utils.WriteInsertTemplateToFile(file.Name(), jsonData)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = template.NewInsertTemplate(db, "test", file.Name())
+	if err == nil {
+		t.Fatal("expected preprocess error since the array is not homogenous for type 'FLOAT'")
+	}
+
+	// check for string, time or date (string doesn't have a case, but it'll still work)
+	// date type check
+	jsonData, err = utils.RetrieveInsertTemplateJSON(omniTestPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	jsonData["test"]["timestamp_random"]["value"] = []any{20, "", true}
+	err = utils.WriteInsertTemplateToFile(file.Name(), jsonData)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = template.NewInsertTemplate(db, "test", file.Name())
+	if err == nil {
+		t.Fatal("expected preprocess error since the array is not homogenous for type 'FLOAT'")
+	}
+
+	// time check
+	jsonData, err = utils.RetrieveInsertTemplateJSON(omniTestPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	jsonData["test"]["time_random"]["value"] = []any{20, "", true}
+	err = utils.WriteInsertTemplateToFile(file.Name(), jsonData)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = template.NewInsertTemplate(db, "test", file.Name())
+	if err == nil {
+		t.Fatal("expected preprocess error since the array is not homogenous for type 'FLOAT'")
+	}
+}
+
+func TestInsertTemplate_InvalidCriteria(t *testing.T) {
+	// check to see if an invalid criteria can slip through
+	file, _ := getTempDirAndFile(t)
+	defer file.Close()
+	omniTestPath := "../db/migrations/code_test/omni_test.json"
+	migrator = golangmigrator.New("../db/migrations/code_test")
+	db = pgtestdb.New(t, pgConf, migrator)
+
+	jsonData, err := utils.RetrieveInsertTemplateJSON(omniTestPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	jsonData["test"]["int8_random"]["value"] = []any{20, 10}
+	err = utils.WriteInsertTemplateToFile(file.Name(), jsonData)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = template.NewInsertTemplate(db, "test", file.Name())
+	if err == nil {
+		t.Fatal("expecting error since the random bound error should have been given via criteria")
+	}
+}
+
 func TestInsertTemplate_GetStrategy(t *testing.T) {
 	var err error
 	initForTest(t)
@@ -375,7 +496,7 @@ func TestInsertTemplate_GetStrategy(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = writeMapToJSONFile(file.Name(), testCase) // write data to file
+	err = utils.WriteInsertTemplateToFile(file.Name(), testCase) // write data to file
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -398,4 +519,40 @@ func TestInsertTemplate_GetStrategy(t *testing.T) {
 		t.Fatal("expected StrategyCodePair to be empty")
 	}
 
+}
+
+func TestNewDefaultInsertTemplate(t *testing.T) {
+	// a dry run of a valid case should always pass
+	initForTest(t)
+	file, _ := getTempDirAndFile(t)
+	defer file.Close()
+	tableName := "IRRELEVANT"
+	_, err := template.NewDefaultInsertTemplate(db, tableName)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestInsertTemplate_NilDB(t *testing.T) {
+	initForTest(t)
+	file, _ := getTempDirAndFile(t)
+	defer file.Close()
+	tableName := "IRRELEVANT"
+	sampleTemplate, err := getTemplate(db, tableName)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = utils.WriteInsertTemplateToFile(file.Name(), sampleTemplate)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = template.NewInsertTemplate(nil, tableName, file.Name())
+	if err == nil {
+		t.Fatal("expected error since database is nil")
+	}
+
+	_, err = template.NewDefaultInsertTemplate(nil, "")
+	if err == nil {
+		t.Fatal("expected error since database is nil")
+	}
 }

@@ -91,12 +91,12 @@ func (t *InsertTemplate) templateFrom(db *sql.DB, table string, path string) err
 func (t *InsertTemplate) validateTemplate(db *sql.DB, table string, jsonData map[string]map[string]map[string]any, schema map[string]string, validated bool) error {
 	var typeMap map[string]string
 	if !validated {
-		tableData := database.GetAllColumnData(db)
-		allRelations := database.GetRelationships(db)
 		ord, err := graph.NewOrdering(db)
 		if err != nil {
 			return err
 		}
+		tableData := database.GetAllColumnData(db)
+		allRelations := database.GetRelationships(db)
 		requiredTables, err := ord.GetOrder(table)
 		if err != nil {
 			return err
