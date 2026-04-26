@@ -71,7 +71,7 @@ func (qw *QueryWriter) init() error {
 	if err != nil {
 		return err
 	}
-	return err
+	return nil
 }
 
 func (qw *QueryWriter) setFKMap() {
