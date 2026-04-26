@@ -21,6 +21,8 @@ import (
 
 var db *sql.DB
 
+var defaultAmount = 10
+
 var pgConf pgtestdb.Config
 
 var migrator pgtestdb.Migrator
@@ -31,11 +33,12 @@ func init() {
 	pgConf = pgtestdb.Config{
 		DriverName: "postgres", // uses the lib/pq driver
 		//Database:   "postgres",
-		User:     "postgres",
-		Password: "password",
-		Host:     "localhost",
-		Port:     "2000",
-		Options:  "sslmode=disable",
+		User:                      "postgres",
+		Password:                  "password",
+		Host:                      "localhost",
+		Port:                      "2000",
+		Options:                   "sslmode=disable",
+		ForceTerminateConnections: true,
 	}
 	migrator = golangmigrator.New(realMigrationDir)
 }
@@ -82,12 +85,12 @@ func TestQueryBatch_Exec(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	insertBatch, deleteBatch := batchWriter.GenerateEntries(500)
+	insertBatch, deleteBatch := batchWriter.GenerateEntries(defaultAmount)
 	err = insertBatch.Exec(db, false)
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = checkCountForTable(db, "COMPANIES", 501)
+	err = checkCountForTable(db, "COMPANIES", defaultAmount+1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -133,7 +136,7 @@ func TestQueryBatch_ExecRollback(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	insertBatch, _ := batchWriter.GenerateEntries(500)
+	insertBatch, _ := batchWriter.GenerateEntries(defaultAmount)
 	err = insertBatch.Exec(db, false)
 	if err == nil {
 		t.Fatal("unique constraint should have been violated due to static code used for email field")
@@ -152,18 +155,103 @@ func TestQueryBatch_ExecRollback(t *testing.T) {
 func TestQueryBatch_ExecContext(t *testing.T) {
 	migrator = golangmigrator.New(realMigrationDir)
 	db = pgtestdb.New(t, pgConf, migrator)
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	defer cancel()
 	batchWriter, err := parameters.NewQueryWriter(db, "purchases")
 	if err != nil {
 		t.Fatal(err)
 	}
 	insertBatch, _ := batchWriter.GenerateEntries(5000)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
 	err = insertBatch.ExecContext(ctx, db, false)
 	if err == nil {
 		t.Fatal("should have timed out...")
 	}
 	err = checkCountForTable(db, "COMPANIES", 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestQueryBatch_ExecTransact(t *testing.T) {
+	// see if the function uses the same transaction
+	migrator = golangmigrator.New(realMigrationDir)
+	db = pgtestdb.New(t, pgConf, migrator)
+	tx, err := db.BeginTx(context.Background(), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	batchWriter, err := parameters.NewQueryWriter(db, "purchases")
+	if err != nil {
+		t.Fatal(err)
+	}
+	insertBatch, _ := batchWriter.GenerateEntries(defaultAmount)
+	err = insertBatch.ExecTransact(tx, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = tx.Rollback() // if it's part of the same transaction, table should be empty
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = checkCountForTable(db, "USERS", 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestQueryBatch_ExecContextTransact(t *testing.T) {
+	migrator = golangmigrator.New(realMigrationDir)
+	pgConf.ForceTerminateConnections = true
+	db = pgtestdb.New(t, pgConf, migrator)
+	tx, err := db.BeginTx(context.Background(), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	batchWriter, err := parameters.NewQueryWriter(db, "purchases")
+	if err != nil {
+		t.Fatal(err)
+	}
+	insertBatch, _ := batchWriter.GenerateEntries(5000)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Nanosecond)
+	defer cancel()
+	err = insertBatch.ExecTransactContext(ctx, tx, false)
+	if err == nil {
+		t.Fatal("should have timed out")
+	}
+
+	err = checkCountForTable(db, "USERS", 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// see if this function still uses the same transaction
+	tx, err = db.BeginTx(context.Background(), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ctx = context.Background()
+	err = insertBatch.ExecTransactContext(ctx, tx, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tx.Rollback()
+	err = checkCountForTable(db, "USERS", 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+}
+
+func TestQueryBatch_Verbose(t *testing.T) {
+	migrator = golangmigrator.New(realMigrationDir)
+	db = pgtestdb.New(t, pgConf, migrator)
+	batchWriter, err := parameters.NewQueryWriter(db, "purchases")
+	if err != nil {
+		t.Fatal(err)
+	}
+	insertBatch, _ := batchWriter.GenerateEntry()
+	err = insertBatch.Exec(db, true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -214,7 +302,7 @@ func Benchmark_ExecInsert(b *testing.B) {
 	if err != nil {
 		b.Fatal(err)
 	}
-	insertBatch, deleteBatch := batchWriter.GenerateEntries(5000)
+	insertBatch, deleteBatch := batchWriter.GenerateEntries(500)
 	b.ResetTimer()
 	for range b.N {
 		b.StartTimer()
@@ -238,7 +326,7 @@ func Benchmark_ExecDelete(b *testing.B) {
 	if err != nil {
 		b.Fatal(err)
 	}
-	insertBatch, deleteBatch := batchWriter.GenerateEntries(5000)
+	insertBatch, deleteBatch := batchWriter.GenerateEntries(500)
 	b.ResetTimer()
 	for range b.N {
 		b.StopTimer()
