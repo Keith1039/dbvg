@@ -33,16 +33,44 @@ func init() {
 	}
 }
 
+func TestInitAndCloseDB(t *testing.T) {
+	// valid connection url
+	db2, err := database.InitDB(pgConf.URL())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer database.CloseDB(db2)
+	err = db2.Ping()
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestIsSupportedType(t *testing.T) {
+	ok := database.IsSupportedType("int")
+	if ok {
+		t.Fatal("lower case type name should be invalid")
+	}
+	ok = database.IsSupportedType("SOMERAndom")
+	if ok {
+		t.Fatal("unsupported type name should be invalid")
+	}
+	ok = database.IsSupportedType("VARCHAR")
+	if !ok {
+		t.Fatal("VARCHAR is a supported type but was deemed invalid")
+	}
+}
+
 func TestGetTableMap(t *testing.T) {
 	migrator = golangmigrator.New("migrations/case5")
 	db = pgtestdb.New(t, pgConf, migrator)
-	expectedMap := map[string]int{
-		"a": 1,
-		"b": 1,
-		"c": 1,
-		"d": 1,
-		"e": 1,
-		"f": 1,
+	expectedMap := map[string]bool{
+		"a": true,
+		"b": true,
+		"c": true,
+		"d": true,
+		"e": true,
+		"f": true,
 	}
 	data := database.GetTableMap(db)
 	delete(data, "schema_migrations")
