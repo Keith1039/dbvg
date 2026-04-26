@@ -9,7 +9,7 @@ type topologicalNode struct {
 	completed     bool
 }
 
-func getTopologicalNodes(allTables map[string]int, allRelations map[string]map[string]map[string]string) map[string]*topologicalNode {
+func getTopologicalNodes(allTables map[string]bool, allRelations map[string]map[string]map[string]string) map[string]*topologicalNode {
 	m := make(map[string]*topologicalNode) // map of the table names tied to the node
 	for tableName := range allTables {
 		relations, exists := allRelations[tableName]

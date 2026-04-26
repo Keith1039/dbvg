@@ -29,7 +29,7 @@ func NewOrdering(db *sql.DB) (*Ordering, error) {
 // Ordering is a struct that contains the information necessary to detect and remove cycles
 type Ordering struct {
 	db           *sql.DB                                 // the database connection
-	allTables    map[string]int                          // a map of all the tables in the database
+	allTables    map[string]bool                         // a map of all the tables in the database
 	allRelations map[string]map[string]map[string]string // all table relationships in a mapped form
 	stack        *list.List                              // a stack
 }

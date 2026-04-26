@@ -80,16 +80,16 @@ func CloseDB(db *sql.DB) {
 	}
 }
 
-// GetTableMap returns a map of existing table names mapped to the number 1 in the given database
-func GetTableMap(db *sql.DB) map[string]int {
+// GetTableMap returns a map of existing table names mapped to true in the given database
+func GetTableMap(db *sql.DB) map[string]bool {
+	allNames := make(map[string]bool)
 	tnames, err := schema.TableNames(db)
-	allNames := make(map[string]int)
 	if err != nil {
 		log.Fatal(err)
 	}
 	for i := range tnames {
 		tableName := tnames[i][1]
-		allNames[tableName] = 1
+		allNames[tableName] = true
 	}
 	return allNames
 }
@@ -110,7 +110,6 @@ func GetColumnMap(db *sql.DB, tableName string) map[string]string {
 	tcols, err := schema.ColumnTypes(db, "", tableName) // get the column info
 	if err != nil {
 		log.Fatal(err)
-		return nil
 	}
 
 	for i := range tcols {
