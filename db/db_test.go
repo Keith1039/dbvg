@@ -210,6 +210,10 @@ func TestGetRelationships(t *testing.T) {
 				"Table":  "d",
 				"Column": "dkey",
 			},
+			"ikey": {
+				"Table":  "i",
+				"Column": "ikey",
+			},
 		},
 		"c": {
 			"akey": {
@@ -269,6 +273,18 @@ func TestGetRelationships(t *testing.T) {
 				"Column": "ikey",
 			},
 		},
+		"l": {
+			"mkey": {
+				"Table":  "m",
+				"Column": "mkey",
+			},
+		},
+		"m": {
+			"lkey": {
+				"Table":  "l",
+				"Column": "lkey",
+			},
+		},
 	}
 	data := database.GetRelationships(db)
 	delete(data, "schema_migrations")
@@ -317,12 +333,19 @@ func TestGetInverseRelationships(t *testing.T) {
 		},
 		"i": {
 			"k": true,
+			"b": true,
 		},
 		"j": {
 			"i": true,
 		},
 		"k": {
 			"j": true,
+		},
+		"l": {
+			"m": true,
+		},
+		"m": {
+			"l": true,
 		},
 	}
 	data := database.GetInverseRelationships(db)
