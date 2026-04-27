@@ -28,3 +28,11 @@ jobs:
       - name: Stop containers
         if: always()
         run: docker compose down
+
+      - name: Update coverage report
+        uses: ncruces/go-coverage-report@v0
+        with:
+          report: true
+          chart: true
+          amend: true
+        if: github.ref == 'refs/heads/master' && github.event_name == 'push'

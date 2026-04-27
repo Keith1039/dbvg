@@ -1,5 +1,7 @@
 # DBVG (Work in progress)
 [![Go Reference](https://pkg.go.dev/badge/github.com/Keith1039/dbvg.svg)](https://pkg.go.dev/github.com/Keith1039/dbvg)
+![Go Test](https://github.com/Keith1039/dbvg/actions/workflows/go-test.yml/badge.svg?event=push)
+[![Go Coverage](https://github.com/https://github.com/Keith1039/dbvg/wiki/coverage.svg)](https://raw.githack.com/wiki/Keith1039/dbvg/coverage.html)
 
 Database validator and generator (dbvg) for Postgres. Use as a CLI or import as a library.
 
