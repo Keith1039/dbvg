@@ -80,11 +80,13 @@ databases as seen [here](https://www.geeksforgeeks.org/postgresql/postgresql-ser
 
 If the `Strategy` is shared i.e. each column uses the same struct the following occurs:
 ![incorrect_serial_case](images/incorrect_serial_case.png)
-This does not follow how the SERIAL keyword works in postgres and thus is not behaving correctly
+
+This does not follow how the `SERIAL` type works in postgres and thus is not behaving correctly
 
 If this `Strategy` isn't shared however i.e. each column receives a new copy of the struct:
 ![correct_serial_case](images/correct_serial_case.png)
-This does now conform to the expectation
+
+This now behaves as expected
 
 This flexibility allows for both possibilities and can thus let user's be more space efficient if they so choose to be.
 For example, all instances of `Override Strategy` that are defined and use `gofakeit` can be safely shared.

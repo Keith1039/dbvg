@@ -11,10 +11,21 @@ __[CLI Documentation](cmd/README.md)__
 Currently, there are two ways to get the CLI.
 
 ### Using Go Install
-`go install github.com/Keith1039/dbvg@latest`
+This will download the latest version but will not have the specific version attached
+
+i.e. running `dbvg version` will result in `dbvg dev`
+
+```shell
+go install github.com/Keith1039/dbvg@latest
+```
 
 ### Downloading via Releases on GitHub
 https://github.com/Keith1039/dbvg/releases
+
+Each release starting from `v1.5.1` will have the version attached when running:
+```shell
+dbvg version
+```
 
 **Warning:** If you are on Windows it is not recommended to use this method.
 Antivirus' on Windows sometimes flag Golang compiled executables as malware.
@@ -146,7 +157,7 @@ func main() {
 	if err != nil {
 	    log.Fatal(err)
 	}
-	cycles := ord.GetCycles()    // get a linked list of cycles
+	cycles := ord.GetCycles()    // get an array of cycles
 	// loop through and print cycles
 	for _, cycle := range cycles {
 		fmt.Println(cycle)
@@ -179,7 +190,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-
+    defer db.Close() // close the database connection at the end
 	ord, err := graph.NewOrdering(db) // get a new ordering struct
 	if err != nil {
 		log.Fatal(err)
@@ -189,8 +200,6 @@ func main() {
 	if err != nil {
 		log.Fatal(err) // log the error and close
 	}
-
-	defer db.Close() // close the database connection
 }
 ```
 
@@ -246,7 +255,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-
+    defer db.Close() // close the database connection at the end
 	writer, err := parameters.NewQueryWriter(db, "purchases")
 	if err != nil {
 		log.Fatal(err) // log error
@@ -262,8 +271,6 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	defer db.Close() // close the database connection
 }
 ```
 sample output:
