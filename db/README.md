@@ -18,7 +18,7 @@ While `dbvg` will hopefully support all postgres data types in the future, due t
 - `FLOAT8`
 - `UUID`
 - `VARCHAR`
-- `BPCHAR`
+- `BPCHAR` & `CHAR` (Recognized as the same type internally for postgres)
 - `TEXT`
 - `BOOL`
 - `DATE`
