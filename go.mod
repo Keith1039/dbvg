@@ -4,6 +4,7 @@ go 1.23.3
 
 require (
 	github.com/brianvoe/gofakeit/v7 v7.2.1
+	github.com/dromara/carbon/v2 v2.6.16
 	github.com/duktig-solutions/go-random-date-generator v0.0.0-20220823170630-1c67478b7653
 	github.com/golang-migrate/migrate/v4 v4.18.1
 	github.com/google/uuid v1.6.0
@@ -17,13 +18,11 @@ require (
 )
 
 require (
-	github.com/dromara/carbon/v2 v2.6.16 // indirect
 	github.com/google/gxui v0.0.0-20151028112939-f85e0a97b3a4 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/smartystreets/goconvey v1.8.1 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
-	github.com/stretchr/testify v1.11.1 // indirect
 	go.uber.org/atomic v1.7.0 // indirect
 )
