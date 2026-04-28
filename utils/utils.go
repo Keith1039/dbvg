@@ -7,7 +7,7 @@ import (
 	"errors"
 	"fmt"
 	database "github.com/Keith1039/dbvg/db"
-	"github.com/golang-module/carbon"
+	"github.com/dromara/carbon/v2"
 	"github.com/jimsmart/schema"
 	"log"
 	"os"
@@ -295,7 +295,7 @@ func GetTimeFromString(dateString string) (time.Time, error) {
 	if c.Error != nil {
 		return time.Time{}, c.Error
 	}
-	return c.ToStdTime(), nil
+	return c.StdTime(), nil
 }
 
 // RetrieveInsertTemplateJSON takes in a path to a file and retrieves the JSON data for an

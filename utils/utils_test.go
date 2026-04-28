@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"github.com/Keith1039/dbvg/graph"
 	"github.com/Keith1039/dbvg/utils"
-	"github.com/golang-module/carbon"
+	"github.com/dromara/carbon/v2"
 	"github.com/google/uuid"
 	"github.com/peterldowns/pgtestdb"
 	"github.com/peterldowns/pgtestdb/migrators/golangmigrator"

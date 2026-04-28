@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/Keith1039/dbvg/strategy"
 	"github.com/Keith1039/dbvg/utils"
-	"github.com/golang-module/carbon"
+	"github.com/dromara/carbon/v2"
 	"log"
 	"regexp"
 	"testing"
@@ -172,7 +172,7 @@ func dateStaticTestRunner() *testRunner {
 		if !ok {
 			return strategy.UnexpectedTypeError{ExpectedType: "string", ActualType: utils.GetStringType(s.Value)}
 		}
-		return staticEvaluator(val, carbon.Parse(date).ToStdTime())
+		return staticEvaluator(val, carbon.Parse(date).StdTime())
 	}
 	return &t
 }

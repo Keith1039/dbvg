@@ -3,8 +3,8 @@ package strategy
 import (
 	"fmt"
 	"github.com/Keith1039/dbvg/utils"
+	"github.com/dromara/carbon/v2"
 	randomDataTime "github.com/duktig-solutions/go-random-date-generator"
-	"github.com/golang-module/carbon"
 	regen "github.com/zach-klippenstein/goregen"
 	"math/rand/v2"
 	"regexp"
@@ -184,7 +184,7 @@ func staticDateStrategy(val any) (any, error) {
 	if c.Error != nil {
 		return nil, ImproperDateStringFormatError{DateString: v}
 	}
-	return c.ToStdTime(), nil
+	return c.StdTime(), nil
 }
 
 // NewStaticDateStrategy defines and returns a Strategy of type RequiredStrategy meant to handle code "STATIC" for type "DATE"
@@ -232,7 +232,7 @@ func randomDateStrategy(val any) (any, error) {
 	if err != nil {
 		return nil, err
 	}
-	return carbon.Parse(date).ToStdTime(), nil
+	return carbon.Parse(date).StdTime(), nil
 }
 
 // NewRandomDateStrategy defines and returns a Strategy of type RequiredStrategy meant to handle code "RANDOM" for type "DATE"
